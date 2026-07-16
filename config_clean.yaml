@@ -1,0 +1,13 @@
+api:
+  _placeholder: true
+  gemini_api_key: AUTO_LOAD_FROM_ENV
+  gemini_api_keys: []
+  gemini_model_override: gemini-2.5-flash
+dispatcher:
+  concurrency: 20
+  max_workers: 20
+paths:
+  chunks_dir: A:/chunks
+  logs_dir: A:/logs
+  manifests_dir: A:/manifests
+  processed_md_dir: A:/processed_md

@@ -1,0 +1,25 @@
+587:   let currentIngestProgress = {
+613:     currentIngestProgress = {
+625:         currentIngestProgress.filename = file.name;
+626:         currentIngestProgress.processedChunks = 0;
+627:         currentIngestProgress.totalChunks = 1;
+633:             currentIngestProgress.totalChunks = chunks.length;
+646:               currentIngestProgress.processedChunks++;
+675:             currentIngestProgress.totalChunks = chunks.length;
+677:               currentIngestProgress.processedChunks++;
+706:       currentIngestProgress.status = "completed";
+713:       currentIngestProgress.status = "error";
+2033:       currentIngestProgress = {
+2050:             currentIngestProgress.message = "正在提取音軌音訊 (ffmpeg)...";
+2051:             currentIngestProgress.processedChunks = 20;
+2053:             currentIngestProgress.message = "音訊提取完成。";
+2054:             currentIngestProgress.processedChunks = 40;
+2056:             currentIngestProgress.message = "正在進行本機 GPU/ASR 語音轉錄 (Whisper)...";
+2057:             currentIngestProgress.processedChunks = 60;
+2059:             currentIngestProgress.message = "正在直接提取 PDF 數位文字...";
+2060:             currentIngestProgress.processedChunks = 30;
+2062:             currentIngestProgress.message = "正在進行本機 Tesseract OCR 影像辨識...";
+2063:             currentIngestProgress.processedChunks = 60;
+2065:             currentIngestProgress.message = "GPU 過熱暫停降溫保護中...";
+2067:             currentIngestProgress.message = "GPU 溫度偏高安全限速中...";
+2221:       ingest_progress: currentIngestProgress

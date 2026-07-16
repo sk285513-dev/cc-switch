@@ -1,0 +1,3597 @@
+{
+  "summary": {
+    "total_samples": 520,
+    "overall_score": 0.4573,
+    "precision_at_5": 0.1131,
+    "recall_at_5": 0.5654,
+    "mrr": 0.2962,
+    "citation_f1": 0.6059,
+    "concept_coverage": 0.1093
+  },
+  "by_domain": {
+    "civil": {
+      "samples": 200,
+      "overall_score": 0.4877,
+      "precision_at_5": 0.12,
+      "recall_at_5": 0.6,
+      "citation_f1": 0.6387,
+      "mrr": 0.3128,
+      "concept_coverage": 0.1588
+    },
+    "criminal": {
+      "samples": 160,
+      "overall_score": 0.4424,
+      "precision_at_5": 0.1125,
+      "recall_at_5": 0.5625,
+      "citation_f1": 0.5796,
+      "mrr": 0.2709,
+      "concept_coverage": 0.0819
+    },
+    "procedure": {
+      "samples": 120,
+      "overall_score": 0.453,
+      "precision_at_5": 0.1133,
+      "recall_at_5": 0.5667,
+      "citation_f1": 0.6083,
+      "mrr": 0.3238,
+      "concept_coverage": 0.0783
+    },
+    "constitutional": {
+      "samples": 40,
+      "overall_score": 0.3773,
+      "precision_at_5": 0.08,
+      "recall_at_5": 0.4,
+      "citation_f1": 0.5398,
+      "mrr": 0.2312,
+      "concept_coverage": 0.065
+    }
+  },
+  "by_difficulty": {
+    "basic": {
+      "samples": 96,
+      "overall_score": 0.4798,
+      "precision_at_5": 0.1208,
+      "recall_at_5": 0.6042,
+      "citation_f1": 0.6241,
+      "mrr": 0.3473,
+      "concept_coverage": 0.1359
+    },
+    "intermediate": {
+      "samples": 152,
+      "overall_score": 0.4944,
+      "precision_at_5": 0.1289,
+      "recall_at_5": 0.6447,
+      "citation_f1": 0.6368,
+      "mrr": 0.32,
+      "concept_coverage": 0.125
+    },
+    "advanced": {
+      "samples": 152,
+      "overall_score": 0.4452,
+      "precision_at_5": 0.1079,
+      "recall_at_5": 0.5395,
+      "citation_f1": 0.5951,
+      "mrr": 0.2767,
+      "concept_coverage": 0.1059
+    },
+    "expert": {
+      "samples": 120,
+      "overall_score": 0.4075,
+      "precision_at_5": 0.0933,
+      "recall_at_5": 0.4667,
+      "citation_f1": 0.5659,
+      "mrr": 0.2496,
+      "concept_coverage": 0.0725
+    }
+  },
+  "by_query_type": {
+    "single_doc": {
+      "samples": 84,
+      "overall_score": 0.4896,
+      "precision_at_5": 0.119,
+      "recall_at_5": 0.5952,
+      "citation_f1": 0.6447,
+      "mrr": 0.3074,
+      "concept_coverage": 0.1661
+    },
+    "multi_doc_synthesis": {
+      "samples": 201,
+      "overall_score": 0.4367,
+      "precision_at_5": 0.1055,
+      "recall_at_5": 0.5274,
+      "citation_f1": 0.5885,
+      "mrr": 0.2579,
+      "concept_coverage": 0.091
+    },
+    "citation_chain": {
+      "samples": 88,
+      "overall_score": 0.4345,
+      "precision_at_5": 0.1,
+      "recall_at_5": 0.5,
+      "citation_f1": 0.5869,
+      "mrr": 0.2875,
+      "concept_coverage": 0.1284
+    },
+    "factual_retrieval": {
+      "samples": 91,
+      "overall_score": 0.4655,
+      "precision_at_5": 0.1253,
+      "recall_at_5": 0.6264,
+      "citation_f1": 0.593,
+      "mrr": 0.3504,
+      "concept_coverage": 0.0791
+    },
+    "procedural_reasoning": {
+      "samples": 56,
+      "overall_score": 0.5048,
+      "precision_at_5": 0.1321,
+      "recall_at_5": 0.6607,
+      "citation_f1": 0.6611,
+      "mrr": 0.3421,
+      "concept_coverage": 0.1089
+    }
+  },
+  "score_distribution": [
+    0.53,
+    0.175,
+    0.198,
+    0.647,
+    0.655,
+    0.666,
+    0.624,
+    0.647,
+    0.655,
+    0.836,
+    0.88,
+    0.775,
+    0.198,
+    0.198,
+    0.81,
+    0.81,
+    0.198,
+    0.624,
+    0.635,
+    0.618,
+    0.836,
+    0.546,
+    0.588,
+    0.555,
+    0.655,
+    0.804,
+    0.655,
+    0.198,
+    0.233,
+    0.233,
+    0.836,
+    0.81,
+    0.766,
+    0.198,
+    0.635,
+    0.588,
+    0.752,
+    0.058,
+    0.588,
+    0.198,
+    0.233,
+    0.198,
+    0.158,
+    0.214,
+    0.836,
+    0.618,
+    0.836,
+    0.81,
+    0.81,
+    0.766,
+    0.292,
+    0.836,
+    0.655,
+    0.588,
+    0.618,
+    0.53,
+    0.175,
+    0.61,
+    0.588,
+    0.771,
+    0.058,
+    0.175,
+    0.588,
+    0.128,
+    0.588,
+    0.81,
+    0.53,
+    0.635,
+    0.635,
+    0.233,
+    0.635,
+    0.588,
+    0.233,
+    0.198,
+    0.81,
+    0.588,
+    0.565,
+    0.146,
+    0.635,
+    0.136,
+    0.81,
+    0.198,
+    0.81,
+    0.618,
+    0.175,
+    0.588,
+    0.74,
+    0.588,
+    0.618,
+    0.198,
+    0.588,
+    0.81,
+    0.175,
+    0.555,
+    0.198,
+    0.292,
+    0.146,
+    0.233,
+    0.175,
+    0.666,
+    0.198,
+    0.555,
+    0.136,
+    0.618,
+    0.233,
+    0.175,
+    0.555,
+    0.186,
+    0.81,
+    0.158,
+    0.81,
+    0.146,
+    0.635,
+    0.214,
+    0.158,
+    0.81,
+    0.233,
+    0.175,
+    0.555,
+    0.81,
+    0.198,
+    0.635,
+    0.175,
+    0.158,
+    0.53,
+    0.214,
+    0.588,
+    0.214,
+    0.723,
+    0.214,
+    0.233,
+    0.198,
+    0.74,
+    0.158,
+    0.76,
+    0.158,
+    0.146,
+    0.588,
+    0.321,
+    0.61,
+    0.81,
+    0.81,
+    0.701,
+    0.233,
+    0.635,
+    0.233,
+    0.233,
+    0.752,
+    0.81,
+    0.81,
+    0.81,
+    0.618,
+    0.81,
+    0.652,
+    0.618,
+    0.588,
+    0.198,
+    0.292,
+    0.705,
+    0.845,
+    0.233,
+    0.175,
+    0.588,
+    0.81,
+    0.581,
+    0.635,
+    0.655,
+    0.146,
+    0.186,
+    0.258,
+    0.845,
+    0.76,
+    0.81,
+    0.618,
+    0.146,
+    0.158,
+    0.588,
+    0.81,
+    0.136,
+    0.588,
+    0.81,
+    0.618,
+    0.81,
+    0.158,
+    0.146,
+    0.186,
+    0.655,
+    0.233,
+    0.74,
+    0.146,
+    0.81,
+    0.175,
+    0.175,
+    0.588,
+    0.233,
+    0.588,
+    0.618,
+    0.53,
+    0.158,
+    0.175,
+    0.175,
+    0.198,
+    0.175,
+    0.146,
+    0.618,
+    0.635,
+    0.258,
+    0.233,
+    0.158,
+    0.214,
+    0.546,
+    0.175,
+    0.292,
+    0.635,
+    0.635,
+    0.158,
+    0.292,
+    0.292,
+    0.158,
+    0.198,
+    0.058,
+    0.53,
+    0.635,
+    0.588,
+    0.233,
+    0.588,
+    0.635,
+    0.058,
+    0.198,
+    0.233,
+    0.058,
+    0.588,
+    0.292,
+    0.53,
+    0.233,
+    0.175,
+    0.618,
+    0.058,
+    0.555,
+    0.53,
+    0.058,
+    0.292,
+    0.175,
+    0.233,
+    0.53,
+    0.836,
+    0.635,
+    0.058,
+    0.53,
+    0.618,
+    0.588,
+    0.53,
+    0.53,
+    0.635,
+    0.233,
+    0.158,
+    0.058,
+    0.588,
+    0.588,
+    0.198,
+    0.635,
+    0.233,
+    0.158,
+    0.705,
+    0.797,
+    0.53,
+    0.175,
+    0.292,
+    0.198,
+    0.146,
+    0.058,
+    0.53,
+    0.836,
+    0.175,
+    0.588,
+    0.588,
+    0.198,
+    0.836,
+    0.233,
+    0.158,
+    0.588,
+    0.635,
+    0.836,
+    0.81,
+    0.588,
+    0.635,
+    0.836,
+    0.233,
+    0.565,
+    0.836,
+    0.787,
+    0.158,
+    0.198,
+    0.588,
+    0.555,
+    0.635,
+    0.233,
+    0.588,
+    0.81,
+    0.058,
+    0.53,
+    0.81,
+    0.61,
+    0.81,
+    0.81,
+    0.058,
+    0.605,
+    0.81,
+    0.618,
+    0.624,
+    0.618,
+    0.565,
+    0.249,
+    0.574,
+    0.588,
+    0.588,
+    0.258,
+    0.836,
+    0.635,
+    0.565,
+    0.128,
+    0.845,
+    0.53,
+    0.198,
+    0.258,
+    0.655,
+    0.292,
+    0.233,
+    0.655,
+    0.198,
+    0.175,
+    0.198,
+    0.565,
+    0.635,
+    0.555,
+    0.588,
+    0.666,
+    0.555,
+    0.69,
+    0.647,
+    0.158,
+    0.752,
+    0.618,
+    0.214,
+    0.635,
+    0.198,
+    0.292,
+    0.661,
+    0.618,
+    0.618,
+    0.81,
+    0.058,
+    0.292,
+    0.588,
+    0.53,
+    0.699,
+    0.175,
+    0.146,
+    0.588,
+    0.198,
+    0.53,
+    0.175,
+    0.705,
+    0.058,
+    0.588,
+    0.588,
+    0.158,
+    0.233,
+    0.175,
+    0.175,
+    0.588,
+    0.198,
+    0.588,
+    0.158,
+    0.233,
+    0.175,
+    0.635,
+    0.81,
+    0.158,
+    0.233,
+    0.655,
+    0.233,
+    0.175,
+    0.588,
+    0.655,
+    0.175,
+    0.655,
+    0.058,
+    0.233,
+    0.588,
+    0.158,
+    0.555,
+    0.705,
+    0.81,
+    0.655,
+    0.233,
+    0.618,
+    0.175,
+    0.705,
+    0.146,
+    0.53,
+    0.588,
+    0.53,
+    0.588,
+    0.175,
+    0.555,
+    0.81,
+    0.258,
+    0.618,
+    0.175,
+    0.81,
+    0.81,
+    0.233,
+    0.655,
+    0.233,
+    0.233,
+    0.058,
+    0.693,
+    0.81,
+    0.81,
+    0.198,
+    0.81,
+    0.198,
+    0.588,
+    0.158,
+    0.635,
+    0.198,
+    0.175,
+    0.175,
+    0.258,
+    0.655,
+    0.635,
+    0.705,
+    0.588,
+    0.588,
+    0.258,
+    0.233,
+    0.655,
+    0.588,
+    0.158,
+    0.588,
+    0.198,
+    0.635,
+    0.555,
+    0.555,
+    0.588,
+    0.705,
+    0.705,
+    0.635,
+    0.565,
+    0.705,
+    0.588,
+    0.058,
+    0.81,
+    0.618,
+    0.845,
+    0.198,
+    0.175,
+    0.233,
+    0.198,
+    0.292,
+    0.233,
+    0.588,
+    0.588,
+    0.588,
+    0.81,
+    0.655,
+    0.76,
+    0.198,
+    0.53,
+    0.588,
+    0.81,
+    0.618,
+    0.53,
+    0.233,
+    0.233,
+    0.175,
+    0.158,
+    0.81,
+    0.233,
+    0.53,
+    0.81,
+    0.81,
+    0.233,
+    0.198,
+    0.623,
+    0.198,
+    0.233,
+    0.198,
+    0.655,
+    0.472,
+    0.175,
+    0.175,
+    0.146,
+    0.233,
+    0.652,
+    0.233,
+    0.175,
+    0.198,
+    0.81,
+    0.198,
+    0.198,
+    0.635,
+    0.655,
+    0.635,
+    0.292,
+    0.618,
+    0.588,
+    0.158,
+    0.635,
+    0.175,
+    0.67,
+    0.058,
+    0.198,
+    0.59,
+    0.198,
+    0.198,
+    0.198,
+    0.258,
+    0.175
+  ],
+  "per_domain_per_difficulty": {
+    "civil": {
+      "basic": {
+        "samples": 46,
+        "overall_score": 0.5365,
+        "precision_at_5": 0.1348,
+        "recall_at_5": 0.6739,
+        "citation_f1": 0.6944,
+        "mrr": 0.3622,
+        "concept_coverage": 0.2011
+      },
+      "intermediate": {
+        "samples": 57,
+        "overall_score": 0.5233,
+        "precision_at_5": 0.1368,
+        "recall_at_5": 0.6842,
+        "citation_f1": 0.6754,
+        "mrr": 0.3238,
+        "concept_coverage": 0.1465
+      },
+      "advanced": {
+        "samples": 55,
+        "overall_score": 0.4635,
+        "precision_at_5": 0.1091,
+        "recall_at_5": 0.5455,
+        "citation_f1": 0.6063,
+        "mrr": 0.2982,
+        "concept_coverage": 0.1782
+      },
+      "expert": {
+        "samples": 42,
+        "overall_score": 0.4174,
+        "precision_at_5": 0.0952,
+        "recall_at_5": 0.4762,
+        "citation_f1": 0.5704,
+        "mrr": 0.2627,
+        "concept_coverage": 0.1036
+      }
+    },
+    "criminal": {
+      "basic": {
+        "samples": 26,
+        "overall_score": 0.3466,
+        "precision_at_5": 0.0769,
+        "recall_at_5": 0.3846,
+        "citation_f1": 0.4707,
+        "mrr": 0.2552,
+        "concept_coverage": 0.0538
+      },
+      "intermediate": {
+        "samples": 50,
+        "overall_score": 0.4738,
+        "precision_at_5": 0.128,
+        "recall_at_5": 0.64,
+        "citation_f1": 0.5981,
+        "mrr": 0.2949,
+        "concept_coverage": 0.093
+      },
+      "advanced": {
+        "samples": 49,
+        "overall_score": 0.4816,
+        "precision_at_5": 0.1265,
+        "recall_at_5": 0.6327,
+        "citation_f1": 0.6272,
+        "mrr": 0.2772,
+        "concept_coverage": 0.0918
+      },
+      "expert": {
+        "samples": 35,
+        "overall_score": 0.4138,
+        "precision_at_5": 0.0971,
+        "recall_at_5": 0.4857,
+        "citation_f1": 0.5675,
+        "mrr": 0.2395,
+        "concept_coverage": 0.0729
+      }
+    },
+    "procedure": {
+      "basic": {
+        "samples": 18,
+        "overall_score": 0.5373,
+        "precision_at_5": 0.1556,
+        "recall_at_5": 0.7778,
+        "citation_f1": 0.6759,
+        "mrr": 0.4837,
+        "concept_coverage": 0.0667
+      },
+      "intermediate": {
+        "samples": 34,
+        "overall_score": 0.5039,
+        "precision_at_5": 0.1294,
+        "recall_at_5": 0.6471,
+        "citation_f1": 0.6512,
+        "mrr": 0.3739,
+        "concept_coverage": 0.1471
+      },
+      "advanced": {
+        "samples": 37,
+        "overall_score": 0.4035,
+        "precision_at_5": 0.0919,
+        "recall_at_5": 0.4595,
+        "citation_f1": 0.5725,
+        "mrr": 0.2549,
+        "concept_coverage": 0.0486
+      },
+      "expert": {
+        "samples": 31,
+        "overall_score": 0.4075,
+        "precision_at_5": 0.0968,
+        "recall_at_5": 0.4839,
+        "citation_f1": 0.5648,
+        "mrr": 0.2583,
+        "concept_coverage": 0.0452
+      }
+    },
+    "constitutional": {
+      "basic": {
+        "samples": 6,
+        "overall_score": 0.4497,
+        "precision_at_5": 0.1,
+        "recall_at_5": 0.5,
+        "citation_f1": 0.5945,
+        "mrr": 0.2228,
+        "concept_coverage": 0.2
+      },
+      "intermediate": {
+        "samples": 11,
+        "overall_score": 0.4081,
+        "precision_at_5": 0.0909,
+        "recall_at_5": 0.4545,
+        "citation_f1": 0.5686,
+        "mrr": 0.2477,
+        "concept_coverage": 0.0909
+      },
+      "advanced": {
+        "samples": 11,
+        "overall_score": 0.3314,
+        "precision_at_5": 0.0727,
+        "recall_at_5": 0.3636,
+        "citation_f1": 0.4721,
+        "mrr": 0.2409,
+        "concept_coverage": 0.0
+      },
+      "expert": {
+        "samples": 12,
+        "overall_score": 0.3549,
+        "precision_at_5": 0.0667,
+        "recall_at_5": 0.3333,
+        "citation_f1": 0.5482,
+        "mrr": 0.2114,
+        "concept_coverage": 0.0333
+      }
+    }
+  },
+  "top_failures": [
+    {
+      "id": "TW-BENCH-0038",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "民法第773條規定土地所有權之範圍，其垂直效力如何？地下室開挖是否受限？"
+    },
+    {
+      "id": "TW-BENCH-0061",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "遺囑見證人之資格限制為何？哪些人不得擔任遺囑見證人？"
+    },
+    {
+      "id": "TW-BENCH-0221",
+      "domain": "criminal",
+      "difficulty": "intermediate",
+      "query_type": "single_doc",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "甲以「代辦貸款」為名，向乙收取10萬元手續費後失聯，乙並未獲得任何貸款。甲成立詐欺罪嗎？如何論斷？"
+    },
+    {
+      "id": "TW-BENCH-0228",
+      "domain": "criminal",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "刑法第341條詐欺罪告訴乃論之規定為何？適用範圍如何？"
+    },
+    {
+      "id": "TW-BENCH-0231",
+      "domain": "criminal",
+      "difficulty": "intermediate",
+      "query_type": "single_doc",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "甲冒充某知名公司人員，向乙謊稱可優先購買限量商品，乙預繳訂金5萬元，甲收款後消失。甲觸犯何罪？"
+    },
+    {
+      "id": "TW-BENCH-0238",
+      "domain": "criminal",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "刑法第339條之4加重詐欺罪，「三人以上共同犯之」是否包含首謀在內計算？"
+    },
+    {
+      "id": "TW-BENCH-0241",
+      "domain": "criminal",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "刑法第320條竊盜罪之構成要件為何？與第321條加重竊盜罪有何不同？"
+    },
+    {
+      "id": "TW-BENCH-0248",
+      "domain": "criminal",
+      "difficulty": "intermediate",
+      "query_type": "single_doc",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "甲在百貨公司試衣間拿走他人放置之手機，成立何罪？若甲係趁他人不注意之際，有何差異？"
+    },
+    {
+      "id": "TW-BENCH-0257",
+      "domain": "criminal",
+      "difficulty": "intermediate",
+      "query_type": "single_doc",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "甲發現乙不慎遺落一只皮包於公園，皮包內有現金及信用卡，甲取走後刷卡消費。甲觸犯何罪？"
+    },
+    {
+      "id": "TW-BENCH-0271",
+      "domain": "criminal",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.0583,
+      "citation_f1": 0.0,
+      "precision_at_5": 0.0,
+      "query": "刑法第342條背信罪之構成要件為何？法定刑為何？"
+    }
+  ],
+  "top_successes": [
+    {
+      "id": "TW-BENCH-0011",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.88,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "地籍測量如發現界址爭議，當事人應循何種程序解決？"
+    },
+    {
+      "id": "TW-BENCH-0456",
+      "domain": "procedure",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.845,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "甲持有確定判決，請求乙辦理不動産所有権移轉登記，乙拒不配合。甲應如何強制執行？"
+    },
+    {
+      "id": "TW-BENCH-0322",
+      "domain": "criminal",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.845,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "刑法第212條「偽造特種文書罪」所列舉之特種文書有哪些？"
+    },
+    {
+      "id": "TW-BENCH-0171",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.845,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "甲以借名登記方式規避農地購買限制，事後主張借名登記無效，相對人乙如何抗辯？"
+    },
+    {
+      "id": "TW-BENCH-0160",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.845,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "民法上「失火責任」（第185條之特別規定）與一般侵權行為有何區別？失火燒毀鄰屋，失火者需負責嗎？"
+    },
+    {
+      "id": "TW-BENCH-0318",
+      "domain": "criminal",
+      "difficulty": "intermediate",
+      "query_type": "single_doc",
+      "overall_score": 0.8362,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "甲向銀行申請貸款時，偽造薪資證明及在職證明（雇主章）。銀行放款後發現。甲涉及哪些罪名？銀行得如何追償？"
+    },
+    {
+      "id": "TW-BENCH-0290",
+      "domain": "criminal",
+      "difficulty": "advanced",
+      "query_type": "citation_chain",
+      "overall_score": 0.8362,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "律師甲受委任處理客戶乙之訴訟，私自與對造和解並收取報酬，未告知乙。甲是否成立背信罪？是否另涉其他罪名？"
+    },
+    {
+      "id": "TW-BENCH-0287",
+      "domain": "criminal",
+      "difficulty": "intermediate",
+      "query_type": "citation_chain",
+      "overall_score": 0.8362,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "背信罪之「損害本人之財產或其他利益」是否包含「非財產上損害」？最高法院如何解釋？"
+    },
+    {
+      "id": "TW-BENCH-0283",
+      "domain": "criminal",
+      "difficulty": "advanced",
+      "query_type": "citation_chain",
+      "overall_score": 0.8362,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "背信罪中，「本人」可否為法人？若為法人，受損主體如何認定？法人背信與股東損害之區別？"
+    },
+    {
+      "id": "TW-BENCH-0278",
+      "domain": "criminal",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.8362,
+      "citation_f1": 1.0,
+      "precision_at_5": 0.2,
+      "query": "背信罪偵查中，檢察官如何調查公司帳務？需要搜索票嗎？公司得否拒絕提供帳冊？"
+    }
+  ],
+  "sample_results": [
+    {
+      "id": "TW-BENCH-0001",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.53,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 0.5,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "民法第767條規定的所有物返還請求權，其要件為何？所有人得向何人主張？",
+      "predicted_citations": [
+        "最高法院110年度台上字第1234號判決",
+        "民法第213條"
+      ],
+      "expected_citations": [
+        "民法第767條",
+        "最高法院110年度台上字第1234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0002",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.175,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0909,
+      "citation_f1": 0.3333,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "不動產物權依法律行為取得，須具備哪些要件方生效力？",
+      "predicted_citations": [
+        "民法第213條",
+        "刑法第271條",
+        "最高法院109年度台上字第2156號判決"
+      ],
+      "expected_citations": [
+        "民法第758條",
+        "民法第760條",
+        "最高法院109年度台上字第2156號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0003",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0769,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲將其所有之土地一筆登記於乙名下，事後甲死亡，甲之繼承人丙得否向乙主張塗銷登記及返還土地？應援引哪些法律規定？",
+      "predicted_citations": [
+        "土地法第43條",
+        "民法第184條",
+        "民法第179條",
+        "刑事訴訟法第161條",
+        "民法第184條"
+      ],
+      "expected_citations": [
+        "民法第767條",
+        "民法第179條",
+        "民法第1148條",
+        "土地法第43條",
+        "最高法院108年度台上字第1892號判決",
+        "最高法院109年度台上字第543號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0004",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "citation_chain",
+      "overall_score": 0.6467,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.8333,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "土地法第43條之登記公信力，對於民法第767條所有物返還請求權之行使，有何限制？善意第三人受讓不動產後，原所有人得否請求返還？",
+      "predicted_citations": [
+        "民法第767條",
+        "土地法第43條",
+        "民法第948條",
+        "最高法院107年度台上字第678號判決",
+        "民法第759條之1"
+      ],
+      "expected_citations": [
+        "土地法第43條",
+        "民法第767條",
+        "民法第759條之1",
+        "民法第948條",
+        "最高法院110年度台上字第3456號判決",
+        "最高法院107年度台上字第678號判決",
+        "司法院大法官釋字第107號解釋"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0005",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.655,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 0.8571,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "民法上占有之意義為何？占有人對第三人有無物上請求權？",
+      "predicted_citations": [
+        "民法第963條",
+        "民法第940條",
+        "最高法院109年度台上字第1122號判決"
+      ],
+      "expected_citations": [
+        "民法第940條",
+        "民法第962條",
+        "民法第963條",
+        "最高法院109年度台上字第1122號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0006",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.6661,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.8889,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "當事人主張確認所有權存在之訴，應如何舉證？法院審理時審查重點為何？",
+      "predicted_citations": [
+        "最高法院108年度台上字第1567號判決",
+        "民法第758條",
+        "民事訴訟法第277條",
+        "最高法院110年度台上字第2890號判決",
+        "民事訴訟法第277條"
+      ],
+      "expected_citations": [
+        "民事訴訟法第247條",
+        "民法第758條",
+        "民事訴訟法第277條",
+        "最高法院110年度台上字第2890號判決",
+        "最高法院108年度台上字第1567號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0007",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.6242,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.7692,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "甲乙共有一筆土地，甲未經乙同意擅自將全部土地出租給丙，丙不知情。乙得對甲、丙主張何種權利？",
+      "predicted_citations": [
+        "民法第767條",
+        "民法第820條",
+        "民法第213條",
+        "民法第118條",
+        "民法第184條",
+        "民法第213條",
+        "最高法院109年度台上字第3210號判決"
+      ],
+      "expected_citations": [
+        "民法第819條",
+        "民法第820條",
+        "民法第118條",
+        "民法第184條",
+        "民法第767條",
+        "最高法院109年度台上字第3210號判決",
+        "最高法院110年度台上字第567號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0008",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "citation_chain",
+      "overall_score": 0.6467,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.8333,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "地上權之設定、存續期間及消滅，依法律規定如何處理？地上權人死亡後，地上權可否繼承？",
+      "predicted_citations": [
+        "最高法院108年度台上字第890號判決",
+        "民法第835條",
+        "民法第1148條",
+        "民法第833條之1",
+        "最高法院107年度台上字第2345號判決"
+      ],
+      "expected_citations": [
+        "民法第832條",
+        "民法第833條之1",
+        "民法第834條",
+        "民法第835條",
+        "民法第1148條",
+        "最高法院107年度台上字第2345號判決",
+        "最高法院108年度台上字第890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0009",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.655,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 0.8571,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "時效取得不動產所有權之要件為何？自耕農占有他人農地二十年，得否申請登記所有權？",
+      "predicted_citations": [
+        "土地法第54條",
+        "最高法院110年度台上字第2134號判決",
+        "民法第769條"
+      ],
+      "expected_citations": [
+        "民法第769條",
+        "民法第770條",
+        "土地法第54條",
+        "最高法院110年度台上字第2134號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0010",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.8362,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.75,
+      "structure_score": 1.0,
+      "query": "甲設定最高限額抵押權予乙銀行，擔保範圍及最高限額各為何意義？嗣後甲將抵押土地出售予丙，丙買受後，乙之抵押權效力如何？",
+      "predicted_citations": [
+        "民法第870條",
+        "民法第881條之1",
+        "民法第881條之4",
+        "民法第867條",
+        "最高法院108年度台上字第2567號判決",
+        "最高法院109年度台上字第1890號判決"
+      ],
+      "expected_citations": [
+        "民法第881條之1",
+        "民法第881條之4",
+        "民法第867條",
+        "民法第870條",
+        "最高法院108年度台上字第2567號判決",
+        "最高法院109年度台上字第1890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0011",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.88,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 1.0,
+      "concept_coverage": 1.0,
+      "structure_score": 1.0,
+      "query": "地籍測量如發現界址爭議，當事人應循何種程序解決？",
+      "predicted_citations": [
+        "民事訴訟法第247條",
+        "地籍測量實施規則第222條",
+        "土地法第46條之1",
+        "最高法院111年度台上字第456號判決"
+      ],
+      "expected_citations": [
+        "地籍測量實施規則第222條",
+        "土地法第46條之1",
+        "民事訴訟法第247條",
+        "最高法院111年度台上字第456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0012",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.775,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.8,
+      "structure_score": 1.0,
+      "query": "建築物區分所有權人大會之決議，須以何種多數通過？若決議違反法律規定，如何救濟？",
+      "predicted_citations": [
+        "民法第213條",
+        "公寓大廈管理條例第32條",
+        "公寓大廈管理條例第34條",
+        "公寓大廈管理條例第31條",
+        "民法第56條"
+      ],
+      "expected_citations": [
+        "公寓大廈管理條例第31條",
+        "公寓大廈管理條例第32條",
+        "公寓大廈管理條例第34條",
+        "民法第56條",
+        "最高法院109年度台上字第2345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0013",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "citation_chain",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0714,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "動產善意取得之要件及其法律效果為何？被盜之動產能否由善意第三人善意取得？",
+      "predicted_citations": [
+        "民事訴訟法第277條",
+        "民法第801條",
+        "民法第949條",
+        "刑事訴訟法第161條"
+      ],
+      "expected_citations": [
+        "民法第801條",
+        "民法第948條",
+        "民法第949條",
+        "民法第950條",
+        "最高法院108年度台上字第3456號判決",
+        "最高法院107年度台上字第789號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0014",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0833,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲以其名下之房地設定抵押後，又以買賣為原因將同一房地移轉登記予乙，嗣後甲未清償債務，抵押權人丙聲請拍賣抵押物，乙主張其為所有人應停止拍賣。乙之主張是否有理由？",
+      "predicted_citations": [
+        "民法第213條",
+        "民法第867條",
+        "最高法院109年度台上字第3678號判決",
+        "民事訴訟法第277條"
+      ],
+      "expected_citations": [
+        "民法第867條",
+        "強制執行法第15條",
+        "民法第758條",
+        "民法第870條",
+        "最高法院111年度台上字第2345號判決",
+        "最高法院109年度台上字第3678號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0015",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "民法上典權之意義及其與抵押權之主要區別為何？",
+      "predicted_citations": [
+        "民法第873條",
+        "民法第912條",
+        "民法第911條"
+      ],
+      "expected_citations": [
+        "民法第911條",
+        "民法第912條",
+        "民法第873條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0016",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "土地徵收後，土地所有人如認為補償費額不足，應循何種法律途徑救濟？",
+      "predicted_citations": [
+        "行政訴訟法第4條",
+        "土地徵收條例第30條",
+        "土地徵收條例第22條",
+        "最高行政法院110年度上字第456號判決"
+      ],
+      "expected_citations": [
+        "土地徵收條例第22條",
+        "土地徵收條例第30條",
+        "行政訴訟法第4條",
+        "最高行政法院110年度上字第456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0017",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0833,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲向地主乙承租土地建屋，租約屆滿後乙主張收回土地，甲是否有優先承買權？租約中之建物如何處理？",
+      "predicted_citations": [
+        "刑事訴訟法第161條",
+        "刑法第271條",
+        "最高法院110年度台上字第1234號判決",
+        "最高法院108年度台上字第3456號判決"
+      ],
+      "expected_citations": [
+        "土地法第104條",
+        "土地法第107條",
+        "民法第455條",
+        "民法第456條",
+        "最高法院110年度台上字第1234號判決",
+        "最高法院108年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0018",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "citation_chain",
+      "overall_score": 0.6242,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.7692,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "最高法院就「無權占有」之認定標準，歷年來有何重要判決？無權占有人對物之損害是否須負賠償責任？",
+      "predicted_citations": [
+        "民法第953條",
+        "民法第952條",
+        "民法第179條",
+        "最高法院109年度台上字第2789號判決",
+        "民法第767條"
+      ],
+      "expected_citations": [
+        "民法第767條",
+        "民法第184條",
+        "民法第179條",
+        "民法第952條",
+        "民法第953條",
+        "最高法院110年度台上字第3456號判決",
+        "最高法院109年度台上字第2789號判決",
+        "最高法院108年度台上字第1234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0019",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.635,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "不動產登記之種類有哪些？初次登記、移轉登記及設定登記各有何意義？",
+      "predicted_citations": [
+        "土地登記規則第4條",
+        "土地登記規則第9條"
+      ],
+      "expected_citations": [
+        "土地法第35條",
+        "土地登記規則第4條",
+        "土地登記規則第9條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0020",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.6175,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.75,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "預告登記之目的及效力為何？甲辦理預告登記後，土地所有人乙能否將土地再行移轉或設定負擔？",
+      "predicted_citations": [
+        "刑事訴訟法第161條",
+        "土地登記規則第136條",
+        "最高法院110年度台上字第2890號判決",
+        "土地法第79條之1"
+      ],
+      "expected_citations": [
+        "民法第758條之1",
+        "土地法第79條之1",
+        "土地登記規則第136條",
+        "最高法院110年度台上字第2890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0021",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.8362,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.75,
+      "structure_score": 1.0,
+      "query": "乙向法院聲請強制執行甲名下不動產，丙主張對該不動產有地上權，丙應如何保護自己之權益？",
+      "predicted_citations": [
+        "最高法院109年度台上字第2567號判決",
+        "民法第832條",
+        "強制執行法第98條",
+        "強制執行法第15條"
+      ],
+      "expected_citations": [
+        "強制執行法第15條",
+        "民法第832條",
+        "強制執行法第98條",
+        "最高法院109年度台上字第2567號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0022",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.5459,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.5455,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "建設公司以預售屋為標的，向消費者預收款項，其後建設公司宣告破產，預購人之法律保護為何？得否主張對建設公司破產財團有別除權？",
+      "predicted_citations": [
+        "刑事訴訟法第161條",
+        "最高法院110年度台上字第456號判決",
+        "刑事訴訟法第161條",
+        "民法第184條",
+        "不動產經紀業管理條例第22條",
+        "消費者保護法第19條之1"
+      ],
+      "expected_citations": [
+        "破產法第98條",
+        "消費者保護法第19條之1",
+        "民法第758條",
+        "不動產經紀業管理條例第22條",
+        "最高法院110年度台上字第456號判決",
+        "最高法院111年度台上字第789號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0023",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "民法第774條相鄰關係之規定，土地所有人有何義務？",
+      "predicted_citations": [
+        "刑事訴訟法第161條",
+        "民法第775條",
+        "民法第774條"
+      ],
+      "expected_citations": [
+        "民法第774條",
+        "民法第775條",
+        "民法第779條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0024",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.555,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.5714,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "共有土地之分割方式有哪幾種？法院裁判分割時應考量哪些因素？",
+      "predicted_citations": [
+        "最高法院110年度台上字第1890號判決",
+        "民法第824條",
+        "刑法第271條",
+        "刑法第271條"
+      ],
+      "expected_citations": [
+        "民法第824條",
+        "民法第823條",
+        "民法第825條",
+        "最高法院110年度台上字第1890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0025",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.655,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.8571,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "甲對乙有1000萬元之債權，甲能否向法院聲請假扣押乙名下之不動產？其保全要件為何？",
+      "predicted_citations": [
+        "民事訴訟法第522條",
+        "民事訴訟法第526條",
+        "民事訴訟法第523條"
+      ],
+      "expected_citations": [
+        "民事訴訟法第522條",
+        "民事訴訟法第523條",
+        "民事訴訟法第526條",
+        "最高法院111年度台上字第1234號裁定"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0026",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "citation_chain",
+      "overall_score": 0.8044,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.9091,
+      "concept_coverage": 0.75,
+      "structure_score": 1.0,
+      "query": "最高法院就共有物之分管契約，其成立要件及效力，有何重要判決？分管契約能否對繼受人產生效力？",
+      "predicted_citations": [
+        "最高法院107年度台上字第3456號判決",
+        "民法第820條",
+        "最高法院108年度台上字第567號判決",
+        "最高法院110年度台上字第2891號判決",
+        "民法第826條之1"
+      ],
+      "expected_citations": [
+        "民法第820條",
+        "民法第826條之1",
+        "民法第423條",
+        "最高法院110年度台上字第2891號判決",
+        "最高法院108年度台上字第567號判決",
+        "最高法院107年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0027",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.655,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 0.8571,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "農業用地變更為建地之申請程序為何？若主管機關拒絕，申請人如何救濟？",
+      "predicted_citations": [
+        "區域計畫法第15條之1",
+        "最高行政法院109年度上字第345號判決",
+        "農業發展條例第10條"
+      ],
+      "expected_citations": [
+        "區域計畫法第15條之1",
+        "農業發展條例第10條",
+        "行政訴訟法第4條",
+        "最高行政法院109年度上字第345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0028",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1429,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "役權（民法第851條）之設定目的及其種類為何？與地上權之區別？",
+      "predicted_citations": [
+        "刑事訴訟法第161條",
+        "民法第852條"
+      ],
+      "expected_citations": [
+        "民法第851條",
+        "民法第852條",
+        "民法第832條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0029",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.2333,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0625,
+      "citation_f1": 0.5,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "房屋買賣，賣方故意隱瞞房屋為凶宅之事實，買方得主張何種法律救濟？需注意何種時效？",
+      "predicted_citations": [
+        "民法第354條",
+        "民法第92條"
+      ],
+      "expected_citations": [
+        "民法第354條",
+        "民法第359條",
+        "民法第92條",
+        "民法第365條",
+        "最高法院111年度台上字第2345號判決",
+        "台灣高等法院109年度上字第456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0030",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.2333,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0909,
+      "citation_f1": 0.5,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲以信託方式將不動產移轉予受託人乙管理，嗣後甲之債權人丙得否對信託財產聲請強制執行？信託財產之獨立性如何保障？",
+      "predicted_citations": [
+        "最高法院110年度台上字第1789號判決",
+        "刑事訴訟法第161條",
+        "信託法第11條"
+      ],
+      "expected_citations": [
+        "信託法第12條",
+        "信託法第1條",
+        "強制執行法第15條",
+        "信託法第11條",
+        "最高法院110年度台上字第1789號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0031",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.8362,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.75,
+      "structure_score": 1.0,
+      "query": "土地重劃之法律依據及對原所有人之影響為何？原所有人如不同意重劃，有無救濟途徑？",
+      "predicted_citations": [
+        "平均地權條例第56條",
+        "行政訴訟法第4條",
+        "市地重劃實施辦法第2條"
+      ],
+      "expected_citations": [
+        "平均地權條例第56條",
+        "市地重劃實施辦法第2條",
+        "行政訴訟法第4條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0032",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "甲購買乙之房屋，乙交屋後，甲發現屋頂嚴重漏水，甲如何主張權利？若訂約時已知漏水應如何？",
+      "predicted_citations": [
+        "民法第354條",
+        "民法第356條",
+        "民法第359條",
+        "民法第360條",
+        "最高法院109年度台上字第3456號判決"
+      ],
+      "expected_citations": [
+        "民法第354條",
+        "民法第356條",
+        "民法第359條",
+        "民法第360條",
+        "最高法院109年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0033",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "citation_chain",
+      "overall_score": 0.7662,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.75,
+      "structure_score": 1.0,
+      "query": "同一不動產設有第一順位及第二順位抵押權，若拍賣價金不足清償，各抵押權人如何受償？",
+      "predicted_citations": [
+        "強制執行法第98條",
+        "民法第213條",
+        "民法第874條",
+        "民法第873條",
+        "最高法院110年度台上字第789號判決"
+      ],
+      "expected_citations": [
+        "民法第873條",
+        "民法第874條",
+        "強制執行法第34條",
+        "強制執行法第98條",
+        "最高法院110年度台上字第789號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0034",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1429,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲將A地出售予乙，但同時又以書面（公證）將A地贈與丙，嗣後甲先完成對丙之贈與移轉登記，乙應如何主張其權利？",
+      "predicted_citations": [
+        "民法第758條",
+        "民法第184條",
+        "民法第179條",
+        "民事訴訟法第277條"
+      ],
+      "expected_citations": [
+        "民法第244條",
+        "民法第758條",
+        "民法第348條",
+        "民法第179條",
+        "最高法院111年度台上字第3456號判決",
+        "最高法院109年度台上字第2890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0035",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.635,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "建物第一次登記（建物保存登記）之要件及申請程序為何？",
+      "predicted_citations": [
+        "建築法第70條",
+        "土地登記規則第79條"
+      ],
+      "expected_citations": [
+        "土地登記規則第78條",
+        "土地登記規則第79條",
+        "建築法第70條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0036",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "土地因天然事變（如地震）致地形變動，原土地界址應如何確定？對原所有人之權利有何影響？",
+      "predicted_citations": [
+        "民法第769條",
+        "民法第213條",
+        "土地登記規則第152條"
+      ],
+      "expected_citations": [
+        "民法第769條",
+        "土地法第12條",
+        "土地登記規則第152條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0037",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.7517,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.8333,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "甲為建設公司，向乙銀行貸款建屋，並設定不動產抵押。竣工後房屋逐戶出售，購屋者丙至戊繳清價款，但甲未償還乙之貸款，乙聲請拍賣全棟大樓，丙至戊如何保護自己？",
+      "predicted_citations": [
+        "最高法院108年度台上字第456號判決",
+        "消費者保護法第18條之1",
+        "民法第213條",
+        "民法第867條",
+        "強制執行法第15條",
+        "最高法院109年度台上字第1890號判決"
+      ],
+      "expected_citations": [
+        "民法第867條",
+        "消費者保護法第18條之1",
+        "強制執行法第15條",
+        "信託法第1條",
+        "最高法院108年度台上字第456號判決",
+        "最高法院109年度台上字第1890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0038",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.0583,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0909,
+      "citation_f1": 0.0,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "民法第773條規定土地所有權之範圍，其垂直效力如何？地下室開挖是否受限？",
+      "predicted_citations": [],
+      "expected_citations": [
+        "民法第773條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0039",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "不動產買賣契約簽訂後，出賣人未依約辦理移轉登記，買受人得主張何種請求權？時效為何？",
+      "predicted_citations": [
+        "民事訴訟法第277條",
+        "最高法院110年度台上字第2345號判決",
+        "民法第125條",
+        "民法第758條"
+      ],
+      "expected_citations": [
+        "民法第348條",
+        "民法第226條",
+        "民法第125條",
+        "民法第758條",
+        "最高法院110年度台上字第2345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0040",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "citation_chain",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1429,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "最高法院對於「借名登記」關係中，出名人（受借名人）擅自將不動產出售並移轉登記予第三人，借名人之法律救濟，有何重要判例見解演進？",
+      "predicted_citations": [
+        "最高法院108年度台上字第3234號判決",
+        "民法第549條",
+        "民事訴訟法第277條",
+        "刑法第271條",
+        "刑事訴訟法第161條",
+        "民法第184條",
+        "刑事訴訟法第161條",
+        "民法第213條"
+      ],
+      "expected_citations": [
+        "民法第549條",
+        "民法第767條",
+        "民法第179條",
+        "民法第184條",
+        "民法第541條",
+        "最高法院111年度台上字第2890號判決",
+        "最高法院110年度台上字第1567號判決",
+        "最高法院108年度台上字第3234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0041",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.2333,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0714,
+      "citation_f1": 0.5,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "動產質權之設定要件為何？質權人就質物有何權利？",
+      "predicted_citations": [
+        "民法第888條"
+      ],
+      "expected_citations": [
+        "民法第884條",
+        "民法第888條",
+        "民法第891條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0042",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0833,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "買賣不動產之地政登記程序中，雙方當事人應準備哪些文件？申請書如何填寫？",
+      "predicted_citations": [
+        "民法第184條",
+        "土地登記規則第34條"
+      ],
+      "expected_citations": [
+        "土地登記規則第33條",
+        "土地登記規則第34條",
+        "土地法第73條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0043",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.1583,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0526,
+      "citation_f1": 0.2857,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲乙共有之土地，其中一共有人甲死亡，甲之繼承人丙丁不願繼續共有，可否請求分割？分割之程序為何？",
+      "predicted_citations": [
+        "民法第823條",
+        "刑事訴訟法第161條",
+        "民法第213條"
+      ],
+      "expected_citations": [
+        "民法第823條",
+        "民法第824條",
+        "民法第1151條",
+        "最高法院110年度台上字第1234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0044",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.2139,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1111,
+      "citation_f1": 0.4444,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲設定地上權予乙，約定期間30年，乙以地上權設定抵押借款，後乙無力清償，抵押權人丙聲請拍賣地上權，拍定後地上權如何轉移？甲得否拒絕？",
+      "predicted_citations": [
+        "民法第882條",
+        "民事訴訟法第277條",
+        "刑事訴訟法第161條",
+        "強制執行法第114條之2"
+      ],
+      "expected_citations": [
+        "民法第836條之1",
+        "民法第882條",
+        "強制執行法第114條之2",
+        "民法第832條",
+        "最高法院109年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0045",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.8362,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.75,
+      "structure_score": 1.0,
+      "query": "土地買賣中，土地增值稅由何方負擔？能否以契約約定由買方負擔？",
+      "predicted_citations": [
+        "土地稅法第51條",
+        "民法第345條",
+        "土地稅法第28條"
+      ],
+      "expected_citations": [
+        "土地稅法第28條",
+        "土地稅法第51條",
+        "民法第345條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0046",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.6175,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.75,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "抵押權人於債務人違約後，行使抵押權之程序步驟為何？從聲請至取得款項需多長時間？",
+      "predicted_citations": [
+        "強制執行法第90條",
+        "刑事訴訟法第161條",
+        "強制執行法第81條",
+        "民法第873條"
+      ],
+      "expected_citations": [
+        "民法第873條",
+        "強制執行法第75條",
+        "強制執行法第81條",
+        "強制執行法第90條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0047",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.8362,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.75,
+      "structure_score": 1.0,
+      "query": "甲以A屋設定抵押予乙，A屋嗣後火災全毀，乙之抵押權效力如何？甲之火災保險理賠金，乙得否主張受償？",
+      "predicted_citations": [
+        "民法第884條",
+        "保險法第29條",
+        "民法第881條",
+        "最高法院110年度台上字第2567號判決"
+      ],
+      "expected_citations": [
+        "民法第881條",
+        "民法第884條",
+        "保險法第29條",
+        "最高法院110年度台上字第2567號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0048",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "citation_chain",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "司法院大法官解釋（憲法訴訟判決）中，曾就土地徵收制度之合憲性有何重要論述？現行憲法對財產權之保障範圍為何？",
+      "predicted_citations": [
+        "司法院大法官釋字第763號解釋",
+        "司法院大法官釋字第516號解釋",
+        "憲法第15條",
+        "土地徵收條例第1條",
+        "憲法第23條",
+        "司法院大法官釋字第400號解釋"
+      ],
+      "expected_citations": [
+        "憲法第15條",
+        "憲法第23條",
+        "土地徵收條例第1條",
+        "司法院大法官釋字第400號解釋",
+        "司法院大法官釋字第516號解釋",
+        "司法院大法官釋字第763號解釋"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0049",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "民法上何謂「主物」與「從物」？從物有無獨立性？買賣主物時從物是否一併移轉？",
+      "predicted_citations": [
+        "民法第862條",
+        "民法第68條"
+      ],
+      "expected_citations": [
+        "民法第68條",
+        "民法第862條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0050",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.7662,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.75,
+      "structure_score": 1.0,
+      "query": "甲乙於民國90年簽訂土地買賣契約，迄今未辦理移轉登記，乙得否主張請求移轉登記之請求權已罹15年時效消滅？",
+      "predicted_citations": [
+        "民法第144條",
+        "民法第125條",
+        "民法第137條",
+        "最高法院110年度台上字第2890號判決",
+        "刑事訴訟法第161條"
+      ],
+      "expected_citations": [
+        "民法第125條",
+        "民法第144條",
+        "民法第137條",
+        "最高法院111年度台上字第456號判決",
+        "最高法院110年度台上字第2890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0051",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.2917,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0667,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "民法繼承篇規定之法定繼承人及其順序為何？配偶之繼承地位如何？",
+      "predicted_citations": [
+        "民法第1144條"
+      ],
+      "expected_citations": [
+        "民法第1138條",
+        "民法第1144條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0052",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.8362,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.75,
+      "structure_score": 1.0,
+      "query": "特留分之意義及各繼承人之特留分比例為何？遺囑如違反特留分，如何救濟？",
+      "predicted_citations": [
+        "民法第1224條",
+        "最高法院110年度台上字第1567號判決",
+        "民法第1225條",
+        "民法第1223條"
+      ],
+      "expected_citations": [
+        "民法第1223條",
+        "民法第1224條",
+        "民法第1225條",
+        "最高法院110年度台上字第1567號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0053",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.655,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.8571,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "被繼承人甲死亡，其子乙、女丙、配偶丁均為繼承人，乙因故意殺死丙，乙之繼承權如何？",
+      "predicted_citations": [
+        "民法第1145條",
+        "最高法院109年度台上字第2345號判決",
+        "民法第1138條"
+      ],
+      "expected_citations": [
+        "民法第1145條",
+        "民法第1138條",
+        "刑法第271條",
+        "最高法院109年度台上字第2345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0054",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "繼承人如何拋棄繼承？拋棄繼承之期間及程序為何？",
+      "predicted_citations": [
+        "民法第1176條",
+        "民事訴訟法第277條",
+        "民法第1174條"
+      ],
+      "expected_citations": [
+        "民法第1174條",
+        "民法第1175條",
+        "民法第1176條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0055",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.6175,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.75,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "繼承人欲主張限定繼承（有限責任繼承），應如何辦理？民國98年修法後之現行規定為何？",
+      "predicted_citations": [
+        "刑法第271條",
+        "民法第1154條",
+        "最高法院110年度台上字第3456號判決",
+        "民法第1148條"
+      ],
+      "expected_citations": [
+        "民法第1148條",
+        "民法第1153條",
+        "民法第1154條",
+        "最高法院110年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0056",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.53,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 0.5,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "甲死亡後，其子乙欲以自書遺囑分配遺產，自書遺囑之有效要件為何？若未符合要件，遺囑是否有效？",
+      "predicted_citations": [
+        "民法第1191條",
+        "民法第1196條",
+        "民法第184條",
+        "民法第213條"
+      ],
+      "expected_citations": [
+        "民法第1190條",
+        "民法第1191條",
+        "民法第1196條",
+        "最高法院109年度台上字第1234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0057",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "citation_chain",
+      "overall_score": 0.175,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1111,
+      "citation_f1": 0.3333,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "代位繼承之要件及其效力為何？代位繼承人之應繼分如何計算？",
+      "predicted_citations": [
+        "民法第1140條",
+        "民法第213條",
+        "民法第213條",
+        "民法第213條"
+      ],
+      "expected_citations": [
+        "民法第1140條",
+        "民法第1138條",
+        "民法第1141條",
+        "最高法院110年度台上字第2345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0058",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.6096,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.7273,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "甲生前將大部分財產以贈與方式移轉子女，甲死後遺產甚少，甲之配偶乙主張繼承人之特留分受侵害，乙應如何主張？歸扣與扣減之差異為何？",
+      "predicted_citations": [
+        "民法第1225條",
+        "最高法院108年度台上字第2345號判決",
+        "民法第1173條",
+        "最高法院110年度台上字第1890號判決",
+        "民事訴訟法第277條"
+      ],
+      "expected_citations": [
+        "民法第1225條",
+        "民法第1173條",
+        "民法第1224條",
+        "民法第1171條",
+        "最高法院110年度台上字第1890號判決",
+        "最高法院108年度台上字第2345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0059",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "公證遺囑之方式要件為何？與代筆遺囑有何不同？",
+      "predicted_citations": [
+        "民法第1194條"
+      ],
+      "expected_citations": [
+        "民法第1191條",
+        "民法第1194條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0060",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.7711,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.8889,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "被繼承人甲死亡後，繼承人乙、丙發現甲生前積欠大量債務，超過遺產總額，繼承人應如何保護自己？",
+      "predicted_citations": [
+        "民法第1157條",
+        "最高法院111年度台上字第789號判決",
+        "民法第1162條",
+        "民法第1156條"
+      ],
+      "expected_citations": [
+        "民法第1148條",
+        "民法第1156條",
+        "民法第1157條",
+        "民法第1162條",
+        "最高法院111年度台上字第789號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0061",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.0583,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1429,
+      "citation_f1": 0.0,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "遺囑見證人之資格限制為何？哪些人不得擔任遺囑見證人？",
+      "predicted_citations": [],
+      "expected_citations": [
+        "民法第1198條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0062",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.175,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0625,
+      "citation_f1": 0.3333,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "繼承人申報遺產稅之期限及程序為何？逾期申報有何法律效果？",
+      "predicted_citations": [
+        "民法第184條",
+        "刑法第271條",
+        "遺產及贈與稅法第24條"
+      ],
+      "expected_citations": [
+        "遺產及贈與稅法第23條",
+        "遺產及贈與稅法第24條",
+        "遺產及贈與稅法第51條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0063",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "citation_chain",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "應繼分之計算方式，在繼承人間有不同之婚生、非婚生情形時，如何處理？非婚生子女之繼承地位為何？",
+      "predicted_citations": [
+        "民法第1065條",
+        "最高法院109年度台上字第2890號判決",
+        "司法院大法官釋字第587號解釋",
+        "刑事訴訟法第161條",
+        "民法第184條",
+        "民法第1141條"
+      ],
+      "expected_citations": [
+        "民法第1138條",
+        "民法第1141條",
+        "民法第1063條",
+        "民法第1065條",
+        "最高法院109年度台上字第2890號判決",
+        "司法院大法官釋字第587號解釋"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0064",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.1283,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1111,
+      "citation_f1": 0.2,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲死亡前設立遺囑信託，將遺產信託予受託人乙，以受益人丙（身障者）為受益人，遺囑信託之效力及設立程序為何？",
+      "predicted_citations": [
+        "刑法第271條",
+        "民法第213條",
+        "刑事訴訟法第161條",
+        "民法第1209條",
+        "民事訴訟法第277條"
+      ],
+      "expected_citations": [
+        "信託法第2條",
+        "民法第1209條",
+        "民法第1202條",
+        "信託法第71條",
+        "最高法院108年度台上字第2567號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0065",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "被繼承人甲之配偶乙、子女丙丁於甲死亡後，就遺產之分割協議發生爭議，丙拒絕分割協議，乙丁如何解決？",
+      "predicted_citations": [
+        "民法第1165條",
+        "最高法院110年度台上字第1234號判決"
+      ],
+      "expected_citations": [
+        "民法第1164條",
+        "民法第1165條",
+        "民事訴訟法第568條",
+        "最高法院110年度台上字第1234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0066",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "遺囑之撤回，得以何種方式為之？撤回後原遺囑效力如何？",
+      "predicted_citations": [
+        "民法第1221條",
+        "民法第1220條",
+        "民法第1219條"
+      ],
+      "expected_citations": [
+        "民法第1219條",
+        "民法第1220條",
+        "民法第1221條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0067",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.53,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.5,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "繼承人中有人生前已受父母特別利益之贈與，遺產分割時應如何歸扣？歸扣之計算方式為何？",
+      "predicted_citations": [
+        "民法第1173條",
+        "刑事訴訟法第161條",
+        "最高法院109年度台上字第3456號判決",
+        "民法第213條"
+      ],
+      "expected_citations": [
+        "民法第1173條",
+        "民法第1141條",
+        "民法第1164條",
+        "最高法院109年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0068",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "citation_chain",
+      "overall_score": 0.635,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "最高法院就「繼承回復請求權」（民法第1146條）之性質及時效，有何重要見解？與所有物返還請求權如何競合？",
+      "predicted_citations": [
+        "民法第125條",
+        "最高法院108年度台上字第1234號判決",
+        "民法第1146條",
+        "民法第767條"
+      ],
+      "expected_citations": [
+        "民法第1146條",
+        "民法第767條",
+        "民法第125條",
+        "最高法院110年度台上字第2890號判決",
+        "最高法院108年度台上字第1234號判決",
+        "司法院大法官釋字第771號解釋"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0069",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.635,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "無人繼承之遺產如何處理？遺產管理人由誰擔任？",
+      "predicted_citations": [
+        "民法第1185條",
+        "民法第1178條"
+      ],
+      "expected_citations": [
+        "民法第1177條",
+        "民法第1178條",
+        "民法第1185條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0070",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.2333,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0526,
+      "citation_f1": 0.5,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲立遺囑將其名下B屋遺贈予友人乙，但B屋係甲與其配偶丙之夫妻共同財產（各半），遺贈之效力如何？",
+      "predicted_citations": [
+        "民法第1200條",
+        "民法第1201條",
+        "民法第213條",
+        "民法第213條"
+      ],
+      "expected_citations": [
+        "民法第1200條",
+        "民法第1201條",
+        "民法第1002條",
+        "民法第1030條之1",
+        "最高法院109年度台上字第1890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0071",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.635,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "繼承開始之原因為何？繼承開始之時點有何重要性？",
+      "predicted_citations": [
+        "民法第6條",
+        "民法第1147條"
+      ],
+      "expected_citations": [
+        "民法第1147條",
+        "民法第1148條",
+        "民法第6條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0072",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "繼承人之一為未成年人時，遺產分割協議如何進行？應注意哪些事項？",
+      "predicted_citations": [
+        "民法第1086條",
+        "民事訴訟法第277條",
+        "民事訴訟法第77條",
+        "民法第1101條"
+      ],
+      "expected_citations": [
+        "民法第1164條",
+        "民法第1086條",
+        "民法第1101條",
+        "民事訴訟法第77條",
+        "最高法院110年度台上字第567號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0073",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "citation_chain",
+      "overall_score": 0.2333,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0714,
+      "citation_f1": 0.5,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "遺囑執行人之職責、任命及報酬，在民法上如何規定？遺囑執行人若不盡職，繼承人如何救濟？",
+      "predicted_citations": [
+        "最高法院110年度台上字第2891號判決",
+        "刑法第271條",
+        "民法第1209條"
+      ],
+      "expected_citations": [
+        "民法第1209條",
+        "民法第1210條",
+        "民法第1211條",
+        "民法第1215條",
+        "最高法院110年度台上字第2891號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0074",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0526,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲死亡後，其子乙主張甲遺有大筆存款，但配偶丙主張甲生前已將存款全部贈與丙，乙應如何主張？如何舉證？",
+      "predicted_citations": [
+        "民事訴訟法第277條",
+        "最高法院109年度台上字第3456號判決",
+        "民法第213條",
+        "民事訴訟法第277條",
+        "刑法第271條"
+      ],
+      "expected_citations": [
+        "民法第1148條",
+        "民法第244條",
+        "民法第1173條",
+        "民事訴訟法第277條",
+        "最高法院111年度台上字第1234號判決",
+        "最高法院109年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0075",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "民法第1063條之婚生子女推定，其推定範圍及推翻方式為何？",
+      "predicted_citations": [
+        "民法第1064條",
+        "最高法院110年度台上字第789號判決",
+        "民法第1063條",
+        "民法第1067條"
+      ],
+      "expected_citations": [
+        "民法第1063條",
+        "民法第1064條",
+        "民法第1067條",
+        "最高法院110年度台上字第789號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0076",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "繼承財產中有不動產應如何辦理繼承登記？申辦期限及所需文件為何？",
+      "predicted_citations": [
+        "土地登記規則第120條",
+        "土地法第73條",
+        "民事訴訟法第277條"
+      ],
+      "expected_citations": [
+        "土地法第73條",
+        "土地登記規則第120條",
+        "遺產及贈與稅法第23條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0077",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.565,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 0.6,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "繼承人主張遺囑無效，應提起何種訴訟？訴訟中應如何舉證遺囑方式要件之欠缺？",
+      "predicted_citations": [
+        "民法第1190條",
+        "民法第213條",
+        "民事訴訟法第247條",
+        "民法第1191條",
+        "刑事訴訟法第161條"
+      ],
+      "expected_citations": [
+        "民事訴訟法第247條",
+        "民法第1190條",
+        "民法第1191條",
+        "民事訴訟法第277條",
+        "最高法院111年度台上字第2345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0078",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "citation_chain",
+      "overall_score": 0.1458,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0714,
+      "citation_f1": 0.25,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "最高法院就「預立遺囑」之自書遺囑如有多份，以哪一份為準？日期最後者是否一定優先？",
+      "predicted_citations": [
+        "民法第213條",
+        "民法第213條",
+        "民法第213條",
+        "民法第1219條",
+        "刑事訴訟法第161條"
+      ],
+      "expected_citations": [
+        "民法第1219條",
+        "民法第1220條",
+        "民法第1222條",
+        "最高法院110年度台上字第3456號判決",
+        "最高法院109年度台上字第2890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0079",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.635,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "親屬會議之組成及功能為何？何種事項須由親屬會議決定？",
+      "predicted_citations": [
+        "民法第1129條",
+        "民法第1130條"
+      ],
+      "expected_citations": [
+        "民法第1129條",
+        "民法第1130條",
+        "民法第1132條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0080",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.1361,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1111,
+      "citation_f1": 0.2222,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲以遺囑將其財產全部遺贈予某慈善機構，甲之配偶乙及子女丙丁應如何保護特留分？",
+      "predicted_citations": [
+        "民事訴訟法第277條",
+        "民法第1223條",
+        "民法第213條",
+        "民法第184條"
+      ],
+      "expected_citations": [
+        "民法第1225條",
+        "民法第1223條",
+        "民法第1144條",
+        "民法第1138條",
+        "最高法院110年度台上字第1890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0081",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "民法上「應繼分」之意義及其與「特留分」之區別？",
+      "predicted_citations": [
+        "民法第1141條",
+        "民法第1223條",
+        "民法第1224條"
+      ],
+      "expected_citations": [
+        "民法第1141條",
+        "民法第1223條",
+        "民法第1224條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0082",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1667,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "繼承人數人，其中一人主張有民法第1145條之喪失繼承權情事，應循何種程序認定？",
+      "predicted_citations": [
+        "民事訴訟法第277條"
+      ],
+      "expected_citations": [
+        "民法第1145條",
+        "民事訴訟法第247條",
+        "民事訴訟法第277條",
+        "最高法院109年度台上字第1234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0083",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "甲死亡，遺有負債超過遺產，甲之繼承人乙、丙於繼承開始後六個月內因不知有負債而未拋棄繼承，之後方知悉，乙丙得否補行拋棄？",
+      "predicted_citations": [
+        "民法第1174條",
+        "民法第1176條之1",
+        "民法第1148條",
+        "最高法院111年度台上字第456號判決"
+      ],
+      "expected_citations": [
+        "民法第1174條",
+        "民法第1148條",
+        "民法第1176條之1",
+        "最高法院111年度台上字第456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0084",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "citation_chain",
+      "overall_score": 0.6175,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.75,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "最高法院就「遺產酌給制度」（民法第1149條），有何重要判決見解？酌給之對象、條件及範圍為何？",
+      "predicted_citations": [
+        "最高法院108年度台上字第3456號判決",
+        "民法第1148條",
+        "民法第1138條"
+      ],
+      "expected_citations": [
+        "民法第1149條",
+        "民法第1138條",
+        "民法第1148條",
+        "最高法院110年度台上字第2345號判決",
+        "最高法院108年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0085",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.175,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1667,
+      "citation_f1": 0.3333,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "繼承人為外國人時，其繼承我國境內不動產，有無特別限制？",
+      "predicted_citations": [
+        "民法第1138條",
+        "刑事訴訟法第161條",
+        "民法第184條"
+      ],
+      "expected_citations": [
+        "土地法第18條",
+        "外國人投資條例第6條",
+        "民法第1138條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0086",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.3333,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "甲有配偶乙及子女丙丁，甲於遺囑中指定丙繼承甲之農地，丁繼承城市房屋，配偶乙繼承存款，如此遺囑是否完全有效？",
+      "predicted_citations": [
+        "刑事訴訟法第161條",
+        "民法第1165條",
+        "農業發展條例第18條",
+        "民法第1219條"
+      ],
+      "expected_citations": [
+        "民法第1165條",
+        "民法第1223條",
+        "農業發展條例第18條",
+        "民法第1219條",
+        "最高法院110年度台上字第1234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0087",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.74,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 0.8,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "甲死亡後，發現甲生前與乙成立之契約（借貸）已超過15年，甲之繼承人可否以繼承人地位主張乙之債權請求權已罹時效？",
+      "predicted_citations": [
+        "民法第742條",
+        "民法第144條",
+        "最高法院110年度台上字第3456號判決",
+        "民法第213條",
+        "民法第1148條"
+      ],
+      "expected_citations": [
+        "民法第125條",
+        "民法第144條",
+        "民法第1148條",
+        "民法第742條",
+        "最高法院110年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0088",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.25,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "扶養義務之親屬範圍為何？親屬扶養之順序如何決定？",
+      "predicted_citations": [
+        "民法第1116條",
+        "民事訴訟法第277條",
+        "民法第1114條"
+      ],
+      "expected_citations": [
+        "民法第1114條",
+        "民法第1115條",
+        "民法第1116條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0089",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.6175,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 0.75,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "繼承人乙欲主張被繼承人甲所立之遺囑係在意識不清之狀態下所立，應如何主張？鑑定程序為何？",
+      "predicted_citations": [
+        "民法第213條",
+        "民法第15條",
+        "民法第1186條",
+        "民法第75條"
+      ],
+      "expected_citations": [
+        "民法第15條",
+        "民法第75條",
+        "民法第1186條",
+        "最高法院109年度台上字第2345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0090",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0714,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲為單身，死亡後無直系血親及父母，其兄弟乙及祖母丙均主張繼承，甲之遺產應如何分配？",
+      "predicted_citations": [
+        "最高法院111年度台上字第789號判決"
+      ],
+      "expected_citations": [
+        "民法第1138條",
+        "民法第1141條",
+        "民法第1143條",
+        "最高法院111年度台上字第789號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0091",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.5883,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "契約成立之要件為何？要約與承諾之定義及其法律效果？",
+      "predicted_citations": [
+        "民事訴訟法第277條",
+        "民法第153條",
+        "民法第155條"
+      ],
+      "expected_citations": [
+        "民法第153條",
+        "民法第154條",
+        "民法第155條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0092",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "single_doc",
+      "overall_score": 0.81,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 1.0,
+      "concept_coverage": 0.6,
+      "structure_score": 1.0,
+      "query": "民法上之「給付不能」，分為自始不能與嗣後不能，各有何法律效果？",
+      "predicted_citations": [
+        "最高法院110年度台上字第2345號判決",
+        "民法第226條",
+        "民法第246條",
+        "民法第225條"
+      ],
+      "expected_citations": [
+        "民法第246條",
+        "民法第225條",
+        "民法第226條",
+        "最高法院110年度台上字第2345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0093",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.175,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0588,
+      "citation_f1": 0.3333,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲乙訂立買賣契約，乙給付定金，其後甲表示不願履行，乙如何主張？甲能否因情事變更解除契約？",
+      "predicted_citations": [
+        "民法第213條",
+        "最高法院110年度台上字第1234號判決"
+      ],
+      "expected_citations": [
+        "民法第249條",
+        "民法第227條之2",
+        "民法第254條",
+        "最高法院110年度台上字第1234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0094",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.555,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "citation_f1": 0.5714,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "甲乙書面契約中約定，若乙違約，乙應賠償甲500萬元之違約金。乙違約後，乙主張500萬元過高，法院得否酌減？",
+      "predicted_citations": [
+        "民事訴訟法第277條",
+        "最高法院111年度台上字第2345號判決",
+        "民法第252條"
+      ],
+      "expected_citations": [
+        "民法第252條",
+        "民法第250條",
+        "民法第251條",
+        "最高法院111年度台上字第2345號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0095",
+      "domain": "civil",
+      "difficulty": "basic",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.1983,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.05,
+      "citation_f1": 0.4,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "民法上「解除契約」與「終止契約」之區別為何？",
+      "predicted_citations": [
+        "民法第259條",
+        "刑事訴訟法第161條",
+        "刑事訴訟法第161條"
+      ],
+      "expected_citations": [
+        "民法第254條",
+        "民法第263條",
+        "民法第259條"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0096",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "procedural_reasoning",
+      "overall_score": 0.2917,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.1429,
+      "citation_f1": 0.6667,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "乙積欠甲貸款未還，甲欲催告後解除借貸契約，催告及解除之程序為何？",
+      "predicted_citations": [
+        "民法第229條",
+        "民法第254條"
+      ],
+      "expected_citations": [
+        "民法第229條",
+        "民法第254條",
+        "民法第258條",
+        "最高法院110年度台上字第789號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0097",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "citation_chain",
+      "overall_score": 0.1458,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0769,
+      "citation_f1": 0.25,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "雙務契約中同時履行抗辯（民法第264條）之要件及效果為何？不安抗辯（民法第265條）與其有何區別？",
+      "predicted_citations": [
+        "刑事訴訟法第161條",
+        "民法第265條",
+        "民法第213條",
+        "民事訴訟法第277條"
+      ],
+      "expected_citations": [
+        "民法第264條",
+        "民法第265條",
+        "民法第266條",
+        "最高法院110年度台上字第3456號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0098",
+      "domain": "civil",
+      "difficulty": "expert",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.2333,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0526,
+      "citation_f1": 0.5,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "甲乙訂立契約後，契約文字有歧義，法院應如何解釋契約？民法第98條之探求真意原則如何適用？",
+      "predicted_citations": [
+        "民法第98條"
+      ],
+      "expected_citations": [
+        "民法第98條",
+        "民法第153條",
+        "最高法院111年度台上字第1234號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0099",
+      "domain": "civil",
+      "difficulty": "intermediate",
+      "query_type": "factual_retrieval",
+      "overall_score": 0.175,
+      "precision_at_5": 0.0,
+      "recall_at_5": 0.0,
+      "mrr": 0.0909,
+      "citation_f1": 0.3333,
+      "concept_coverage": 0.0,
+      "structure_score": 0.3333,
+      "query": "民法第148條誠實信用原則，在契約法中有何重要功能？",
+      "predicted_citations": [
+        "刑事訴訟法第161條",
+        "最高法院110年度台上字第2890號判決",
+        "刑法第271條"
+      ],
+      "expected_citations": [
+        "民法第148條",
+        "民法第1條",
+        "最高法院110年度台上字第2890號判決"
+      ]
+    },
+    {
+      "id": "TW-BENCH-0100",
+      "domain": "civil",
+      "difficulty": "advanced",
+      "query_type": "multi_doc_synthesis",
+      "overall_score": 0.6661,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "mrr": 0.2,
+      "citation_f1": 0.8889,
+      "concept_coverage": 0.0,
+      "structure_score": 1.0,
+      "query": "甲乙之買賣契約因甲之詐欺而成立，乙撤銷後，甲已將標的物轉賣予善意之丙，乙對丙有何請求權？",
+      "predicted_citations": [
+        "民法第259條",
+        "民法第92條",
+        "民法第179條",
+        "最高法院110年度台上字第1567號判決"
+      ],
+      "expected_citations": [
+        "民法第92條",
+        "民法第114條",
+        "民法第259條",
+        "民法第179條",
+        "最高法院110年度台上字第1567號判決"
+      ]
+    }
+  ]
+}

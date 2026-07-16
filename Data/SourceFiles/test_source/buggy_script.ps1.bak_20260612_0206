@@ -1,0 +1,17 @@
+# 示例修复后的PowerShell脚本
+param($input, $command)
+if (!([System text]::IsCommandNameValid $command)) {
+    Write-Host "Invalid command name: $command"
+    exit 1
+}
+
+try {
+    if ($input -match '^.*[|;]=') {
+        $input = $input -replace ';', '-s'
+    }
+    $result = $command | $input
+} catch {
+    Write-Host "脚本执行中出现错误"
+    exit 1
+}
+$result

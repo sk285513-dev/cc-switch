@@ -1,0 +1,193 @@
+--- Line 1134 | Step 1029 | Type PLANNER_RESPONSE ---
+Tool Calls count: 1
+  Tool 0: replace_file_content
+    Description: "Add vault query, update, and delete helper functions and tab sync useEffect to App.tsx"
+    Instruction: "Add vault fetch, update, and delete operations below fetchSystemStatus"
+    ReplacementContent: "  };\n\n  // Fetch digested vault documents\n  const fetchVaultItems = async () => {\n    setIsVaultLoading(true);\n    try {\n      const resp = await fetch(\"/api/intelligence-vault\");\n      const data = await resp.json();\n      if (data.status === \"success\") {\n        setVaultItems(data.items);\n      }\n    } catch (e) {\n      console.error(\"Failed to fetch vault items:\", e);\n    } finally {\n      setIsVaultLoading(false);\n    }\n  };\n\n  const deleteVaultItem = async (id: string) => {\n    if (!confirm(\"確定要自智商庫/資料庫中永久刪除此教材與逐字稿嗎？此動作無法復原。\")) return;\n    try {\n      const resp = await fetch(`/api/intelligence-vault/${id}`, {\n        method: \"DELETE\"\n      });\n      const data = await resp.json();\n      if (data.status === \"success\") {\n        showAlert(\"✅ 教材已自智商庫中移除。\");\n        setSelectedVaultItem(null);\n        fetchVaultItems();\n        fetchSystemStatus(); // update DB counts\n      } else {\n        showAlert(`❌ 刪除失敗：${data.error}`);\n      }\n    } catch (e: any) {\n      showAlert(`❌ 刪除發生錯誤：${e.message || String(e)}`);\n    }\n  };\n\n  const updateVaultItem = async (id: string, text: string) => {\n    try {\n      const resp = await fetch(`/api/intelligence-vault/${id}`, {\n        method: \"PUT\",\n        headers: { \"Content-Type\": \"application/json\" },\n        body: JSON.stringify({ text })\n      });\n      const data = await resp.json();\n      if (data.status === \"success\") {\n        showAlert(\"✅ 教材內容更新成功！\");\n        setIsVaultEditMode(false);\n        setSelectedVaultItem((prev: any) => prev ? { ...prev, text } : null);\n        fetchVaultItems();\n      } else {\n        showAlert(`❌ 更新失敗：${data.error}`);\n      }\n    } catch (e: any) {\n      showAlert(`❌ 更新發生錯誤：${e.message || String(e)}`);\n    }\n  };\n\n  // Auto fetch vault items when activeTab changes to ingest\n  useEffect(() => {\n    if (activeTab === \"ingest\") {\n      fetchVaultItems();\n    }\n  }, [activeTab]);"
+    TargetFile: "c:\\Users\\temp\\antigravity\\LexMind-Omni-法律實務-AI-工作站\\src\\App.tsx"
+
+--- Line 1135 | Step 1030 | Type CODE_ACTION ---
+Tool Calls count: 0
+  Content preview: Created At: 2026-06-22T22:55:00Z
+Completed At: 2026-06-22T22:55:00Z
+The following changes were made by the replace_file_content tool to: c:\Users\temp\antigravity\LexMind-Omni-法律實務-AI-工作站\src\App.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -221,6 +221,70 @@
+     }
+   };
+ 
++  // Fetch digested vault documents
++  const fetchVaultItems = async () => {
++    setIsVaultLoading(true);
++    try {
++      const resp = await fetch("/api/intelligence-vault");
++      const data = await resp.json();
++      if (data.status === "success") {
++        setVaultItems(data.items);
++      }
++    } catch (e) {
++      console.error("Failed to fetch vault items:", e);
++    } finally {
++      setIsVaultLoading(false);
++    }
++  };
++
++  const deleteVaultItem = async (id: string) => {
++    if (!confirm("確定要自智商庫/資料庫中永久刪除此教材與逐字稿嗎？此動作無法復原。")) return;
++    try {
++      const resp = await fetch(`/api/intelligence-vault/${id}`, {
++        method: "DELETE"
++      });
++      const data = await resp.json();
++      if (data.status === "success") {
++        showAlert("✅ 教材已自智商庫中移除。");
++        setSelectedVaultItem(null);
++        fetchVaultItems();
++        fetchSystemStatus(); // update DB counts
++      } else {
++        showAlert(`❌ 刪除失敗：${data.error}`);
++      }
++    } catch (e: any) {
++      showAlert(`❌ 刪除發生錯誤：${e.message || String(e)}`);
++    }
++  };
++
++  const updateVaultItem = async (id: string, text: string) => {
++    try {
++      const resp = await fetch(`/api/intelligence-vault/${id}`, {
++        method: "PUT",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({ text })
++      });
++      const data = await resp.json();
++      if (data.status === "success") {
++        showAlert("✅ 教材內容更新成功！");
++        setIsVaultEditMode(false);
++        setSelectedVaultItem((prev: any) => prev ? { ...prev, text } : null);
++        fe
+
+--- Line 1169 | Step 1064 | Type CODE_ACTION ---
+Tool Calls count: 0
+  Content preview: Created At: 2026-06-22T22:55:43Z
+Completed At: 2026-06-22T22:55:43Z
+The following changes were made by the replace_file_content tool to: c:\Users\temp\antigravity\LexMind-Omni-法律實務-AI-工作站\src\App.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -5359,6 +5359,117 @@
+         )}
+       </AnimatePresence>
+ 
++      {/* Vault Item detail & edit Modal */}
++      <AnimatePresence>
++        {selectedVaultItem && (
++          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
++            <motion.div
++              initial={{ opacity: 0 }}
++              animate={{ opacity: 1 }}
++              exit={{ opacity: 0 }}
++              onClick={() => setSelectedVaultItem(null)}
++              className="absolute inset-0 bg-slate-955/85 backdrop-blur-sm"
++            />
++            <motion.div
++              initial={{ scale: 0.95, y: 15, opacity: 0 }}
++              animate={{ scale: 1, y: 0, opacity: 1 }}
++              exit={{ scale: 0.95, y: 15, opacity: 0 }}
++              transition={{ type: "spring", stiffness: 350, damping: 25 }}
++              className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl overflow-hidden text-slate-100 ring-1 ring-amber-500/20 max-h-[90vh] flex flex-col z-10"
++            >
++              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-amber-650 to-amber-750" />
++              
++              <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
++                <div>
++                  <span className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 text-[9px] font-bold text-amber-500 rounded uppercase tracking-wider mb-1 inline-block">
++                    智商庫教材逐字稿資料
++                  </span>
++                  <h3 className="text-sm font-bold text-white flex items-center gap-2 truncate max-w-[500px]"
+
+--- Line 1340 | Step 1168 | Type PLANNER_RESPONSE ---
+Tool Calls count: 1
+  Tool 0: write_to_file
+    Description: "Update task.md with integration tasks."
+    TargetFile: "C:\\Users\\temp\\.gemini\\antigravity\\brain\\3c092ea4-56b0-4204-8f0d-93b116c3a423\\task.md"
+  Content preview: I will update the `task.md` file to reflect the task list for the integration work.
+
+--- Line 1342 | Step 1170 | Type PLANNER_RESPONSE ---
+Tool Calls count: 1
+  Tool 0: view_file
+  Content preview: I will view the `updateVaultItem` function in `src/App.tsx` around lines 255 to 285 to see how to extend it to support the category parameter.
+
+--- Line 1345 | Step 1173 | Type CODE_ACTION ---
+Tool Calls count: 0
+  Content preview: Created At: 2026-06-22T23:05:21Z
+Completed At: 2026-06-22T23:05:21Z
+The following changes were made by the replace_file_content tool to: c:\Users\temp\antigravity\LexMind-Omni-法律實務-AI-工作站\src\App.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -257,7 +257,7 @@
+     }
+   };
+ 
+-  const updateVaultItem = async (id: string, text: string) => {
++  const updateVaultItem = async (id: string, text: string, category?: string) => {
+     try {
+       const resp = await fetch(`/api/intelligence-vault/${id}`, {
+         method: "PUT",
+@@ -264,4 +264,4 @@
+-        body: JSON.stringify({ text })
++        body: JSON.stringify({ text, category })
+       });
+       const data = await resp.json();
+       if (data.status === "success") {
+@@ -268,5 +268,5 @@
+         setIsVaultEditMode(false);
+-        setSelectedVaultItem((prev: any) => prev ? { ...prev, text } : null);
++        setSelectedVaultItem((prev: any) => prev ? { ...prev, text, category: category || prev.category } : null);
+         fetchVaultItems();
+       } else {
+         showAlert(`❌ 更新失敗：${data.error}`);
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.
+
+--- Line 1421 | Step 1250 | Type PLANNER_RESPONSE ---
+Tool Calls count: 1
+  Tool 0: grep_search
+  Content preview: I will search for `file.status` in `src/App.tsx.backup` to see what file statuses are handled and how.
+
+--- Line 1456 | Step 1285 | Type CODE_ACTION ---
+Tool Calls count: 0
+  Content preview: Created At: 2026-06-22T23:11:28Z
+Completed At: 2026-06-22T23:11:28Z
+The following changes were made by the replace_file_content tool to: c:\Users\temp\antigravity\LexMind-Omni-法律實務-AI-工作站\src\App.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -3859,108 +3859,7 @@
+                                   </button>
+                                   <div className="flex gap-2">
+                                     <button
+-                                      type="button"
+-                                      onClick={() => {
+-                                        navigator.clipboard.writeText(item.text || "");
+-                                        showAlert("📋 全文已成功複製到剪貼簿！");
+-                                      }}
+-                                      className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-350 rounded text-[10px] transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+-                                    >
+-                                      <span>複製全文</span>
+-                                    </button>
+-                                    <button
+-                                      type="button"
+-                                      onClick={() => updateVaultItem(item.id, item.text, item.category)}
+-                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95 border-none"
+-                                    >
+-                                      <span>💾 儲存修改</span>
+-                                    </button>
+-                                  </div>
+-                                </div>
+-                              </div>
+-                            );
+-                          });
+-                        })()
+-         
+
+--- Line 1471 | Step 1300 | Type PLANNER_RESPONSE ---
+Tool Calls count: 1
+  Tool 0: grep_search
+  Content preview: I will search for `updateVaultItem` in the entire `src` directory to see if any other copy of the file contains the PUT/DELETE functions.
+

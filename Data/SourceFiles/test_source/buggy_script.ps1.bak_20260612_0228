@@ -1,0 +1,21 @@
+# 示例修复后的 PowerShell 脚本代码
+
+try {
+    # 检查脚本路径是否存在
+    if (!File.Exists('targetScript.ps1')) {
+        throw new Exception("脚本文件不存在")
+    }
+
+    # 加载所需的模块或库（根据实际需求调整）
+    $scriptPath = 'targetScript.ps1'
+    if ($scriptPath -notmatch *. PowerShell) {
+        throw new Exception("脚本必须是 PowerShell 文件")
+    }
+
+    # 执行脚本
+    Execute-File $scriptPath
+
+} catch (Exception $e)
+{
+    Write-Host "错误信息: $e"
+}

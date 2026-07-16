@@ -1,0 +1,17 @@
+467:   const [scannedLocalFiles, setScannedLocalFiles] = useState<{ name: string; path: string; size: number; ext: string }[]>([]);
+472:   const [batchIngestFiles, setBatchIngestFiles] = useState<typeof scannedLocalFiles>([]);
+1221:         setScannedLocalFiles(data.files);
+1234:   const calculateEstimatedSeconds = (files: typeof scannedLocalFiles) => {
+1246:     filesToProcess: typeof scannedLocalFiles,
+1275:     const processedFiles: typeof scannedLocalFiles = [];
+1282:       const pendingFiles: typeof scannedLocalFiles = [];
+1293:           setScannedLocalFiles(prev => prev.filter(f => f.path !== fileInfo.path));
+1577:               setScannedLocalFiles(prev => prev.filter(f => f.path !== fileInfo.path));
+1681:   const handleImportLocalFiles = (filesToImport: typeof scannedLocalFiles) => {
+1693:   const handleDirectIngestLocalFiles = (filesToIngest: typeof scannedLocalFiles) => {
+3182:                     {scannedLocalFiles.length > 0 ? (
+3185:                           <span>🆕 尚未分析之教材 ({scannedLocalFiles.length} 個檔案)</span>
+3189:                           {scannedLocalFiles.map((file, i) => (
+3227:                             onClick={() => handleImportLocalFiles(scannedLocalFiles)}
+3235:                             onClick={() => handleDirectIngestLocalFiles(scannedLocalFiles)}
+5112:                         setScannedLocalFiles(scanData.files);

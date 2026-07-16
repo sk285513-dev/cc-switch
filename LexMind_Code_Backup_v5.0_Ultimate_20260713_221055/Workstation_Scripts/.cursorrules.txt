@@ -1,0 +1,30 @@
+---
+description: LexMind-Omni 法律實務 AI 工作站專案規則
+globs: ["scripts/**/*.py", "*.py", "config/**/*"]
+---
+
+# LexMind-Omni 專案規則
+
+## 核心規定
+- STT 主力永遠使用 Gemini 雲端（`stt_engine = "gemini"` 硬鎖）
+- 所有 Python 檔案使用 UTF-8 編碼
+- 新代理人進入必須先讀 README_DEVEL.md
+
+## 刪除操作安全規範
+**執行任何刪除前必須先驗證路徑非空且非根目錄**：
+```python
+assert str(path) not in ['', '.', '/', 'C:\\', 'C:\\LocalAI_Workstation']
+```
+
+## 法律術語品質標準
+- 正確率 ≥ 98%
+- 必須正確識別：民法、刑法、行政法、土地登記、地政士、消滅時效、借名登記
+
+## 流水線規則
+- manifest status: queued → stt → merge → formatter → completed
+- 每完成一個 chunk 立刻寫回磁碟
+- 429 錯誤：自動退避 + 金鑰輪替，不崩潰
+
+## 背景程序
+- watchdog_monitor.py 必須持續運行（切換帳號時不可停止）
+- 不可重複啟動已在背景運行的流水線

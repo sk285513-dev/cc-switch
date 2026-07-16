@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-07-07 11:23:26",
+  "test_type": "batch-workflow-concurrency-lock",
+  "status": "success",
+  "steps": [
+    {
+      "step": "Queue 30 concurrent mock media tasks",
+      "status": "pass",
+      "detail": "Enqueued: 30/30"
+    },
+    {
+      "step": "Wait for sequential task completion",
+      "status": "pass",
+      "detail": "Completed: 30/30, Failed: 0/30"
+    },
+    {
+      "step": "Verify output files and semantic context correctness",
+      "status": "pass",
+      "detail": "All 30 markdown transcripts successfully verified for semantic keyword accuracy and typo exclusion"
+    }
+  ]
+}

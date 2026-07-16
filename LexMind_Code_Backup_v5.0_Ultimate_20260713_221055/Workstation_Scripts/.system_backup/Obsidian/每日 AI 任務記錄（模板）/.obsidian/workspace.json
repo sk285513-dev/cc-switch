@@ -1,0 +1,273 @@
+{
+  "main": {
+    "id": "b65e8e569cf0b1c2",
+    "type": "split",
+    "children": [
+      {
+        "id": "10a9e1b16f17610f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "641b6e8e0b180f6a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "1. 分層系統架構圖（Layered Architecture）.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "1. 分層系統架構圖（Layered Architecture）"
+            }
+          }
+        ]
+      },
+      {
+        "id": "1459240773e91eb6",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b8ba1586e544081d",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "關聯圖檢視"
+            }
+          },
+          {
+            "id": "f3060320f22048ae",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "2. Obsidian → RAGFlow 自動同步流程圖.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "2. Obsidian → RAGFlow 自動同步流程圖"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "887f6de9d9d936b6",
+    "type": "split",
+    "children": [
+      {
+        "id": "44a8dec17dc7edc7",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0ecb43c9ca6fabc8",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "檔案瀏覽器"
+            }
+          },
+          {
+            "id": "8cf0ef3968191b9c",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜尋"
+            }
+          },
+          {
+            "id": "92e18654242ce05e",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "書籤"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "21317905f01dc3ae",
+    "type": "split",
+    "children": [
+      {
+        "id": "020c8875d8efbf27",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "669f352241444548",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "3. 查詢 Coding 法律檢索流程圖 3-1 一般查詢（Research QA）未命名 1.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "3. 查詢 Coding 法律檢索流程圖 3-1 一般查詢（Research QA）未命名 1 的反向連結"
+            }
+          },
+          {
+            "id": "7b2692f8bf77de2d",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "3. 查詢 Coding 法律檢索流程圖 3-1 一般查詢（Research QA）未命名 1.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "3. 查詢 Coding 法律檢索流程圖 3-1 一般查詢（Research QA）未命名 1 的對外連結"
+            }
+          },
+          {
+            "id": "ec37258540889176",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "標籤"
+            }
+          },
+          {
+            "id": "388887255454d577",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "所有屬性"
+            }
+          },
+          {
+            "id": "488e0f3d38991fd8",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Chats/New Chat.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "New Chat 的大綱"
+            }
+          },
+          {
+            "id": "07a565a562cbb48f",
+            "type": "leaf",
+            "state": {
+              "type": "chat-view",
+              "state": {
+                "file": "Chats/New Chat.md"
+              },
+              "icon": "message-square",
+              "title": "New Chat"
+            }
+          },
+          {
+            "id": "dca4d30d30e82987",
+            "type": "leaf",
+            "state": {
+              "type": "ollama-chat-view",
+              "state": {},
+              "icon": "ollama-assistant",
+              "title": "Ollama Assistant"
+            }
+          }
+        ],
+        "currentTab": 6
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "markdown-importer:開啟 Markdown 格式轉換器": false,
+      "ollama-assistant:Open Ollama Assistant": false,
+      "switcher:開啟快速切換": false,
+      "graph:查看關聯圖": false,
+      "canvas:建立新畫布": false,
+      "daily-notes:開啟今天的每日筆記": false,
+      "templates:插入模板": false,
+      "command-palette:開啟命令面板": false,
+      "bases:建立新的 base": false,
+      "ollama-notes-chat:Ollama chat": false,
+      "ai-knowledge-hub:AI Hub: Панель управления": false,
+      "smart-second-brain:Open S2B Chat": false,
+      "ai-knowledge-hub:AI Hub: Control panel": false
+    }
+  },
+  "active": "f3060320f22048ae",
+  "lastOpenFiles": [
+    "未命名 1.md",
+    "Chats/New Chat.md",
+    "Chats",
+    "1. 分層系統架構圖（Layered Architecture）.md",
+    "3. 查詢 Coding 法律檢索流程圖 3-1 一般查詢（Research QA）未命名 1.md",
+    "2. Obsidian → RAGFlow 自動同步流程圖.md",
+    "未命名.md",
+    "未命名 2.md",
+    "未命名 3.md",
+    "未命名.canvas",
+    "法律LLM蒸餾微調規劃.md",
+    "規劃 Obsidian 的資料夾結構與命名規範.md",
+    "ragflow-code-chunking-rules.md",
+    "RAGFlow 程式碼資料集 Chunking 規則表.md",
+    "RAGFlow 搜尋最佳化設定表.md",
+    "ragflow-search-optimization-table.md",
+    "16G VRAM 研究型 AI v1 架構圖（RAGFlow 版）.md",
+    "16g-vram-research-ai-v1-architecture.md",
+    "local-rd-ai-architecture-map.md",
+    "本地研發型 AI 最大架構圖.md",
+    "2026-06-10.md",
+    "20260609",
+    "未命名 1",
+    "歡迎.md",
+    "未命名.base"
+  ]
+}

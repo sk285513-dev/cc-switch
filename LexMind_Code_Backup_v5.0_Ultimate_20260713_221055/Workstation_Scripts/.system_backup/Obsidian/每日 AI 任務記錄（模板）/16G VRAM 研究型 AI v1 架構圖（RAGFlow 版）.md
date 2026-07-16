@@ -1,0 +1,1 @@
+![[16g-vram-research-ai-v1-architecture]]

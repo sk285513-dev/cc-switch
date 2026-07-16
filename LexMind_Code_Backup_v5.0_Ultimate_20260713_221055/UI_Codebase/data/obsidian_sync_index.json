@@ -1,0 +1,131 @@
+{
+  "files": {
+    "1. 分層系統架構圖（Layered Architecture）.md": {
+      "doc_id": "6f47d8be780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "6b3df7e9469044e38f50161a1a1ebc220133a8a87ee6fb670b76e124c034e477",
+      "size": 3344,
+      "synced_at": "2026-07-05T01:18:31.955971+00:00"
+    },
+    "16G VRAM 研究型 AI v1 架構圖（RAGFlow 版）.md": {
+      "doc_id": "6fbe6b28780f11f1b6f68dba5350e851",
+      "dataset_id": "6f3cfce6780f11f1b6f68dba5350e851",
+      "dataset_type": "research",
+      "hash": "e017b5eb55de68b2376d977a5fe609f5b5c5cd7520310314e22878afe7b9f838",
+      "size": 41,
+      "synced_at": "2026-07-05T01:18:32.115463+00:00"
+    },
+    "16g-vram-research-ai-v1-architecture.md": {
+      "doc_id": "6fd5bddc780f11f1b6f68dba5350e851",
+      "dataset_id": "6f3cfce6780f11f1b6f68dba5350e851",
+      "dataset_type": "research",
+      "hash": "40a104542e00af7df81d4f0cac367ed4d695687bcde0731bc636183011b81604",
+      "size": 11179,
+      "synced_at": "2026-07-05T01:18:32.249069+00:00"
+    },
+    "2. Obsidian → RAGFlow 自動同步流程圖.md": {
+      "doc_id": "6fe9b850780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "b7c1260e9de6f9c784ea867af4459d0ab9d63ff1ec14423a8687a7c6e4345654",
+      "size": 1489,
+      "synced_at": "2026-07-05T01:18:32.381878+00:00"
+    },
+    "3. 查詢 Coding 法律檢索流程圖 3-1 一般查詢（Research QA）未命名 1.md": {
+      "doc_id": "6fffc032780f11f1b6f68dba5350e851",
+      "dataset_id": "6f29cbe4780f11f1b6f68dba5350e851",
+      "dataset_type": "legal",
+      "hash": "012e279a2fb896b2afc122f469c97b72bcbf5bf4210dedf6e4999ca76c8eb525",
+      "size": 2716,
+      "synced_at": "2026-07-05T01:18:32.531144+00:00"
+    },
+    "local-rd-ai-architecture-map.md": {
+      "doc_id": "7014f466780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "a50e0fb4f21a4a19f3917d30cb7c20e9065238daf9be40243fa21af7bfcc74e7",
+      "size": 10664,
+      "synced_at": "2026-07-05T01:18:32.667076+00:00"
+    },
+    "RAGFlow 搜尋最佳化設定表.md": {
+      "doc_id": "7029b4fa780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "53a61bd94920f1b3fb0399d8970434c0793f53c748fde933b12e6c54abe1d312",
+      "size": 38,
+      "synced_at": "2026-07-05T01:18:32.797882+00:00"
+    },
+    "RAGFlow 程式碼資料集 Chunking 規則表.md": {
+      "doc_id": "704160b4780f11f1b6f68dba5350e851",
+      "dataset_id": "6f32da5e780f11f1b6f68dba5350e851",
+      "dataset_type": "code",
+      "hash": "28a69107b0024d6c0e062f78de2a332cd6afef245d5e2cf866a0070c569a43ef",
+      "size": 7972,
+      "synced_at": "2026-07-05T01:18:32.965054+00:00"
+    },
+    "ragflow-code-chunking-rules.md": {
+      "doc_id": "705743ac780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "efe07a6ad776d1729ff1c7d7c4b862da8c08551fd61908874c7801d555de50dd",
+      "size": 7343,
+      "synced_at": "2026-07-05T01:18:33.108948+00:00"
+    },
+    "ragflow-search-optimization-table.md": {
+      "doc_id": "706d13e4780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "2903836aed4128e1594b632372241b988752e880472b3cf9dafaf0820a7b6e95",
+      "size": 6134,
+      "synced_at": "2026-07-05T01:18:33.246630+00:00"
+    },
+    "未命名.md": {
+      "doc_id": "70824ae8780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "74b64b473ef7fe95e616a11e32223019ce65349d9d7161247101b639c34c1654",
+      "size": 50,
+      "synced_at": "2026-07-05T01:18:33.381589+00:00"
+    },
+    "本地研發型 AI 最大架構圖.md": {
+      "doc_id": "7096d0d0780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "949deb1e9fa80ae01ef80600dc18eac6d29e25e2c7dcd9a0c25077a331303d9e",
+      "size": 33,
+      "synced_at": "2026-07-05T01:18:33.510967+00:00"
+    },
+    "法律LLM蒸餾微調規劃.md": {
+      "doc_id": "70aaa6be780f11f1b6f68dba5350e851",
+      "dataset_id": "6f29cbe4780f11f1b6f68dba5350e851",
+      "dataset_type": "legal",
+      "hash": "ca878dc8c5f43456e42458ced2b3c8cadf1c4d35f9aeccd8296de243c64b7d38",
+      "size": 63633,
+      "synced_at": "2026-07-05T01:18:33.650991+00:00"
+    },
+    "規劃 Obsidian 的資料夾結構與命名規範.md": {
+      "doc_id": "70bfcde6780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "31add3e1de75117482290f02d3c2ac807c688e4846bf3d539929b40d2f64c60b",
+      "size": 6511,
+      "synced_at": "2026-07-05T01:18:33.779482+00:00"
+    },
+    "Chats/New Chat.md": {
+      "doc_id": "70d362d4780f11f1b6f68dba5350e851",
+      "dataset_id": "6f1fee4e780f11f1b6f68dba5350e851",
+      "dataset_type": "default",
+      "hash": "6d33230dddb116ade24ef22710e062febba072b3c5cb78fffb95b32bf4a272b9",
+      "size": 67,
+      "synced_at": "2026-07-05T01:18:33.924358+00:00"
+    }
+  },
+  "last_full_scan": "2026-07-12T17:07:45.520810+00:00",
+  "sync_stats": {
+    "total_synced": 15,
+    "total_deleted": 0,
+    "total_errors": 0,
+    "last_sync_at": "2026-07-12T17:07:45.520810+00:00"
+  }
+}

@@ -1,0 +1,42 @@
+[
+    {
+        "role": "user",
+        "content": "測試混沌問題"
+    },
+    {
+        "role": "assistant",
+        "content": "API 回應格式異常"
+    },
+    {
+        "role": "user",
+        "content": "測試混沌問題"
+    },
+    {
+        "role": "assistant",
+        "content": 12345
+    },
+    {
+        "role": "user",
+        "content": "測試混沌問題"
+    },
+    {
+        "role": "assistant",
+        "content": "API 回應格式異常"
+    },
+    {
+        "role": "user",
+        "content": "測試混沌問題"
+    },
+    {
+        "role": "assistant",
+        "content": "API 回應格式異常"
+    },
+    {
+        "role": "user",
+        "content": "測試混沌問題"
+    },
+    {
+        "role": "assistant",
+        "content": 12345
+    }
+]

@@ -1,0 +1,26 @@
+api:
+  _placeholder: true
+  gemini_api_key: AUTO_LOAD_FROM_ENV
+  gemini_api_keys:
+  - AQ.Ab8RN6IPhGlxRqsJPzTay2pciQoh3Y6J83ZlUWrGS2nHJZtxtg
+  - AQ.Ab8RN6KYJsltHesyyGGZRqKthHksAUGyCT5nX5BGdjAFPFTmSg
+  - AQ.Ab8RN6LFgYs5CWBJxOSIDQyvU25myR3dXXqxTiEtFPk5EdnfRw
+  - AQ.Ab8RN6KDvK-h0i2ZuE6pqDlNB4T-su8arYAzGoc1NzSiMmAL2Q
+  - AQ.Ab8RN6I5EohKMHEC5xoBwsDTlfW1JwpmzHKXQDXdOXAD2x2Hzw
+  - AQ.Ab8RN6IYl2KHd94VPJwYWVpNzXVTa120o4xEkhVbGI5qouOB9g
+  - AQ.Ab8RN6Kg4C9e3YO2YI33ahyrUThbPa5xGZMdyLqjynXiFDH9_Q
+  - AQ.Ab8RN6J9QsvF9LJ0dNBEMviCS7H9e2rNyR_kBinroagkNX22vg
+  - AQ.Ab8RN6InOxFMvC_xkZ3Tu_NU8YYIq_OjkKTltGA7FTmbMMA5YA
+  - AQ.Ab8RN6Jet9XNhtKowU9MHwzELAeW4pbo2hsk7YnE8GSx-4H1yg
+  - AQ.Ab8RN6LjB3CtAayWQHaOfrbIzDF0JlXvqAx77FmGyUffxBPgAQ
+  - AQ.Ab8RN6JLLKw4BQXL3-gfAjg2XrTder2Ogqotzx0z2f-plaaQMA
+  - AQ.Ab8RN6JgEs4v7KhrPNICQLEJ-nQSIsPKlnYWFGFoYyttWD6v5g
+  gemini_model_override: gemini-2.5-flash
+dispatcher:
+  concurrency: 20
+  max_workers: 20
+paths:
+  chunks_dir: A:/chunks
+  logs_dir: A:/logs
+  manifests_dir: A:/manifests
+  processed_md_dir: A:/processed_md

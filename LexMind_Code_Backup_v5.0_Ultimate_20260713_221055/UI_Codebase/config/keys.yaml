@@ -1,0 +1,6 @@
+keys:
+  - name: key1
+    value: "YOUR_GEMINI_API_KEY_1"
+  - name: key2
+    value: "YOUR_GEMINI_API_KEY_2"
+  # 如需更多金鑰，請於此處補足

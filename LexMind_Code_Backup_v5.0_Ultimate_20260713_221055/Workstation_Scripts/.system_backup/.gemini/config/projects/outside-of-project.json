@@ -1,0 +1,11 @@
+{
+  "id":  "outside-of-project",
+  "name":  "Outside of Project",
+  "permissionGrants":  {
+    "permissionGrants":  {
+      "allow":  [
+        "write_file(C:\\LocalAI_Workstation)"
+      ]
+    }
+  }
+}

@@ -1,0 +1,2 @@
+param([string]$target)
+Write-Output "✅ Debug check passed for $target - VERSION 2.0"

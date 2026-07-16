@@ -1,0 +1,11 @@
+{
+    "execution_history": [
+        {
+            "timestamp": "2026-06-23 01:14:57",
+            "status": "failed",
+            "error": "未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。",
+            "message": "排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。"
+        }
+    ],
+    "scraped_questions": {}
+}

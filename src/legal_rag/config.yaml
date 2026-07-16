@@ -1,0 +1,21 @@
+# Qdrant Hybrid Search Config
+qdrant:
+  host: "localhost"
+  port: 6333
+  prefer_grpc: false
+  # If running in local file-only mode:
+  local_path: "A:\\vector_db\\qdrant"
+
+collections:
+  laws: "laws"
+  cases: "cases"
+  course_notes: "course_notes"
+  exam_bank: "exam_bank"
+
+vectors:
+  dense:
+    size: 3072
+    distance: "Cosine"
+  sparse:
+    # Qdrant supports sparse vectors for hybrid retrieval (e.g. BM25 / SPLADE)
+    name: "bm25-sparse"

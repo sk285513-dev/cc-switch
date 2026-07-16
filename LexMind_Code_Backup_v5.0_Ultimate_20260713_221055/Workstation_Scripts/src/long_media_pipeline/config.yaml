@@ -1,0 +1,31 @@
+# Long Media Pipeline Configuration
+paths:
+  raw_data_dir: "A:\\raw_data"
+  manifests_dir: "A:\\manifests"
+  chunks_dir: "A:\\chunks"
+  processed_md_dir: "A:\\processed_md"
+  logs_dir: "A:\\logs"
+
+ffmpeg:
+  path: "ffmpeg"
+  ffprobe_path: "ffprobe"
+
+watcher:
+  poll_interval_seconds: 5
+
+chunking:
+  audio_max_duration_seconds: 1200  # 20 minutes
+  video_max_duration_seconds: 720   # 12 minutes
+  overlap_seconds: 30
+  silence_detect:
+    noise_db: -30
+    duration_seconds: 1.5
+
+gemini:
+  model_name: "gemini-2.5-flash"
+  mode: "low_cost_mode" # "low_cost_mode" or "high_accuracy_mode"
+  api_key_env_var: "GEMINI_API_KEY"
+
+logging:
+  chunk_errors_log: "A:\\logs\\chunk_errors.log"
+  workflow_log: "A:\\logs\\workflow.log"

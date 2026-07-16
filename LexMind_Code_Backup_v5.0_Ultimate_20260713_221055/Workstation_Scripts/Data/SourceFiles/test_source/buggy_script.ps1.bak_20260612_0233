@@ -1,0 +1,12 @@
+# 修改后的 PowerShell 脚本
+Get-FileMetadata -Path "C:\path\to\file.txt"
+
+try {
+    $metadata = Get-FileMetadata -Path "C:\path\to\file.txt"
+    Write-Host "成功获取了文件的元数据。以下是详细信息：" 
+    Write-Host "文件大小：$metadata.FileSize Bytes" 
+    Write-Host "修改时间：$metadata.LastWriteTime" 
+    Write-Host "最后一次修改人：$metadata.LastModifyBy"
+} catch {
+    Write-Host "错误捕捉到异常，请检查文件路径是否正确。"
+}

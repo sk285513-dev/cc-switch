@@ -1,0 +1,71 @@
+
+
+### 分析本地 PowerShell 脚本漏洞的步骤：
+
+1. **审查输入参数**：
+   - 检查是否有未加密的用户输入直接用于构造查询或命令。
+   - 示例：如果脚本使用`Get-WindowsComputername`命令，确保传递的安全凭证是解密过的。
+
+2. **防止 SQL 注入**：
+   - 使用适当的字符串解密函数（如`Split`）处理用户输入。
+   - 确保敏感数据不直接嵌入到查询或命令中。
+
+3. **避免 Read-Only 存储器 (RRAM)**：
+   - 检查脚本是否依赖 RRAM 存储敏感数据，避免在生产环境中使用。
+   - 如果必须使用，请考虑加密存储或定期更换密钥。
+
+4. **检查文件包含操作**：
+   - 确保脚本中没有未加保护的`Include`或`IncludeFile`指令，防止恶意代码注入。
+
+5. **启用 PowerShell 安全模式**：
+   - 在命令行界面（CMD）中启用安全模式：`switchon :enable-safety-mode`。
+   - 使用`switchoff`重新启用脚本。
+
+6. **审查和更新脚本**：
+   - 定期检查脚本，确保没有未更新或过时的代码。
+   - 更新依赖项和库以修复已知漏洞。
+
+### 修复方案：
+
+1. **解密用户输入**：
+   ```powershell
+   $userInput = Get-WindowsComputername -Raw -Force
+   if ($userInput -like 'c:\') {
+       Write-Host "请输入 Windows 计算机名：" & $userInput
+       $windowsName = Read-HostLine
+   } else {
+       $windowsName = $userInput
+   }
+   ```
+
+2. **限制敏感数据存储**：
+   ```powershell
+   if ($windowsName -match '^\\[.*\]$') {
+       Write-Error "敏感数据已加密，无法直接存储在脚本中。请将敏感数据加密后存放在安全位置。"
+       exit 1
+   }
+   ```
+
+3. **启用安全模式**：
+   ```powershell
+   switchon :enable-safety-mode
+   ```
+
+4. **检查文件包含操作**：
+   ```powershell
+   if ($fileInclude -match '^Include.*') {
+       Write-Error "脚本中使用了未加保护的文件包含指令。请在脚本中添加适当的权限或删除相关文件。"
+       exit 1
+   }
+   ```
+
+5. **更新脚本**：
+   ```powershell
+   $scriptPath = 'path/to/your/script.ps1'
+   if (Get-FileAttribute -LongName $scriptPath -IncludeLinkedFiles) {
+       Write-Host "脚本已更新为版本 2。"
+       Read-Host
+   }
+   ```
+
+通过以上步骤，可以有效识别并修复本地 PowerShell 脚本中的安全漏洞，确保脚本的安全性和稳定性。

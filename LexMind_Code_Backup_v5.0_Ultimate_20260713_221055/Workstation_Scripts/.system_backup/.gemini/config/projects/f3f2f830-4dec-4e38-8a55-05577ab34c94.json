@@ -1,0 +1,16 @@
+{
+  "id":  "f3f2f830-4dec-4e38-8a55-05577ab34c94",
+  "name":  "LexMind-Omni 法律實務 AI 工作站",
+  "projectResources":  {
+    "resources":  [
+      {
+        "folderUri":  "file:///c%3A/Users/temp/antigravity/LexMind-Omni-%E6%B3%95%E5%BE%8B%E5%AF%A6%E5%8B%99-AI-%E5%B7%A5%E4%BD%9C%E7%AB%99"
+      }
+    ]
+  },
+  "settings":  {
+    "fileAccessPolicy":  "AGENT_SETTING_POLICY_ALLOW",
+    "autoExecutionPolicy":  "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER",
+    "artifactReviewMode":  "ARTIFACT_REVIEW_MODE_TURBO"
+  }
+}

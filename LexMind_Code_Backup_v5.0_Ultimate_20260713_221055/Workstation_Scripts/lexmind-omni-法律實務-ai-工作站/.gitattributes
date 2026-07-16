@@ -1,0 +1,2 @@
+# Enforce Windows CRLF line endings for PowerShell scripts to ensure here-strings parse correctly on Windows PowerShell
+*.ps1 text eol=crlf

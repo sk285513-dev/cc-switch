@@ -1,0 +1,71 @@
+# 假设的修复 PowerShell 脚本漏洞示例：
+
+# 1. 添加环境变量验证：
+if (! -v "username" || ! -v "password") {
+    Write-Host "請輸入帳號: $account"
+    Read-Host $account
+    if ($account -ne $username) {
+        exit 1
+    }
+
+    Write-Host "請輸入密碼: $password"
+    Read-Host $password
+    if ($password -ne $password) {
+        exit 1
+    }
+}
+
+# 2. 防御 SQL 注入：
+$url = "https://example.com"
+$port = "$portNumber"
+
+if (IsString($url)) {
+    $queryString = "-d user_name=$account & -d password=$password & -d port=$portNumber"
+} else {
+    $queryString = "-d user_name= & -d password= & -d port=" . $port
+}
+
+$url .= "?query=" . $queryString
+
+# 3. 使用 WebAPI 警告消息：
+$url = "https://api.example.com/api/v1/hello"
+$url += "?param1=$param1&param2=$param2"
+
+try {
+    $response = REST::CallWebService($url, $method, $headers)
+} catch ($e) {
+    if ($e -like '未授权') {
+        Write-Host "伺服器未允許此操作"
+        exit 0
+    }
+}
+
+# 4. 加密敏感数据：
+$encryptedValue = EncryptString($value)
+
+# 5. 使用加密后的数据：
+$url += "?encrypted_param=$encryptedValue"
+
+# 6. 檢查返回值：
+if ($response -notmatch '*') {
+    Write-Host "伺服器返回錯誤回路"
+    exit 1
+}
+
+# 7. 安全输出控制：
+if ($result -contains "\n") {
+    $output = Replace-Path($output, "\n")
+    if ($output -length -gt 50) {
+        $output = TruncateString($output, 50)
+    }
+    Write-Host "Result: $output"
+}
+
+# 8. 使用安全的编码：
+$url = URL::Encode($url)
+
+# 9. 檢查令牌有效性：
+if (!ValidateToken($token)) {
+    Write-Host "令牌无效或已移除"
+    exit 1
+}

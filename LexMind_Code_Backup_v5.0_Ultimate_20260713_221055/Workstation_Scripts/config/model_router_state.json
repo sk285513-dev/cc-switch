@@ -1,0 +1,42 @@
+{
+  "gemini-3.5-flash": {
+    "name": "gemini-3.5-flash",
+    "failure_count": 0,
+    "cooldown_until": 0.0,
+    "last_error": "",
+    "total_successes": 717,
+    "total_failures": 565
+  },
+  "gemini-flash-latest": {
+    "name": "gemini-flash-latest",
+    "failure_count": 1,
+    "cooldown_until": 1783875178.0011773,
+    "last_error": "API 回傳空白內容 (finish_reason=FinishReason.PROHIBITED_CONTENT)，觸發 retry",
+    "total_successes": 7,
+    "total_failures": 29
+  },
+  "gemini-3-flash-preview": {
+    "name": "gemini-3-flash-preview",
+    "failure_count": 0,
+    "cooldown_until": 0.0,
+    "last_error": "",
+    "total_successes": 543,
+    "total_failures": 287
+  },
+  "gemini-3.1-flash-lite": {
+    "name": "gemini-3.1-flash-lite",
+    "failure_count": 0,
+    "cooldown_until": 0.0,
+    "last_error": "",
+    "total_successes": 714,
+    "total_failures": 21
+  },
+  "gemini-flash-lite-latest": {
+    "name": "gemini-flash-lite-latest",
+    "failure_count": 0,
+    "cooldown_until": 0.0,
+    "last_error": "",
+    "total_successes": 19,
+    "total_failures": 11
+  }
+}

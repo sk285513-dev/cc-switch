@@ -1,0 +1,20 @@
+{
+  "id":  "272b270c-9a4e-4930-baf2-ac1d5245c4c2",
+  "name":  "intelligent-fermi",
+  "projectResources":  {
+    "resources":  [
+      {
+        "gitFolder":  {
+          "folderUri":  "file:///C:/Users/temp/Documents/antigravity/intelligent-fermi",
+          "defaultBranch":  "master"
+        }
+      }
+    ]
+  },
+  "settings":  {
+    "fileAccessPolicy":  "AGENT_SETTING_POLICY_ASK",
+    "internetPolicy":  "AGENT_SETTING_POLICY_ASK",
+    "autoExecutionPolicy":  "CASCADE_COMMANDS_AUTO_EXECUTION_OFF",
+    "artifactReviewMode":  "ARTIFACT_REVIEW_MODE_ALWAYS"
+  }
+}

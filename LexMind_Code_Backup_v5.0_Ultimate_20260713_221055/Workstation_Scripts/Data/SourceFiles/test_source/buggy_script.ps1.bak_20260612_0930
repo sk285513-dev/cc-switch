@@ -1,0 +1,26 @@
+# 修复后的 PowerShell 脚本
+
+[BeginScript]
+    Write-Host "您需要提供以下信息："
+    Write-Host "1. 您的账户名"
+    Read-Host $username
+    Write-Host "2. 您的密码（请在控制台输入）"
+    Read-Host $password
+
+    # 确保脚本只在指定目录下运行
+    $scriptPath = Get-CurrentMemberShip
+    If ($scriptPath -ne $username:$password) {
+        Write-Host "未授权访问。您需要管理员权限。"
+        exit 1
+    }
+
+    # 示例：删除文件
+    Remove-Item "$scriptPath/Temp" -Recurse
+
+    # 确保脚本正确关闭
+    If (!$scriptPath) {
+        Write-Host "操作已完成。"
+    } Else {
+        Write-Host "未找到用户账户信息。"
+    }
+[EndScript]

@@ -1,0 +1,14 @@
+490:   const prevProgressRef = React.useRef<{ filename: string; processedChunks: number } | null>(null);
+495:       systemStatus?.ingest_progress &&
+496:       systemStatus?.ingest_progress?.status === "running" &&
+499:       const { filename, totalChunks, processedChunks } = systemStatus?.ingest_progress || {};
+503:         prevProgressRef.current.processedChunks !== processedChunks
+505:         prevProgressRef.current = { filename, processedChunks };
+506:         const logMsg = `⚙️ [分流合併 Agent] 正在修正並消化 [${filename}]：進行第 ${processedChunks}/${totalChunks} 區段...`;
+514:   }, [systemStatus?.ingest_progress, batchIngestStatus]);
+5475:                       {systemStatus?.ingest_progress && systemStatus?.ingest_progress?.status === "running" && (
+5480:                               {systemStatus?.ingest_progress?.message || "⚙️ 正在分析錯字與法理爭點..."}
+5483:                               區段 {systemStatus?.ingest_progress?.processedChunks} / {systemStatus?.ingest_progress?.totalChunks}
+5490:                                 width: `${Math.min(100, Math.max(2, (systemStatus?.ingest_progress?.processedChunks / systemStatus?.ingest_progress?.totalChunks) * 100))}%` 
+5494:                           <div className="text-[9px] text-slate-500 truncate" title={systemStatus?.ingest_progress?.filename}>
+5495:                             檔案: {systemStatus?.ingest_progress?.filename}

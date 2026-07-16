@@ -1,0 +1,7 @@
+At C:\LocalAI_Workstation\一鍵啟動三大監控視窗.ps1:13 char:12
++ Write-Host "??摰?嚗? -ForegroundColor Green
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The string is missing the terminator: ".
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : TerminatorExpectedAtEndOfString
+ 
