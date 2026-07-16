@@ -1,0 +1,9 @@
+*.zip
+*.pbtxt
+*.bin
+*.sqlite3
+*.mp4
+*.wav
+__pycache__/
+logs/
+scratch/
