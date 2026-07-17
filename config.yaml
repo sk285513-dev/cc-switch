@@ -1,0 +1,46 @@
+# 臺灣法律教材長影音自動切片處理工作流設定檔
+
+paths:
+  # 預設專案根目錄，重新使用 A 槽
+  project_root: "A:\\"
+  raw_data_dir: "raw_data"
+  processed_md_dir: "processed_md"
+  manifests_dir: "manifests"
+  chunks_dir: "chunks"
+  logs_dir: "logs"
+
+api:
+  # Gemini API 配置
+  gemini_api_key: "AUTO_LOAD_FROM_ENV"
+  gemini_model_low_cost: "gemini-2.5-flash"
+  gemini_model_high_accuracy: "gemini-2.5-pro"
+
+settings:
+  # 運行模式配置 (low_cost_mode 或 high_accuracy_mode)
+  # 預設使用 low_cost_mode
+  low_cost_mode: false
+  
+  # 語音轉文字 (STT) 引擎配置: "gemini", "local_whisper", 或 "vertexai"
+  stt_engine: "gemini"
+  vertexai_project: "trusty-spanner-366704"
+  vertexai_location: "us-central1"
+  vertexai_credentials_path: "config/vertex_key.json"
+  
+  local_whisper_model: "medium" # 可設為 tiny, small, medium, large-v3
+  
+  # 影片板書抽樣頻率 (秒)，值越大分析速度越快。預設 15 秒能取得完美的性能與覆蓋率平衡
+  video_sample_interval_sec: 15
+  
+  # 音訊與視訊的最大切片時長限制 (秒)
+  chunk_limit_audio_sec: 1200 # 20 分鐘
+  chunk_limit_video_sec: 720 # 12 分鐘
+  
+  # Overlap 時長 (秒)
+  overlap_sec: 30
+
+  # 靜音切片參數
+  silence_detect_duration: 1.5 # 優先尋找 1.5 到 2.5 秒以上的靜音
+  silence_detect_noise_db: -35 # 靜音分貝閾值 (dB)
+
+  # STT 模組重試次數
+  stt_max_retries: 3

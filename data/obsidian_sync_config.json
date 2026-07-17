@@ -1,0 +1,31 @@
+{
+  "vault_path": "A:/Obsidian/每日 AI 任務記錄（模板）",
+  "ragflow_base_url": "http://localhost:9380",
+  "api_key": "ragflow-8W8k0ExKAkZIEgIVQPT-Yf5xqne3aAgaKvR5-0P5k_c",
+  "sync_interval_seconds": 30,
+  "watch_extensions": [
+    ".md"
+  ],
+  "ignore_patterns": [
+    ".obsidian",
+    ".trash",
+    "node_modules"
+  ],
+  "dataset_map": {
+    "default": "6f1fee4e780f11f1b6f68dba5350e851",
+    "legal": "6f29cbe4780f11f1b6f68dba5350e851",
+    "code": "6f32da5e780f11f1b6f68dba5350e851",
+    "research": "6f3cfce6780f11f1b6f68dba5350e851"
+  },
+  "folder_to_dataset": {
+    "法律": "legal",
+    "民法": "legal",
+    "刑法": "legal",
+    "行政法": "legal",
+    "程式": "code",
+    "Coding": "code",
+    "研究": "research",
+    "Research": "research"
+  },
+  "last_verified": null
+}

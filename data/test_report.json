@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-06-23 15:42:06",
+  "target_file": "c:\\Users\\temp\\antigravity\\LexMind-Omni-法律實務-AI-工作站\\lexmind_sparse_test_large.mp4",
+  "file_size_mb": 5120,
+  "test_timeout_ms": 3000,
+  "status": "success",
+  "api_response_code": 504,
+  "elapsed_seconds": 3.0258426666259766,
+  "server_response": {
+    "error": "處理逾時：此檔案較大 (5120.00 MB) 且已處理超過系統限時 (0 分鐘)，系統已強制釋放 GPU 資源。"
+  }
+}

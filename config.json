@@ -1,0 +1,11 @@
+{
+  "omp_num_threads": "4",
+  "mkl_num_threads": "4",
+  "chroma_text_limit": 150000,
+  "base_path": "C:/LocalAI_Workstation",
+  "whisper_gpu_id": -1,
+  "chromadb_gpu_id": 1,
+  "ollama_gpu_id": 0,
+  "ollama_host": "http://localhost:11434",
+  "ollama_model": "ornith:9b-bf16"
+}

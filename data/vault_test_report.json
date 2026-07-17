@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-06-23 23:21:44",
+  "test_type": "vault-crud-integration",
+  "status": "success",
+  "steps": [
+    {
+      "step": "GET initial vault items",
+      "status": "pass",
+      "detail": "HTTP 200, count: 2"
+    },
+    {
+      "step": "POST inject dummy item via Ingest API",
+      "status": "pass",
+      "detail": "HTTP 200"
+    },
+    {
+      "step": "Verify dummy item exists in vault",
+      "status": "pass",
+      "detail": "Found item ID: intel_ingested_1782228104395_cxq6"
+    },
+    {
+      "step": "PUT update dummy item category & content",
+      "status": "pass",
+      "detail": "HTTP 200"
+    },
+    {
+      "step": "Verify updates persisted in database",
+      "status": "pass",
+      "detail": "Category: 判例"
+    },
+    {
+      "step": "DELETE dummy item from vault",
+      "status": "pass",
+      "detail": "HTTP 200"
+    },
+    {
+      "step": "Verify dummy item completely deleted",
+      "status": "pass",
+      "detail": "Item ID is no longer present"
+    },
+    {
+      "step": "POST Batch Ingestion of 3 files",
+      "status": "pass",
+      "detail": "HTTP 200, Ingested: 3"
+    },
+    {
+      "step": "Verify all 3 batch files exist in database",
+      "status": "pass",
+      "detail": "Found 3 of 3 batch items in database"
+    },
+    {
+      "step": "Verify long-text split-and-combine correctness (corrections applied and ordering preserved)",
+      "status": "pass",
+      "detail": "No typos: True, Corrected lines: 207 (original: 200)"
+    },
+    {
+      "step": "Cleanup batch and long-text items from database",
+      "status": "pass",
+      "detail": "Deleted 4 test items"
+    }
+  ]
+}
