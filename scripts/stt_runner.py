@@ -169,21 +169,27 @@ def process_single_chunk(
                         uploaded_file = None
                         upload_client = None
 
-                if not uploaded_file:
-                    if stt_engine == "gemini":
+                if stt_engine == "gemini":
+                    if not uploaded_file:
                         with key_lock:
                             active_key = current_key_ref[0]
                         upload_client = genai.Client(api_key=active_key)
-                    else: # vertexai
-                        v_project = config.get("settings", {}).get("vertexai_project")
-                        v_loc = config.get("settings", {}).get("vertexai_location", "us-central1")
-                        upload_client = genai.Client(vertexai=True, project=v_project, location=v_loc)
-                        
-                    logging.info(f"[Parallel STT] Uploading {chunk_filename}...")
-                    uploaded_file = upload_client.files.upload(file=chunk_path)
-                    logging.info(f"[Parallel STT] Uploaded → {uploaded_file.name}")
+                        logging.info(f"[Parallel STT] Uploading {chunk_filename}...")
+                        uploaded_file = upload_client.files.upload(file=chunk_path)
+                        logging.info(f"[Parallel STT] Uploaded → {uploaded_file.name}")
+                    transcription = transcribe_chunk_gemini(upload_client, uploaded_file, config)
 
-                transcription = transcribe_chunk(upload_client, uploaded_file, config)
+                elif stt_engine == "vertexai":
+                    v_project = config.get("settings", {}).get("vertexai_project")
+                    v_loc = config.get("settings", {}).get("vertexai_location", "us-central1")
+                    upload_client = genai.Client(vertexai=True, project=v_project, location=v_loc)
+                    
+                    logging.info(f"[Parallel STT] Reading {chunk_filename} as bytes for Vertex AI...")
+                    with open(chunk_path, "rb") as f:
+                        audio_bytes = f.read()
+                    vertex_part = genai.types.Part.from_bytes(data=audio_bytes, mime_type="audio/wav")
+                    logging.info(f"[Parallel STT] Prepared Part for Vertex AI")
+                    transcription = transcribe_chunk_vertexai(upload_client, vertex_part, config)
 
                 # ── 雙軌 ASR 蒸餾（WhisperPool 排隊）──
                 local_whisper_text = ""
@@ -310,6 +316,25 @@ def process_single_chunk(
     return True
 
 
+# --- 以下為被取代的舊版懸空程式碼（已廢棄，遵照指示註解而不刪除） ---
+    # model = "gemini-2.5-flash"
+    # if 'api' in config and 'gemini_model_low_cost' in config['api']:
+    #     model = config['api']['gemini_model_low_cost']
+    # elif 'gemini' in config and 'model_name' in config['gemini']:
+    #     model = config['gemini']['model_name']
+    # 
+    # prompt = """..."""
+    # 
+    # time.sleep(2)
+    # 
+    # response = client.models.generate_content(
+    #     model=model,
+    #     contents=[uploaded_file, prompt]
+    # )
+    # return response.text
+# -------------------------------------------------------------------
+
+def get_prompt_and_model(config):
     model = "gemini-2.5-flash"
     if 'api' in config and 'gemini_model_low_cost' in config['api']:
         model = config['api']['gemini_model_low_cost']
@@ -330,13 +355,22 @@ def process_single_chunk(
 7. 當辨識到章節、科目、主題、結論或堂數切換時，請自動插入適當的 Markdown 標題（#、##、###）。
 8. 若辨識到「爭點」、「重點整理」、「必考」、「結論」、「實務見解」等關鍵語音字樣，請自動在該段落前加上特殊的 Markdown 加粗重點標記（如：**【爭點】**、**【實務見解】**）。
 """
-    
-    # Wait a few seconds for processing if it's large (audio files are usually quick)
+    return model, prompt
+
+def transcribe_chunk_gemini(client, uploaded_file, config):
+    model, prompt = get_prompt_and_model(config)
     time.sleep(2)
-    
     response = client.models.generate_content(
         model=model,
         contents=[uploaded_file, prompt]
+    )
+    return response.text
+
+def transcribe_chunk_vertexai(client, audio_part, config):
+    model, prompt = get_prompt_and_model(config)
+    response = client.models.generate_content(
+        model=model,
+        contents=[audio_part, prompt]
     )
     return response.text
 

@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+config/vertex_key.json
+config/keys.yaml
+config/quota_state.json
+.env

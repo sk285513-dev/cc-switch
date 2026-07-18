@@ -21,7 +21,7 @@ settings:
   low_cost_mode: false
   
   # 語音轉文字 (STT) 引擎配置: "gemini", "local_whisper", 或 "vertexai"
-  stt_engine: "gemini"
+  stt_engine: "vertexai"
   vertexai_project: "trusty-spanner-366704"
   vertexai_location: "us-central1"
   vertexai_credentials_path: "config/vertex_key.json"
