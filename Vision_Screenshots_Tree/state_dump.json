@@ -1,0 +1,36 @@
+[
+  {
+    "state_id": "TAB1_COMBO_0",
+    "ui_truth_table": {
+      "check_lawyer": true,
+      "check_judge": true
+    },
+    "crash_detected": false,
+    "dom_text": "Deploy\nLexMind-Omni Dummy App\n\n首頁\n\n知識餵養\n\n分頁3\n\n分頁4\n\n這是首頁\n\n特徵 A (check_lawyer)\n\n特徵 B (check_judge)\n\n特徵 C\n\n特徵 D\n\n啟動一鍵批次研讀\n\n研讀啟動中...\n\n模擬系統崩潰"
+  },
+  {
+    "state_id": "TAB1_COMBO_1",
+    "ui_truth_table": {
+      "check_lawyer": true,
+      "check_judge": false
+    },
+    "crash_detected": false,
+    "dom_text": "Deploy\nLexMind-Omni Dummy App\n\n首頁\n\n知識餵養\n\n分頁3\n\n分頁4\n\n這是首頁\n\n特徵 A (check_lawyer)\n\n特徵 B (check_judge)\n\n特徵 C\n\n特徵 D\n\n啟動一鍵批次研讀\n\n研讀啟動中...\n\n模擬系統崩潰"
+  },
+  {
+    "state_id": "TAB1_CRASH",
+    "ui_truth_table": {
+      "crash_btn": true
+    },
+    "crash_detected": true,
+    "dom_text": "Deploy\nLexMind-Omni Dummy App\n\n首頁\n\n知識餵養\n\n分頁3\n\n分頁4\n\n這是首頁\n\n特徵 A (check_lawyer)\n\n特徵 B (check_judge)\n\n特徵 C\n\n特徵 D\n\n啟動一鍵批次研讀\n\n模擬系統崩潰\n\nTraceback (most recent call last): File 'app.py', line 10, in <module> IndexError: list index out of range\n\nIndexError: Crash simulation\nTraceback:\nFile \"C:\\LocalAI_Workstation\\tests\\dummy_app.py\", line 23, in <module>\n    raise IndexError(\"Crash simulation\")\nCopy\nAsk Google\nAsk ChatGPT"
+  },
+  {
+    "state_id": "TAB2_QUERY",
+    "ui_truth_table": {
+      "query": "模擬真人輸入：甲打傷乙"
+    },
+    "crash_detected": true,
+    "dom_text": "Deploy\nLexMind-Omni Dummy App\n\n首頁\n\n知識餵養\n\n分頁3\n\n分頁4\n\nIndexError: Crash simulation\nTraceback:\nFile \"C:\\LocalAI_Workstation\\tests\\dummy_app.py\", line 23, in <module>\n    raise IndexError(\"Crash simulation\")\nCopy\nAsk Google\nAsk ChatGPT"
+  }
+]

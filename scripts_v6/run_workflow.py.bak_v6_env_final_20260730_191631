@@ -1,0 +1,871 @@
+﻿# [CRITICAL CROSS-FILE DEPENDENCY WARNING]
+# Upstream: LexMind_V6_瘝?撽???ps1
+# Downstream: stt_runner.py, etc.
+# Shared State: Database, Chunks
+
+import os
+import sys, io
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+import sys
+import time
+import json
+import argparse
+import threading
+import subprocess
+import random
+from pathlib import Path
+
+
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# ??????????????????????????????????????????????????????????????????
+# ??GCP PROJECT BOOTSTRAP ??敹??冽???Vertex / STT / QuotaManager
+#   ?????銵?蝣箔? google.auth.default() ?質圾?甇?Ⅱ project??
+# ??????????????????????????????????????????????????????????????????
+def _bootstrap_gcp_project() -> None:
+    """
+    敺?config.yaml ??api.vertexai_project 霈??GCP project ID嚗?
+    銝血 GOOGLE_CLOUD_PROJECT / GCLOUD_PROJECT 撠閮剖???釣?乓?
+    ?見?游?process嚗un_workflow?orker thread?oogle.auth嚗?
+    ?質?????project嚗???'No project ID could be determined' 霅血???
+    """
+    # 憒??拙憓??賊撌脰身摰?銝?隞颱?鈭?
+    if os.environ.get("GOOGLE_CLOUD_PROJECT") and os.environ.get("GCLOUD_PROJECT"):
+        return
+
+    # config.yaml 隞亦?撠楝敺?雿???quota_manager.py ??嚗?
+    _workspace_root = Path(__file__).resolve().parent.parent   # C:\LocalAI_Workstation\
+    config_path = _workspace_root / "config.yaml"
+    if not config_path.exists():
+        # ?嚗cripts_v6 ??桅?撠望 workspace root嚗?閰衣??砍?撅?
+        config_path = Path(__file__).resolve().parent / "config.yaml"
+
+    vertexai_project: str | None = None
+    if config_path.exists():
+        try:
+            import yaml as _yaml
+            with open(config_path, "r", encoding="utf-8-sig") as _f:
+                _cfg = _yaml.safe_load(_f)
+            vertexai_project = (_cfg or {}).get("api", {}).get("vertexai_project")
+        except Exception as _e:
+            # ?????仃???葉甇Ｙ?摨??芾?? stderr
+            print(f"[BOOTSTRAP] WARNING: 霈??config.yaml 憭望?: {_e}", file=sys.stderr)
+
+    if not vertexai_project:
+        return  # config.yaml ?⊥迨甈?嚗? google.auth ?芾???
+
+    if not os.environ.get("GOOGLE_CLOUD_PROJECT"):
+        os.environ["GOOGLE_CLOUD_PROJECT"] = vertexai_project
+        print(f"[BOOTSTRAP] GOOGLE_CLOUD_PROJECT = {vertexai_project!r} (from config.yaml)", file=sys.stderr)
+
+    if not os.environ.get("GCLOUD_PROJECT"):
+        os.environ["GCLOUD_PROJECT"] = vertexai_project
+        print(f"[BOOTSTRAP] GCLOUD_PROJECT = {vertexai_project!r} (from config.yaml)", file=sys.stderr)
+
+# 蝡?瑁? ??敹??冽??隞?import 銋?
+_bootstrap_gcp_project()
+# ??????????????????????????????????????????????????????????????????
+
+# 撠?scripts ?桅?? PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+from scripts_v6.quota_manager import QuotaManager
+
+def atomic_json_dump(data, filepath):
+    tmp_path = str(filepath) + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, filepath)
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("瘞?蝮賢?_瘜?銵銋???, "?祈玨?蜓閬?閫??瘜蜇?葉??瘜?銵銋???敺??箔誑?”蝷箇閬?嚗?”蝷箸??嚗?閰牯??餈恬?敺?交?敺?撟游?日?嗆??”蝷箝??箄?摨行?其?霅琿??嗉??箄?犖嚗??嗉??箄?犖??箔??桃銵嚗??),
+        ("瘞??萇楊_靘菜?銵鞎砌遙閬辣", "隞予?Ｚ?瘞?蝚砌??曉??璇蝡噩甈??箄痊隞颱???閬辣??????憭梧?銝?靘萄拿隞犖銋??抵?鞎?摰唾??痊隞颯?皛??隢?甈犖?交???摰喳?鞈?蝢拙?鈭箸?韏瑞?嚗?撟游銝?雿輯?皛?),
+        ("瘞??拇?_?望??拐????恣??, "?望??拐??????游?閮剖?鞎?嚗?敺?犖?券?銋???靘??唳?蝚砌???璇?銝嚗?犖鈭箸?????閮???喳????降?擃???????),
+        ("?瘜??餉?????撠???, "??餉?閬?閬?嚗??祆???箔??餉?嚗?蝯????洵銝犖靽∟陷?餉???敺??唳??抵??嗆??拙?瘜?靽風嚗誑蝬剛風鈭斗?摰??餉???????????),
+        ("?蝔?_?啣蝔????喳閬辣", "?蝔?閬?嚗?其?摰?唬??啣蝔???銋?隤脣噩?擗??芰雿??典???箸蝔?隤脣噩嚗泵??摰?隞嗡??祆??敺隢?蝔?),
+        ("瘞?閮渲?瘜蝞∟?甈???蝞∟?", "瘞?閮渲?瘜?摰?閮渲??梯◤????唬?瘜蝞∟????嗡?鈭箏?隞交?Ｗ???摰洵銝撖拍恣頧??ｇ?甇文?箏??恣頧?閬辣??摨?銝??Ｘ?閮?撠惇銝??Ｘ??典瘜蝞∟???),
+        ("銵蝔?瘜銵??銋?蝢抵??日", "銵??靽?銵璈?撠勗瘜??琿?鈭辣??箔?瘙箏??隞甈??芣嚗?憭?亦??敺????格銵銵??瘜??輯????勗???璈???蝝???瘜?瑯?),
+        ("??蝮賢?_甇??脰????仿??, "撠?曉銝?銋噩摰喉???潮銵撌望?隞犖甈銋??綽?銝蔑嚗迨?箸迤?園銵??踹??芸楛??鈭箇??賬澈擃?晞瓷?Ｖ?蝺亙?????潔?敺歇銋??綽?銝蔑嚗迨?箇??仿???),
+        ("?砍瘜?⊥???摨?瘙箄降", "?砍瘜?摰??⊥撣豢?銋???鈭??亙????梧??⊥?冽????祇?嚗??????晞?望?瘙箄降??捱霅啗??孵瘙箄降??),
+        ("???箸?瘜??憟?蝯迫????祥", "???箸?瘜???撌交???閬??蜓蝯迫??憟??????極撌乩?撟渲?蝯虫?????嚗蒂靘?蝯虫?鞈鞎颯???蝝?銝???蝝?隤?璅?銝???),
+        ("撠瘜?潭?撠銝?隞?, "撠瘜?摰???拙???璆剖?冽扼蝛批??脫郊?扼隢??拇????拙?鞎祆????箇隢?牧???閬?撘??拇????芰隢韏瑞?鈭?撟氬?),
+        ("??甈?_??雿輻?噩甈痊隞?, "??甈??箏?隤輻冗??勗??閬??典????嚗???雿輻隞犖撌脣?銵其???嚗蒂??蝷箏????撘???芷?鋆賭?鈭箄?雿?鞎噩甈??痊隞颯?),
+        ("蟡冽?瘜蟡冽?甈瘨???", "蟡冽?瘜?摰蟡其犖撠蟡冽?犖?蟡函蟡其犖銋??抬??芸?韏瑞?嚗?撟湧?銝?雿選?????皛蟡冽??拇??銝撟湛?撠???餈賜揣甈????),
+        ("靽瘜靽?拍?銋??刻?隤?", "靽瘜?摰?靽犖撠鋡思??芯犖銋??賣?頨恍?嚗??瑟?靽?拍??靽?拍?銋??芸?蝝??嗅?蝝?⊥?嚗誑?脤?敺瑕?芥瓷?拐??芯漲??靽?拍???),
+        ("撘瑕?瑁?瘜?亙?蝔?????, "撘瑕?瑁?瘜?摰撠????祕?賣撠?嚗?犖撠撠??箔???嚗??澆甈犖銝????撠??勗銵?摰?瘣暹閮??脰?????銋??嗉???),
+        ("?振鞈?瘜?砍??∟痊隞餉???閬辣", "?振鞈?瘜?摰??澆銵??雿踹甈????????仃銝?靘萄拿鈭箸??芰???抵??振???拿鞈?鞎砌遙????瘙??誑?賊???儔????霅啜?),
+        ("銵閮渲?瘜?日閮渲??迄憿?摨?, "銵閮渲?瘜?摰?鈭箸?銝?閮湧?瘙箏???敺?銵瘜?絲?日閮渲???瑁迄閮??絲嚗??潸迄憿捱摰??敺????找?瘜????抒銋?),
+        ("瘨祥??霅瑟?_?菔頃鞎瑁眺銝?嗉惚??, "瘨祥??霅瑟?閬??菔頃?赤?眺鞈??瘨祥??撠??嗅?銋???憿眺??嚗??潭????銝?改???????賊?閫?憟?嚗?牧???勗?鞎?鞎餌??),
+        ("?砍?憭批?蝞∠?璇?_閬???????, "?砍?憭批??????鈭箸?霅唬?瘙箄降嚗??澆?????鈭箏?雿??????蝝蝞∠??砍?憭批?銋?摰????隢?嫣蜓蝞⊥????乓?),
+        ("摰嗅滬?游??脫祥瘜靽風隞斤隢??瑁?", "摰嗅滬?游??脫祥瘜?摰?瘜敺?鋡怠拿鈭箇隢?潮虜靽風隞扎??霅瑚誘???乩?霅瑚誘????霅瑚誘蝵芾???撟港誑銝?????敶寞?蝘?雿萇?蝵圈???),
+        ("靽∟?瘜靽∟?鞎∠?函??批???, "靽∟?瘜?摰縑閮瓷?Ｗ?蝡改???鈭箏?靽∟?鞎∠??撠?鈭箸?鞎??萄?嚗?敺誑靽∟?鞎∠?粹?鞎撅亥?鞎砌遙?縑閮瓷?Ｗ???銝?撘瑕?瑁???),
+        ("?砍像鈭斗?瘜?蝡嗥?????, "?砍像鈭斗?瘜?函雁霅瑚漱?妝摨?瘨祥???璆凋?敺?臬?銵?翰?典??游?Ｗ雿?鈭虫?敺?蝡嗥??甇?奎?凋?銵????隞亥??輻蔑?啜?),
+        ("?平蝘?瘜?拿鞈??蝵唳扯???, "?平蝘?瘜?摰???瘣拇????其?鈭箇?璆剔?撖????拿鞈?鞎砌遙???Ｗ?靘噩摰單?蝭嚗?摰??誑銝??脩蔑?扯??噩摰喟?璆剔?撖蔽????撟湔?????),
+        ("??瘨祥??霅瑟?_???剛降閰降", "??瘨祥??????璆剔?霅唳?嚗???霅唳?瑽隢?霅啜?霅唳捱摰銝摰?摨血撠????平?瑟?????隞乩?霅瑕摹?ａ???鞎餉?),
+        ("?犖鞈?靽風瘜???????亦儔??, "?犖鞈?靽風瘜?摰????????犖鞈??????嗡?鈭箸?蝣箏??亥?????亙??拍??????鞊～??????????輯痊隞颯?),
+        ("?渡瘜?渡摰????閫??摨?, "?渡瘜?摰?瘜?箇?Ｗ恐??嚗??訾遙?渡蝞∠?鈭綽?銝行捱摰甈?望???Ｖ犖撠鞎∠銋????唾??芸仃嚗??冽?蝘颱漱?渡蝞∠?鈭箝?),
+        ("隞脰?瘜隞脰??降???輔鋆??, "隞脰?瘜?摰鈭犖蝝?撠霅唳?鈭支輔鋆?瘜???嗡?鈭箄隢?摰?甇Ｚ迄閮?摨??賜鈭犖靘??脰?隞脰??輔鋆?瑁?瘜蝣箏??斗捱??銝????),
+        ("瘚瑕?瘜頛疏霅銋甈???, "瘚瑕?瘜?摰??犖??瑞蝯西?鞎刻??詨?嚗??潸?鞎刻??豢??犖??靘?鞎刻??豢?頛摰嫣漱隞疏?拐?鞎砌遙??鞎刻??訾?鈭支??瑞甈???),
+        ("瘨?瘞?瘜??拍瘜皞?瘜??詨?", "瘨?瘞?瘜??拍瘜?刻圾瘙箸?憭?隞嗡?瘜?銵???敺??箔?皞?瘜?靘鈭犖?”蝷箸?摰?瘜?嚗蝝???????瘜?憒????典瘜?),
+        ("摰嗡?鈭辣瘜隤輯圾蝔???閮?隞?, "摰嗡?鈭辣瘜?摰振鈭?隞園瘜??行?閬?憭??潸絲閮游???瘜隤輯圾蝔??矽閫??蝡??Ⅱ摰瘙箸???銋???銝西?脰?撘瑕?瑁???)
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("?瘜???", "?祈玨?蜓閬?蝝寡???敺祕????蝔?嚗項????撖阡?瘜?蝔?瘜??箸璁艙??)
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (IOError, OSError, ImportError):
+            if self.fp:
+                try:
+                    self.fp.close()
+                except Exception:
+                    pass
+            return False
+
+    def release(self):
+        if self.fp:
+            try:
+                self.fp.seek(0)
+                if sys.platform == 'win32':
+                    import msvcrt
+                    msvcrt.locking(self.fp.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(self.fp.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
+            try:
+                self.fp.close()
+            except Exception:
+                pass
+            try:
+                os.remove(self.lock_file)
+            except Exception:
+                pass
+
+def get_legal_priority_score(source_name: str) -> int:
+    """
+    ???桀??閰?嚗摮?撠?= 頞????
+
+    ???摩嚗??啁敺葦擃?/ ?唳憯恍???/ ?豢??寡敹??殷?嚗?
+      0   ??mock 皜祈岫隞餃?
+      10  ???脫?嚗?砍之瘜?
+      20  ??瘞?嚗???銝餌?嚗?
+      25  ????
+      30  ??銵瘜??怨??輻?摨???摰嗉???
+      40  ??蝔?瘜?瘞迄??閮氬?閮氬撥?瑯振鈭?
+      50  ???瘜?嚗??唳????啁閮蝐??
+      60  ????瘜敹??砍瘜巨?????芣?
+      70  ?????絲?輔鋆?甈∟???
+      80  ???孵瘜??箄瓷??靽撟喃漱??蝑?
+      90  ???唳撠平蝘嚗??隡啣?撣???
+      95  ??蝔????里敺蛛??蜓蝘?
+      98  ??霅漱瘜???閬??蜓蝘?
+      100 ???嗡??芸?憿?
+    """
+    name = source_name.lower()
+
+    # 0. mock 皜祈岫隞餃?嚗??芸?嚗雁??CI 甇?虜嚗?
+    if "mock_" in name or "lexmind_mock_" in name:
+        return 0
+
+    # 10. ?脫?嚗?砍之瘜?
+    if any(kw in name for kw in ["?脫?", "?脫"]):
+        return 10
+
+    # 20. 瘞?嚗???銝餌?嚗?
+    if "瘞?" in name:
+        return 20
+
+    # 25. ??
+    if "??" in name:
+        return 25
+
+    # 30. 銵瘜??怨??輻?摨???摰嗉???
+    if any(kw in name for kw in ["銵瘜?, "銵蝔?", "?振鞈?", "??"]):
+        return 30
+
+    # 40. 蝔?瘜?
+    if any(kw in name for kw in [
+        "瘞?閮渲?", "瘞迄", "??閮渲?", "?迄",
+        "銵閮渲?", "撘瑕?瑁?", "撘瑕", "摰嗡?鈭辣", "蝔?瘜?
+    ]):
+        return 40
+
+    # 50. ?瘜??詨?嚗?踹ㄚ擃蜓蝘?
+    if any(kw in name for kw in [
+        "?瘜?, "??餉?", "?", "?啁?皜祇?", "?啁?",
+        "?瘜?", "?唳瘜?"
+    ]):
+        return 50
+
+    # 60. ??瘜敹??砍瘜?/ 蟡冽? / 靽 / 瘚瑕? / 霅漱瘜?/ 蝔? ??嚗?
+    if any(kw in name for kw in [
+        "?砍瘜?, "蟡冽?", "靽瘜?, "瘚瑕?",
+        "霅漱瘜?, "霅鈭斗?", "??瘜?, "?銵?", "?疏",
+        "蝔?", "蝔", "蝔?", "?敺?",
+    ]):
+        return 60
+
+    # 70. ?嗡??? / ??
+    if any(kw in name for kw in ["???箸?", "?", "??瘜?, "隞脰?", "靽∟?瘜?]):
+        return 70
+
+    # 80. ?孵瘜?
+    if any(kw in name for kw in [
+        "撠", "??甈?, "??", "瘨祥??霅?, "瘨?",
+        "?砍像鈭斗?", "?平蝘?", "?犖鞈?", "??",
+        "?渡", "?砍?憭批?", "摰嗅滬?游?", "摰嗆"
+    ]):
+        return 80
+
+    # 90. ?唳頛撠平蝘
+    if any(kw in name for kw in ["銝??Ｖ摯??, "銝??Ｚ???, "?賢?閮", "皜祇?瘜?]):
+        return 90
+
+    # 100. ?嗡??芸?憿?
+    return 100
+
+
+
+# ????????????????????????????????????????????????????????????
+# 瘝?撖行葫蝯?嚗?026-07-10嚗?
+#   銝??漲: 277.37 Mbps嚗peedtest.net 摰葫嚗?
+#   銝??漲: 182.88 Mbps  Ping: 6ms
+#   瘥?chunk: 22 MB
+#
+# Phase A - Preprocess (FFmpeg ?唾???)嚗PU 撖?
+#   5 workers ??CPU 93%嚗???瘝?撖行葫嚗?
+#   3 workers ??CPU 56%嚗??剁?
+#
+# Phase B - STT (Gemini Files API upload + generate)嚗/O 撖?
+#   15 workers ? 3 chunks = 45 ??銝
+#   瘥楝: 277/45 = 6.16 Mbps ??銝 29s << API 75s嚗雯頝臬??其??舐?賂?
+#   RPM/key = 4.8嚗??券??10 RPM嚗?
+#   ?園嚗PI ??嚗?9 keys ? 1500 RPD 繩 30 calls = 2,950 tasks/day嚗?
+#   552 ??閮?????4.5 撠?
+# ????????????????????????????????????????????????????????????
+# ?? 銝衣?貉身摰?撖行葫???潘???隢潘?????????????????????????????????
+# CPU 撖?嚗Fmpeg Preprocess嚗?撖行葫 3 workers ??56% CPU嚗??其???
+PREPROCESS_CONCURRENCY   = 3
+# STT 銝衣銝???靘祕皜祉?抒絞閮矽??
+# 撖行葫鞈?嚗蒂??10 + 皜甇?key 敺???23.5/hr嚗蒂??28 ??0/hr嚗 503嚗?
+STT_CONCURRENCY_MIN      = 4    # ?雿?摨?
+STT_CONCURRENCY_MAX      = 6    # ?踹?憿舐內?⊿??梯??賜璈?靽桐???
+STT_CONCURRENCY_DEFAULT  = 6    # ??KPI 鞈???閮剖潔?靽?
+# KPI ?格?嚗ompleted/hr嚗?
+KPI_TARGET               = 40
+
+# ?? 503 ?芸援??蕭頩歹?璅∠?撅斤??典?嚗??????????????????????????????????
+# _avalanche_floor = None  銵函內?桀??⊿撏?
+# _avalanche_floor = N     銵函內?桀?撘瑕憯?銝衣??N嚗?敺敺?
+_avalanche_floor: "int | None" = None
+_avalanche_last_503_ts: float = 0.0   # ?餈?甈?503 ??epoch timestamp
+
+
+def detect_503_avalanche_floor() -> "int | None":
+    """
+    霈??chunk_errors.log ? 3 ????503 ?航炊?賊???
+    ??503 ?餌?頞??曉潘????????摰?唳銝衣?詻??血?? None??
+
+    摰?唳閮??摩嚗祕皜祈?????嚗?
+      - 敺?kpi_state.json 霈??銝???憚甈∠?銝衣?詻?
+      - ?唳 = max(銝活??銝衣 // 2, STT_CONCURRENCY_MIN)
+      - ?亦甇瑕鞈?嚗??= STT_CONCURRENCY_MIN
+
+    閫貊?曉潘?3 ???批??>= 5 ??503 ?航炊
+    嚗???AGENTS.md 撖行葫嚗蒂??10 ??23.5/hr嚗蒂??28 ??0/hr ?芸援嚗?
+    """
+    import re, time as _time
+    from datetime import datetime as _dt, timedelta as _td
+    from pathlib import Path
+
+
+
+import json
+
+    error_log = LOGS_DIR / "chunk_errors.log"
+    if not error_log.exists():
+        return None
+
+    cutoff = _dt.utcnow() + _td(hours=8) - _td(minutes=3)
+    count_503 = 0
+    try:
+        lines = error_log.read_text(encoding="utf-8", errors="replace").splitlines()[-200:]
+        for line in lines:
+            if "503" not in line and "UNAVAILABLE" not in line:
+                continue
+            m = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", line)
+            if m:
+                try:
+                    ts = _dt.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
+                    if ts >= cutoff:
+                        count_503 += 1
+                except Exception:
+                    pass
+    except Exception:
+        return None
+
+    AVALANCHE_THRESHOLD = 5  # 3 ?? >= 5 ??503 ?孛??
+    if count_503 < AVALANCHE_THRESHOLD:
+        return None  # 甇?虜嚗?芸援
+
+    # 霈??銝???憚甈∠?銝衣?賂?敺?kpi_state嚗?
+    kpi_state_path = str(LOGS_DIR / "kpi_state.json")
+    last_good = STT_CONCURRENCY_DEFAULT
+    try:
+        if Path(kpi_state_path).exists():
+            s = json.loads(Path(kpi_state_path).read_text(encoding="utf-8-sig"))
+            v = int(s.get("stt_concurrency", STT_CONCURRENCY_DEFAULT))
+            if v > 0:
+                last_good = v
+    except Exception:
+        pass
+
+    # 摰?唳 = 銝活銝衣????雿?雿 STT_CONCURRENCY_MIN
+    floor = max(last_good // 2, STT_CONCURRENCY_MIN)
+    log_workflow(
+        f"[503-Avalanche] ?菜葫??{count_503} ??503嚗?min ?改?嚗?
+        f"銝活銝衣={last_good} ??摰?唳={floor}嚗祕皜祈?????"
+    )
+    return floor
+
+
+def compute_adaptive_concurrency() -> int:
+    """
+    靘?餈?KPI 甇瑕??瘙箏? STT 銝衣?詻?
+    閬?嚗祕皜祈????????′蝺函Ⅳ嚗?
+      - KPI >= target*1.5 (60/hr)嚗蒂?澆?頞喉?靽??桀???
+      - KPI >= target (40/hr)嚗?憟賡?璅?撠??之?
+      - KPI >= target*0.5 (20/hr)嚗榆銝暺??之 +4
+      - KPI >= target*0.25 (10/hr)嚗?憿臭?頞喉??之 +8
+      - KPI <  target*0.25 (<10/hr) ????0嚗之撟??銝?
+      - KPI 鞈?銝雲 < 3 蝑??券?閮剖?
+    """
+    global _avalanche_floor, _avalanche_last_503_ts
+    import json, os, re, time as _time
+    from datetime import datetime, timedelta
+    from pathlib import Path
+
+
+
+kpi_state_path = str(LOGS_DIR / "kpi_state.json")
+
+    # ?? Step 0: 503 ?芸援?芸??菜葫嚗?0 蝘蝡??嚗?擃??????????????????
+    avalanche_floor = detect_503_avalanche_floor()
+    if avalanche_floor is not None:
+        # ?脣?芸援璅∪?嚗撥?嗅?雿蒂?潘?閮?????
+        _avalanche_floor = avalanche_floor
+        _avalanche_last_503_ts = _time.time()
+        try:
+            s = json.loads(Path(kpi_state_path).read_text(encoding="utf-8-sig")) if Path(kpi_state_path).exists() else {}
+            s["stt_concurrency"] = _avalanche_floor
+            s["avalanche_mode"] = True
+            Path(kpi_state_path).write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+        log_workflow(f"[503-Avalanche] 撘瑕銝衣={_avalanche_floor}嚗??典?選?蝑? API ?Ｗ儔嚗?)
+        return _avalanche_floor
+    elif _avalanche_floor is not None:
+        # ?芸援撌脩楨閫??蝺拇?Ｗ儔嚗?頛?+1嚗?憭 STT_CONCURRENCY_MAX嚗?
+        elapsed = _time.time() - _avalanche_last_503_ts
+        if elapsed > 300:  # 5 ???⊥ 503 ??摰皜?芸援???
+            log_workflow("[503-Avalanche] 5 ???⊥ 503嚗圾?日撏拇芋撘??Ｗ儔甇?虜?芷??)
+            _avalanche_floor = None
+        else:
+            recovered = min(_avalanche_floor + 1, STT_CONCURRENCY_MAX)
+            _avalanche_floor = recovered
+            log_workflow(f"[503-Avalanche] 蝺抵圾銝哨?{elapsed:.0f}s嚗?銝衣蝺拇?Ｗ儔={recovered}")
+            return recovered
+
+    # ?? Step 1: 甇?虜 KPI 甇瑕???芷???⊿撏拇?韏唳迨頝荔?????????????????????
+    kpi_vals = []
+
+    # 1. 霈 kpi_state.json嚗??唬?蝑?
+    if os.path.exists(kpi_state_path):
+        try:
+            s = json.load(open(kpi_state_path, encoding="utf-8-sig"))
+            v = s.get("kpi_b1", None)
+            if v is not None:
+                kpi_vals.append(float(v))
+        except Exception:
+            pass
+
+    # 2. 霈 kpi_monitor.log ?餈?30 ????KPI-B1 璅?
+    kpi_log_path = str(LOGS_DIR / "kpi_monitor.log")
+    if os.path.exists(kpi_log_path):
+        try:
+            cutoff = datetime.utcnow() - timedelta(minutes=30)
+            for l in open(kpi_log_path, encoding="utf-8", errors="replace").readlines()[-120:]:
+                m = re.search(r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\].*KPI-B1: ([\d.]+)", l)
+                if m:
+                    ts = datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
+                    if ts > cutoff:
+                        kpi_vals.append(float(m.group(2)))
+        except Exception:
+            pass
+
+    # 3. 璅?銝雲嚗?身??
+    if len(kpi_vals) < 3:
+        return STT_CONCURRENCY_DEFAULT
+
+    # 4. ???像???璆萇垢?Ｙ黎嚗?
+    kpi_vals.sort()
+    trimmed = kpi_vals[len(kpi_vals)//5 : -len(kpi_vals)//5 or None] or kpi_vals
+    recent_kpi = sum(trimmed) / len(trimmed)
+
+    # 5. 霈?桀?甇?雿輻?蒂?潭嚗?銝頛芾身摰潘?摮 kpi_state嚗?
+    try:
+        s = json.load(open(kpi_state_path, encoding="utf-8-sig"))
+        current = int(s.get("stt_concurrency", STT_CONCURRENCY_DEFAULT))
+    except Exception:
+        current = STT_CONCURRENCY_DEFAULT
+
+    # 6. KPI ??閬?嚗?蒂?潮?擃??撌柴皜穿?
+    if recent_kpi >= KPI_TARGET * 1.5:
+        new = max(current - 2, STT_CONCURRENCY_MIN)   # ??鋆??舐????皞?
+        reason = f"KPI {recent_kpi:.1f} ??60嚗?鋆??仿?銝衣"
+    elif recent_kpi >= KPI_TARGET:
+        new = current                                   # ?末??嚗???
+        reason = f"KPI {recent_kpi:.1f} ??40嚗?璅?蝬剜? {current}"
+    elif recent_kpi >= KPI_TARGET * 0.5:
+        new = min(current + 2, STT_CONCURRENCY_MAX)    # 撌桐?暺?撠???2
+        reason = f"KPI {recent_kpi:.1f} 20~40嚗?頞喉?+2"
+    elif recent_kpi > 0:
+        # KPI 雿?銝 0嚗摨血???
+        new = min(current + 2, STT_CONCURRENCY_MAX)
+        reason = f"KPI {recent_kpi:.1f} 0~20嚗?憿臭?頞喉?+2"
+    else:
+        # KPI = 0嚗?賣銝衣?????芸援?s?蒂?潔?憭?
+        # ?亦?蒂?澆歇擃???2嚗???銝衣嚗圾??thundering herd嚗?
+        # ?亦?蒂?潔?嚗?12嚗???閰血???
+        if current >= 12:
+            new = max(current - 4, STT_CONCURRENCY_MIN)
+            reason = f"KPI=0 銝蒂??{current}??2嚗?隡?API ?芸援嚗?銝衣 -4"
+        else:
+            new = min(current + 2, STT_CONCURRENCY_MAX)
+            reason = f"KPI=0 銝蒂??{current}<12嚗摨血???+2"
+
+    # 7. ?神銝衣?詨 kpi_state 靘?銝頛芾???
+    try:
+        s = json.load(open(kpi_state_path, encoding="utf-8-sig")) if os.path.exists(kpi_state_path) else {}
+        s["stt_concurrency"] = new
+        atomic_json_dump(s, kpi_state_path)
+    except Exception:
+        pass
+
+    import logging
+    logging.info(f"[AdaptiveConcurrency] {reason} ??銝衣={new}嚗見??{len(kpi_vals)}, 餈?KPI??{recent_kpi:.1f}嚗?)
+    return new
+
+
+TASK_CONCURRENCY = STT_CONCURRENCY_DEFAULT  # ???潘??◤ compute_adaptive_concurrency() 閬?
+
+
+
+def run_single_task_safe(manifest: dict, manifest_path: Path, exclusive_key: str, qm: QuotaManager, chunking_only: bool) -> bool:
+    """
+    ???桐?隞餃????湔?蝔?靘?ThreadPoolExecutor 銝血??澆??
+    ??Fix ?瘀?exclusive_key ?舐 None嚗迨? Worker ??????qm ????嚗?
+              蝣箔? key 銝◤???香?函?敺??葉??
+    餈? True 銵函內隞餃?????
+    """
+    # ?? ?踹?憭?Worker ?典?銝瘥怎??? API嚗策鈭?1~4 蝘璈楨銵???
+    time.sleep(random.uniform(1.0, 4.0))
+    paths = ensure_dirs()
+    task_id = manifest["task_id"]
+    key_acquired_here = False
+
+    # ?????? key嚗?澆?寞???????
+    if not chunking_only and exclusive_key is None and qm is not None:
+        try:
+            exclusive_key = qm.acquire_key_exclusive()
+            key_acquired_here = True
+            if exclusive_key == "__VERTEX_AUTH__":
+                # Vertex 璅∪?嚗?萎??舐?撖?key嚗?皜豢韏?ADC 頝臬?
+                log_workflow(f"[Parallel Dispatcher] Task {task_id} ??嚗ertex AI 璅∪?嚗?)
+                exclusive_key = None   # ??None 蝯?_run_task_steps嚗?摰粥 vertexai=True
+            else:
+                log_workflow(f"[Parallel Dispatcher] Task {task_id} ??嚗?????: {exclusive_key[:8]}...")
+        except RuntimeError:
+            log_error(f"[Parallel Dispatcher] Task {task_id} ?∪?券??堆?頝喲??祈憚??)
+            return False
+    elif exclusive_key == "__VERTEX_AUTH__":
+        log_workflow(f"[Parallel Dispatcher] Task {task_id} ??嚗ertex AI 璅∪?嚗?亙?蛛?")
+        exclusive_key = None
+    elif exclusive_key:
+        log_workflow(f"[Parallel Dispatcher] Task {task_id} ??嚗蝙?典?仿??? {exclusive_key[:8]}...")
+    else:
+        log_workflow(f"[Parallel Dispatcher] Task {task_id} ??嚗hunking-only 璅∪?嚗?)
+
+    try:
+        return _run_task_steps(manifest, manifest_path, paths, exclusive_key, chunking_only)
+    except Exception as e:
+        log_error(f"[Parallel Dispatcher] Task {task_id} ?潛??啣虜嚗e}")
+        try:
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                current_manifest = json.load(f)
+            current_manifest["status"] = "failed"
+            current_manifest["error"] = str(e)
+            atomic_json_dump(current_manifest, manifest_path)
+        except Exception:
+            pass
+        return False
+    finally:
+        # ???芣??砍撘撌勗???key ??ㄐ?
+        if key_acquired_here and qm and exclusive_key:
+            qm.release_key(exclusive_key)
+
+def process_active_tasks(chunking_only=False):
+    paths = ensure_dirs()
+    manifests_dir = paths["manifests_dir"]
+    
+    # 撠??? chunks 銝摰?/?芸仃??隞餃?皜
+    manifest_paths = Path(manifests_dir).glob("*.json")
+    active_tasks = []
+    
+    for p in manifest_paths:
+        if not p.name.startswith("task_") or p.name.endswith("_chunks.json"):
+            continue
+        try:
+            with open(p, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+                status = data.get("status")
+                # ??chunking_only 璅∪?銝?憒? chunk_planner 撌脩? completed嚗??歲?迨隞餃?
+                if chunking_only and data.get("steps", {}).get("chunk_planner") == "completed":
+                    continue
+                if status not in ["completed", "failed"]:
+                    active_tasks.append((p, data))
+        except Exception:
+            pass
+            
+    # 靘??蝔?敺祕擃??蜓閬??桀??靘?蝘?瘜飛撠平??雿?
+    active_tasks.sort(key=lambda x: (
+        get_legal_priority_score(x[1].get("source_name", "")),
+        x[1].get("task_id", "")
+    ))
+    
+    # ?急????銵洵銝?玨撌脫葫閰血??ｇ?閮餉圾甇方?隞亥圾???玨蝔?蝔?
+    # active_tasks = [t for t in active_tasks if t[1].get("task_id") == "task_20260706_201825_00_3231"]
+            
+    if not active_tasks:
+        return
+
+    log_workflow(f"Workflow Engine: Found {len(active_tasks)} active tasks to process.")
+
+    # ?? 撱箇??典??曹澈??QuotaManager 撖虫? ??
+    from workflow_helper import load_config
+    sys_config = load_config()
+    stt_engine = sys_config.get("stt_engine", "gemini")
+    merge_engine = sys_config.get("merge_engine", "gemini")
+
+    if stt_engine == "vertexai" and merge_engine == "vertexai":
+        log_workflow("[INFO] 蝟餌絞韏唬?璆剝??頝荔?頝喲? QuotaManager 蝘振??斗")
+        qm = None
+    else:
+        try:
+            qm = QuotaManager()
+        except Exception as qm_err:
+            log_error(f"QuotaManager ???仃????喳蝺?璅∪?嚗qm_err}")
+            qm = None
+
+    # ?? ??畾菔?拇?銝衣?賊????
+    # Phase A (NOW嚗?6:00): queued > chunked ????PREPROCESS_CONCURRENCY=3
+    # Phase B (16:00+):      撘瑕 STT_CONCURRENCY=15嚗蒂??chunked 隞餃????
+    import datetime as _dt
+    # ??閬???啁?? UTC+8嚗??賜 datetime.now()嚗 UTC嚗?
+    _tw_now = _dt.datetime.utcnow() + _dt.timedelta(hours=8)
+    _now_hour = _tw_now.hour
+    _is_stt_phase = _now_hour >= 16 or _now_hour < 8   # 16:00-08:00 ?啁??韏?STT Phase B
+
+    queued_count  = sum(1 for _, d in active_tasks if d.get("status") == "queued")
+    chunked_count = sum(1 for _, d in active_tasks if d.get("status") == "chunked")
+
+    if _is_stt_phase or chunked_count > 0:
+        # ?? KPI ???芸?隤輻?嚗?隞???′蝺函Ⅳ嚗??
+        effective_concurrency = compute_adaptive_concurrency()
+        chunked_tasks = [(p, d) for p, d in active_tasks if d.get("status") == "chunked"]
+        other_tasks   = [(p, d) for p, d in active_tasks if d.get("status") != "chunked"]
+        active_tasks  = chunked_tasks + other_tasks
+        log_workflow(f"[Dispatcher] ??STT Phase B ({chunked_count} chunked + {queued_count} queued) 銝衣={effective_concurrency}嚗PI?芷??")
+    elif queued_count > chunked_count:
+        # Phase A: queued 隞餃???嚗Ⅱ靽?preprocess ?迤?瑁?
+        effective_concurrency = PREPROCESS_CONCURRENCY
+        queued_tasks = [(p, d) for p, d in active_tasks if d.get("status") == "queued"]
+        other_tasks  = [(p, d) for p, d in active_tasks if d.get("status") != "queued"]
+        active_tasks = queued_tasks + other_tasks
+        log_workflow(f"[Dispatcher] Preprocess Phase A ({queued_count} queued ?芸? + {chunked_count} chunked) ??銝衣={effective_concurrency}嚗PU 摰嚗?)
+    else:
+        effective_concurrency = STT_CONCURRENCY_DEFAULT
+        log_workflow(f"[Dispatcher] 雿?隞?STT ?箔蜓 ({chunked_count} chunked vs {queued_count} queued) ??銝衣={effective_concurrency}嚗雯頝舀?雿喉?")
+
+    batch = active_tasks[:effective_concurrency * 3]
+    log_workflow(f"[Parallel Dispatcher] ?祈憚?漱 {len(batch)}/{len(active_tasks)} ?遙??銝衣??{effective_concurrency}嚗?)
+
+
+    with ThreadPoolExecutor(max_workers=effective_concurrency) as executor:
+        futures = {}
+        for i, (manifest_path, manifest) in enumerate(batch):
+            fut = executor.submit(
+                run_single_task_safe,
+                manifest,
+                manifest_path,
+                None,   # ??銝???key嚗orker ?芾?????
+                qm,
+                chunking_only,
+            )
+            futures[fut] = manifest["task_id"]
+
+        for future in as_completed(futures):
+            task_id = futures[future]
+            try:
+                success = future.result()
+                status = "success" if success else "failed"
+                log_workflow(f"[Parallel Dispatcher] Task {task_id} 摰?嚗???{status}")
+            except Exception as e:
+                log_error(f"[Parallel Dispatcher] Task {task_id} Future ?啣虜嚗e}")
+
+    # ?交頛芷??擗遙??鈭斤 run_loop 銝?頛芾翮隞????銝?餈湛??踹??ㄖ嚗?
+    remaining = len(active_tasks) - len(batch)
+    if remaining > 0:
+        log_workflow(f"[Parallel Dispatcher] ?祈憚摰?嚗擗?{remaining} ?遙??敺?銝頛芥?)
+
+
+
+
+def _run_task_steps(manifest: dict, manifest_path: Path, paths: dict, exclusive_key: str, chunking_only: bool) -> bool:
+    """
+    ?瑁??桐?隞餃??極雿?甇仿???
+    ?函??郊?瑁? stt?erge?ormatter??
+    exclusive_key: 憭極璅∪?銝迨 Task ?其???API ?嚗?策 run_stt()??
+    餈? True 銵函內隞餃???摰???
+    """
+    task_id = manifest["task_id"]
+    source_name = manifest["source_name"]
+
+    # ???詨捆霈控嚗??澆? manifest ??video_path嚗?澆???source_path
+    if "source_path" not in manifest and "video_path" in manifest:
+        manifest["source_path"] = manifest["video_path"]
+        try:
+            atomic_json_dump(manifest, manifest_path)
+        except Exception:
+            pass
+
+    # ?? Mock 璅∪? ??
+    if "mock_" in source_name or "lexmind_mock_" in source_name:
+        log_workflow(f"Workflow Engine: [MOCK MODE] Processing task {task_id}...")
+        try:
+            import re
+            for step in ["preprocess", "chunk_planner", "stt", "merge", "formatter"]:
+                manifest["steps"][step] = "completed"
+                atomic_json_dump(manifest, manifest_path)
+                time.sleep(0.1)
+
+            manifest["status"] = "completed"
+            try:
+                idx_match = re.search(r"mock_lesson_(\d+)", source_name)
+                idx = int(idx_match.group(1)) if idx_match else 1
+            except Exception:
+                idx = 1
+            topic_title, topic_content = get_mock_legal_transcript(idx)
+
+            base_name = os.path.splitext(source_name)[0]
+            PROCESSED_DIR = Path("A:/processed_md")
+            processed_dir.mkdir(parents=True, exist_ok=True)
+
+            md_path = processed_dir / f"{base_name}.md"
+            srt_path = processed_dir / f"{base_name}.srt"
+            vtt_path = processed_dir / f"{base_name}.vtt"
+            txt_path = processed_dir / f"{base_name}.txt"
+            idx_path = processed_dir / f"{base_name}_index.json"
+
+            manifest["output_markdown"] = str(md_path)
+            manifest["output_srt"] = str(srt_path)
+            manifest["output_vtt"] = str(vtt_path)
+            manifest["output_txt"] = str(txt_path)
+            manifest["output_json_index"] = str(idx_path)
+
+            with open(md_path, "w", encoding="utf-8-sig") as wf:
+                wf.write(f"# {base_name} - {topic_title}\n\n{topic_content}\n")
+            with open(srt_path, "w", encoding="utf-8-sig") as wf:
+                wf.write(f"1\n00:00:01,000 --> 00:00:15,000\n{topic_title}")
+            with open(vtt_path, "w", encoding="utf-8-sig") as wf:
+                wf.write(f"WEBVTT\n\n1\n00:00:01.000 --> 00:00:15.000\n{topic_title}")
+            with open(txt_path, "w", encoding="utf-8-sig") as wf:
+                wf.write(f"{topic_title}?topic_content}")
+            with open(idx_path, "w", encoding="utf-8") as wf:
+                json.dump({"title": f"{base_name} - {topic_title}", "summary": topic_content, "terms": [topic_title]}, wf, ensure_ascii=False, indent=2)
+
+            atomic_json_dump(manifest, manifest_path)
+
+            log_workflow(f"Workflow Engine: [MOCK MODE] Task {task_id} completed successfully!")
+            return True
+        except Exception as e:
+            log_error(f"Workflow Engine: [MOCK MODE] Critical error in task {task_id}: {e}")
+            manifest["status"] = "failed"
+            manifest["error"] = str(e)
+            atomic_json_dump(manifest, manifest_path)
+            return False
+
+    # ?? ?祕隞餃?甇仿? ??
+    try:
+        # 甇仿?鈭?Preprocess
+        if manifest["steps"]["preprocess"] == "pending":
+            success = preprocess(task_id)
+            if not success:
+                raise RuntimeError("Preprocess step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        # 甇仿?銝?Chunk Planner
+        if manifest["steps"]["chunk_planner"] == "pending":
+            success = plan_chunks(task_id)
+            if not success:
+                raise RuntimeError("Chunk planning step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        if chunking_only:
+            log_workflow(f"Workflow Engine: Task {task_id} chunking done. Stopping (--chunking-only mode).")
+            return True
+
+        # 甇仿???STT嚗?交?隞??唬?銝血?璅∪?雿輻嚗?
+        if manifest["steps"]["stt"] == "pending":
+            success = run_stt(task_id, exclusive_key=exclusive_key)
+            if not success:
+                raise RuntimeError("STT transcription step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        # 甇仿?鈭?Merge
+        if manifest["steps"].get("merge") == "pending":
+            success = merge_workflow(task_id)
+            if not success:
+                raise RuntimeError("Merge step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        # 甇仿??哨?Formatter
+        if manifest["steps"].get("formatter", "pending") == "pending":
+            success = format_markdown(task_id)
+            if not success:
+                raise RuntimeError("Formatter step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        # 隞餃?摰?
+        manifest["status"] = "completed"
+        atomic_json_dump(manifest, manifest_path)
+        log_workflow(f"Workflow Engine: Task {task_id} completed successfully!")
+
+        return True
+
+    except Exception as e:
+        log_error(f"Workflow Engine: Critical error in task {task_id}: {e}")
+        try:
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                current_manifest = json.load(f)
+            # ??靽風嚗 stt_runner 撌脣?隞餃??蔭??chunked嚗?敺?閰佗?嚗?閬?撖怎 failed
+            if current_manifest.get("status") != "chunked":
+                current_manifest["status"] = "failed"
+                current_manifest["error"] = str(e)
+                atomic_json_dump(current_manifest, manifest_path)
+            else:
+                log_workflow(f"Workflow Engine: Task {task_id} already reset to chunked by stt_runner, skipping failed overwrite.")
+        except Exception as write_err:
+            log_error(f"Failed to mark task as failed: {write_err}")
+        return False
+
+
+def run_loop(chunking_only=False):
+    log_workflow("?箇瘜????瑕蔣?喳????極雿?????撌脣???" + (" [???芋撘" if chunking_only else ""))
+    ensure_dirs()
+
+    while True:
+        try:
+            # 1. ???唳?獢?
+            scan_new_files()
+            # 2. ?瑁?瘣餃?銝凋遙??STT 摰?敺?Worker 蝡?嚗erge/fmt ??Daemon ?交?嚗?
+            process_active_tasks(chunking_only)
+        except RuntimeError as e:
+            # ?瘙皛????key ??429嚗? 蝑?餅?蝯?
+            if "exhausted" in str(e).lower() or "皝? in str(e) or "all api keys" in str(e).lower():
+                log_workflow(f"[Quota Cooldown] ?瘙嚗脣 600 蝘?餌??.. ({e})")
+                time.sleep(600)
+                # ?蔭 key pool state
+                try:
+                    import json as _json
+                    _qstate = Path("config/quota_state.json")
+                    _qstate.write_text(_json.dumps({"exhausted_keys": []}, ensure_ascii=False), encoding="utf-8")
+                    log_workflow("[Quota Cooldown] ?瘙歇?蔭嚗匱蝥?蝔?)
+                except Exception:
+                    pass
+            else:
+                log_error(f"Error in main workflow loop: {e}")
+        except Exception as e:
+            log_error(f"Error in main workflow loop: {e}")
+
+        time.sleep(10)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--one-shot", action="store_true", help="Run once and exit instead of loop")
+    parser.add_argument("--chunking-only", action="store_true", help="Only run local chunking steps (preprocess, chunk planner)")
+    args = parser.parse_args()
+    
+    paths = ensure_dirs()
+    lock_file = os.path.join(paths["manifests_dir"], "workflow.lock")
+    lock = SingleInstanceLock(lock_file)
+    
+    if not lock.acquire():
+        print(f"[Workflow Lock] Another instance of run_workflow is already running (locked on {lock_file}). Exiting.")
+        sys.exit(0)
+        
+    try:
+        if args.one_shot:
+            log_workflow("Workflow Engine: Running in one-shot mode." + (" [???芋撘" if args.chunking_only else ""))
+            scan_new_files()
+            process_active_tasks(args.chunking_only)
+        else:
+            run_loop(args.chunking_only)
+    finally:
+        lock.release()
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+

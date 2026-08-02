@@ -1,3 +1,8 @@
+"""
+【機制對應宣告】
+此腳本 (reboot_watcher.py) 主要實作了以下視覺測試機制：
+- [機制十四] 硬體級 Watchdog 與 Email 警報之設計 (Deadlock Watchdog)
+"""
 import os
 import sys
 import time

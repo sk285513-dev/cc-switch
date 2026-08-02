@@ -1,0 +1,133 @@
+# C:/LocalAI_Workstation/scripts/law_scraper_cli.py
+# -*- coding: utf-8 -*-
+import os
+import json
+import time
+import datetime
+import requests
+from bs4 import BeautifulSoup
+
+WORK_DIR = "C:/LocalAI_Workstation"
+STATUS_FILE = os.path.join(WORK_DIR, "scraper_status.json")
+
+def update_status(status, progress, message):
+    """即時更新狀態 JSON 檔案，讓 Streamlit UI 能跨進程讀取進度"""
+    data = {
+        "status": status,
+        "progress": progress,
+        "message": message,
+        "last_update": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    try:
+        os.makedirs(WORK_DIR, exist_ok=True)
+        with open(STATUS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        print(f"Failed to update status file: {e}")
+
+def save_to_obsidian(q_id, year, subject, title, options, ans, exp):
+    clean_year = year.replace("/", "_").replace("\\", "_")
+    clean_subject = subject.replace("/", "_").replace("\\", "_")
+    folder_path = os.path.join(WORK_DIR, "Obsidian_Vault", "04_考古題庫", f"{clean_year}_{clean_subject}")
+    os.makedirs(folder_path, exist_ok=True)
+    
+    options_md = "\n".join([f"- {opt}" for opt in options]) if options else "- 本題無獨立選項文本（請參閱題幹）。"
+    md_content = f"""# 司律一試考題 - {year} {subject} [ID: {q_id}]
+
+### ⚖️ 題幹本文
+{title}
+
+### 選擇題選項
+{options_md}
+
+### 標準答案
+**【 {ans} 】**
+
+### 詳解與法規核心關聯
+{exp}
+
+---
+*本筆記由 LexMind-Omni 工作站外網排程自動抓取更新*
+"""
+    file_name = os.path.join(folder_path, f"Q_{q_id}.md")
+    try:
+        with open(file_name, "w", encoding="utf-8") as f:
+            f.write(md_content)
+    except Exception as e:
+        print(f"Failed to write Obsidian file: {e}")
+
+def run_independent_scraper():
+    update_status("running", 5, "正在初始化爬蟲環境與目標網址...")
+    target_url = "https://twlawbot.com"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7"
+    }
+    
+    try:
+        update_status("running", 15, "正在連線外部法律題庫網站並下載網頁內容...")
+        response = requests.get(target_url, headers=headers, timeout=20)
+        if response.status_code != 200:
+            raise Exception(f"伺服器回應異常，狀態碼: {response.status_code}")
+    except Exception as e:
+        update_status("failed", 100, f"網路連線失敗: {str(e)}")
+        raise Exception(f"網路連線失敗: {str(e)}")
+        
+    update_status("running", 30, "連線成功！正在載入 HTML 結構樹並進行 DOM 解析...")
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # 多重類名彈性匹配
+    question_cards = soup.find_all(['article', 'div'], class_=['exam-card', 'question-item'])
+    if not question_cards:
+        update_status("failed", 100, "未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。")
+        raise Exception("未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。")
+        
+    total_questions = len(question_cards)
+    update_status("running", 40, f"成功識別 HTML 結構，共發現 {total_questions} 題新考題。開始清洗數據...")
+    
+    parsed_count = 0
+    for idx, card in enumerate(question_cards):
+        try:
+            q_id = card.get('data-qid') or card.get('id') or f"hash_{int(time.time())}_{idx}"
+            year_tag = card.find(class_=['badge-year', 'exam-year'])
+            subject_tag = card.find(class_=['badge-subject', 'exam-subject'])
+            year = year_tag.text.strip() if year_tag else "未知年份"
+            subject = subject_tag.text.strip() if subject_tag else "綜合學科"
+            
+            title_node = card.find(['div', 'h3', 'p'], class_=['question-title', 'stem', 'content'])
+            if not title_node: 
+                continue
+            title_text = title_node.text.strip()
+            
+            options = []
+            options_container = card.find(['ul', 'ol', 'div'], class_=['options-list', 'options-group'])
+            if options_container:
+                for opt in options_container.find_all(['li', 'div', 'label']):
+                    opt_text = opt.text.strip()
+                    if opt_text: 
+                        options.append(opt_text)
+            
+            ans_node = card.find(class_=['correct-answer', 'ans-key'])
+            answer = ans_node.get('data-ans') or ans_node.text.replace("正確答案：", "").strip() if ans_node else "未公布"
+            
+            exp_node = card.find(class_=['explanation-box', 'analysis-content', '詳解', 'explanation'])
+            explanation = exp_node.text.strip() if exp_node else "暫無解析數據。"
+            
+            # 寫入 Obsidian
+            save_to_obsidian(q_id, year, subject, title_text, options, answer, explanation)
+            parsed_count += 1
+            
+            current_progress = 40 + int((parsed_count / total_questions) * 55)
+            update_status("running", current_progress, f"正在解析並同步：[{year} {subject}] 第 {parsed_count}/{total_questions} 題...")
+            time.sleep(0.1)
+        except Exception as item_error:
+            print(f"解析第 {idx} 個考題區塊時發生單項錯誤: {item_error}")
+            continue
+            
+    update_status("completed", 100, f"同步成功！本次排程共自動抓取、清洗並充實了 {parsed_count} 題最新司律選擇題庫。")
+
+if __name__ == "__main__":
+    try:
+        run_independent_scraper()
+    except Exception as e:
+        update_status("failed", 100, f"排程執行發生致命崩潰: {str(e)}")

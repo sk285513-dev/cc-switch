@@ -1,42 +1,10 @@
 {
-  "gemini-3.5-flash": {
-    "name": "gemini-3.5-flash",
-    "failure_count": 2,
-    "cooldown_until": 1784222468.7514367,
-    "last_error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
-    "total_successes": 812,
-    "total_failures": 1224
-  },
-  "gemini-flash-latest": {
-    "name": "gemini-flash-latest",
-    "failure_count": 0,
-    "cooldown_until": 0.0,
-    "last_error": "",
-    "total_successes": 8,
-    "total_failures": 492
-  },
-  "gemini-3-flash-preview": {
-    "name": "gemini-3-flash-preview",
-    "failure_count": 2,
-    "cooldown_until": 1784222462.6856985,
-    "last_error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
-    "total_successes": 630,
-    "total_failures": 902
-  },
-  "gemini-3.1-flash-lite": {
-    "name": "gemini-3.1-flash-lite",
-    "failure_count": 0,
-    "cooldown_until": 0.0,
-    "last_error": "",
-    "total_successes": 2459,
-    "total_failures": 711
-  },
-  "gemini-flash-lite-latest": {
-    "name": "gemini-flash-lite-latest",
-    "failure_count": 0,
-    "cooldown_until": 0.0,
-    "last_error": "",
-    "total_successes": 31,
-    "total_failures": 439
+  "gemini-2.5-flash": {
+    "name": "gemini-2.5-flash",
+    "failure_count": 132,
+    "cooldown_until": 1785580364.5026693,
+    "last_error": "HTTP 400: {\n  \"error\": {\n    \"code\": 400,\n    \"message\": \"API key not valid. Please pass a valid API key.\",\n    \"status\": \"INVALID_ARGUMENT\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis",
+    "total_successes": 1283,
+    "total_failures": 312
   }
 }

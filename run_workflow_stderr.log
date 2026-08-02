@@ -1,0 +1,20 @@
+  File "C:\Python312\Lib\site-packages\pydantic\__init__.py", line 5, in <module>
+    from ._migration import getattr_migration
+  File "C:\Python312\Lib\site-packages\pydantic\_migration.py", line 4, in <module>
+    from pydantic.warnings import PydanticDeprecatedSince20
+  File "C:\Python312\Lib\site-packages\pydantic\warnings.py", line 5, in <module>
+    from .version import version_short
+  File "C:\Python312\Lib\site-packages\pydantic\version.py", line 7, in <module>
+    from pydantic_core import __version__ as __pydantic_core_version__
+  File "C:\Python312\Lib\site-packages\pydantic_core\__init__.py", line 31, in <module>
+    from .core_schema import CoreConfig, CoreSchema, CoreSchemaType, ErrorType
+  File "C:\Python312\Lib\site-packages\pydantic_core\core_schema.py", line 4367, in <module>
+    @deprecated('`field_before_validator_function` is deprecated, use `with_info_before_validator_function` instead.')
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\typing_extensions.py", line 2997, in __call__
+    import asyncio.coroutines
+  File "C:\Python312\Lib\asyncio\__init__.py", line 43, in <module>
+    from .windows_events import *
+  File "C:\Python312\Lib\asyncio\windows_events.py", line 8, in <module>
+    import _overlapped
+OSError: [WinError 10106] 無法載入或初始化所要求的服務提供者。

@@ -1,0 +1,589 @@
+﻿import os
+import sys
+# Append project root to sys.path to resolve ModuleNotFoundError
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import json
+import logging
+import yaml
+import time
+import subprocess
+import re
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+from scripts.quota_manager import QuotaManager
+from scripts.whisper_pool import WhisperPool
+def init_gemini_client(config):
+    # Load dotenv from potential paths
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    potential_dotenv_paths = [
+        os.path.join(script_dir, ".env"),
+        os.path.join(script_dir, "..", ".env"),
+        os.path.join(script_dir, "..", "..", ".env"),
+        os.path.join(os.getcwd(), ".env"),
+        "c:\\Users\\temp\\antigravity\\LexMind-Omni-瘜?撖血?-AI-撌乩?蝡\.env"
+    ]
+    
+    for path in potential_dotenv_paths:
+        if os.path.exists(path):
+            load_dotenv(path)
+            
+    api_key = None
+    if 'api' in config and 'gemini_api_key' in config['api']:
+        api_key = config['api']['gemini_api_key']
+    if not api_key:
+        api_key_var = config.get('gemini', {}).get('api_key_env_var', 'GEMINI_API_KEY')
+        api_key = os.environ.get(api_key_var)
+    if not api_key:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        
+    if not api_key:
+        raise Exception("Gemini API Key not found! Please check config.yaml or set GEMINI_API_KEY.")
+        
+    client = genai.Client(api_key=api_key)
+    return client
+
+def init_local_whisper(model_name):
+    from faster_whisper import WhisperModel
+    import ctranslate2
+    
+    # ?菜葫?臬?瑕? CUDA GPU
+    device = "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
+    logging.info(f"Initializing local Whisper model '{model_name}' on device: {device}...")
+    
+    # 銝?頛?脣援瞏圈??雯頝?
+    model = None
+    if device == "cuda":
+        try:
+            logging.info("Attempting load: device=cuda, compute_type=float16")
+            model = WhisperModel(model_name, device="cuda", compute_type="float16")
+            logging.info("Whisper model loaded successfully with float16 on CUDA.")
+        except Exception as e:
+            logging.warning(f"Failed loading CUDA float16: {e}. Trying CUDA float32...")
+            try:
+                model = WhisperModel(model_name, device="cuda", compute_type="float32")
+                logging.info("Whisper model loaded successfully with float32 on CUDA.")
+            except Exception as e2:
+                logging.warning(f"Failed loading CUDA float32: {e2}. Falling back to CPU.")
+                device = "cpu"
+                
+    if device == "cpu":
+        try:
+            logging.info("Attempting load: device=cpu, compute_type=int8")
+            model = WhisperModel(model_name, device="cpu", compute_type="int8")
+            logging.info("Whisper model loaded successfully with int8 on CPU.")
+        except Exception as e3:
+            logging.error(f"Failed loading CPU int8: {e3}. Trying CPU float32...")
+            model = WhisperModel(model_name, device="cpu", compute_type="float32")
+            logging.info("Whisper model loaded successfully with float32 on CPU.")
+            
+    return model
+
+def init_local_whisper_cpu_only(model_name):
+    """?賊冗撘?撠嚗撥?嗡蝙??CPU int8嚗?? Gemini API ?澆?嗅左 VRAM??""
+    from faster_whisper import WhisperModel
+    logging.info(f"[Distill Engine] Initializing Whisper '{model_name}' in CPU-only int8 mode (VRAM isolation)...")
+    try:
+        model = WhisperModel(model_name, device="cpu", compute_type="int8")
+        logging.info("[Distill Engine] Whisper CPU int8 loaded successfully.")
+        return model
+    except Exception as e:
+        logging.warning(f"[Distill Engine] CPU int8 load failed: {e}. Trying CPU float32...")
+        model = WhisperModel(model_name, device="cpu", compute_type="float32")
+        logging.info("[Distill Engine] Whisper CPU float32 loaded successfully.")
+        return model
+
+def transcribe_chunk_local(model, chunk_path):
+    """???詨捆???Whisper 頧?嚗靘?WhisperPool ????嚗?""
+    return WhisperPool.transcribe(chunk_path)
+
+def apply_glossary_fix(text):
+    glossary = {
+        "common_errors": {
+            "?": "?脫", "?": "?脫",
+            "?": "銋", "?": "銋", "隞交": "銋",
+            "?唾": "銝", "銝": "銝", "?單": "銝",
+            "銝": "銝", "敶Ｘ?": "??", "敶Ｚ迄": "?迄"
+        }
+    }
+    fixed_text = text
+    for wrong, right in glossary.get("common_errors", {}).items():
+        fixed_text = re.sub(wrong, right, fixed_text)
+    return fixed_text
+
+# ????????????????????????????????????????????????????????????????
+# 銝血? chunk ???詨??賢?
+# ????????????????????????????????????????????????????????????????
+
+try:
+    with open(r'C:\LocalAI_Workstation\config.yaml', 'r', encoding='utf-8') as _f:
+        _cfg = __import__('yaml').safe_load(_f)
+        CHUNK_CONCURRENCY = _cfg.get("dispatcher", {}).get("stt_concurrency", 6)
+except Exception:
+    CHUNK_CONCURRENCY = 6  # ?身??6嚗ertex AI 擃蒂?潮?嚗?
+
+def process_single_chunk(
+    chunk: dict,
+    client,
+    qm: QuotaManager,
+    current_key_ref: list,   # ??list ?ㄨ霈銵???曹澈?航?撘
+    key_lock: threading.Lock,
+    task_id: str,
+    chunks_manifest_path: str,
+    manifest_write_lock: threading.Lock,
+    config: dict,
+    chunk_errors_log: str,
+    stt_engine: str,
+) -> bool:
+    """
+    ???桐??唾? chunk ???湔?蝔?銝 ??Gemini 頧陌 ???砍 Whisper 撠 ???賊冗摮???
+    蝺?摰嚗anifest 撖怠雿輻 manifest_write_lock??
+    餈? True 銵函內??嚗alse 銵函內?蝯仃??
+    """
+    chunk_path = chunk["path"]
+    chunk_filename = chunk["filename"]
+    retry_limit = 3
+    uploaded_file = None
+    upload_client = None
+    consecutive_429_count = 0
+
+    logging.info(f"[Parallel STT] Processing chunk: {chunk_filename}")
+
+    while chunk["retry_count"] < retry_limit:
+        try:
+            # ?耨敺拙??????冽迤撘??STT 撘??????潮?processing ????
+            chunk["status"] = "processing"
+            chunk["started_at"] = time.time()
+            with manifest_write_lock:
+                try:
+                    with open(chunks_manifest_path, "r", encoding="utf-8") as f:
+                        curr_chunks = json.load(f)
+                    for c in curr_chunks:
+                        if c["filename"] == chunk_filename:
+                            c["status"] = "processing"
+                            c["started_at"] = chunk["started_at"]
+                            break
+                    atomic_json_dump(curr_chunks, chunks_manifest_path)
+                except Exception:
+                    pass
+
+            # ?? ?脩垢 Gemini 頝臬? ??
+            if stt_engine in ["gemini", "vertexai"]:
+                file_size = os.path.getsize(chunk_path)
+                if file_size > 2000 * 1024 * 1024:
+                    raise ValueError(f"{chunk_filename} 頞? 2GB 銝銝?")
+
+                # ?仿??啗???皜??蝡舀?獢蒂?銝
+                if stt_engine == "gemini":
+                    with key_lock:
+                        active_key = current_key_ref[0]
+
+                    if upload_client is not None and upload_client._api_key != active_key:
+                        if uploaded_file:
+                            try:
+                                upload_client.files.delete(name=uploaded_file.name)
+                            except Exception:
+                                pass
+                        uploaded_file = None
+                        upload_client = None
+
+                if stt_engine == "gemini":
+                    if not uploaded_file:
+                        with key_lock:
+                            active_key = current_key_ref[0]
+                        upload_client = genai.Client(api_key=active_key)
+                        logging.info(f"[Parallel STT] Uploading {chunk_filename}...")
+                        uploaded_file = upload_client.files.upload(file=chunk_path)
+                        logging.info(f"[Parallel STT] Uploaded ??{uploaded_file.name}")
+                    transcription = transcribe_chunk_gemini(upload_client, uploaded_file, config)
+
+                elif stt_engine == "vertexai":
+                    v_project = config.get("api", {}).get("vertexai_project") or config.get("settings", {}).get("vertexai_project")
+                    v_loc = config.get("api", {}).get("vertexai_location") or config.get("settings", {}).get("vertexai_location", "us-central1")
+                    upload_client = genai.Client(vertexai=True, project=v_project, location=v_loc)
+                    
+                    logging.info(f"[Parallel STT] Reading {chunk_filename} as bytes for Vertex AI...")
+                    with open(chunk_path, "rb") as f:
+                        audio_bytes = f.read()
+                    vertex_part = genai.types.Part.from_bytes(data=audio_bytes, mime_type="audio/wav")
+                    logging.info(f"[Parallel STT] Prepared Part for Vertex AI")
+                    transcription = transcribe_chunk_vertexai(upload_client, vertex_part, config)
+
+                # ?? ?? ASR ?賊冗嚗hisperPool ??嚗??
+                local_whisper_text = ""
+                try:
+                    logging.info(f"[Parallel STT][Distill] WhisperPool ??嚗chunk_filename}")
+                    local_whisper_text = WhisperPool.transcribe(chunk_path)
+                    local_whisper_text = apply_glossary_fix(local_whisper_text)
+                    logging.info(f"[Parallel STT][Distill] 摰?嚗chunk_filename}")
+
+                    if local_whisper_text and transcription:
+                        from difflib import SequenceMatcher
+                        s = SequenceMatcher(None, local_whisper_text, transcription)
+                        diff_items = []
+                        for tag, i1, i2, j1, j2 in s.get_opcodes():
+                            if tag == "replace":
+                                lw = local_whisper_text[i1:i2]
+                                gr = transcription[j1:j2]
+                                if 0 < len(lw) < 100 and 0 < len(gr) < 100:
+                                    diff_items.append({"local_whisper_raw": lw, "gemini_corrected": gr})
+
+                        distill_dir = "A:\\distillation_dataset"
+                        os.makedirs(distill_dir, exist_ok=True)
+                        chunk_distill_path = os.path.join(
+                            distill_dir,
+                            f"{task_id}_{chunk_filename.replace('.wav', '')}_distill.json"
+                        )
+                        with open(chunk_distill_path, "w", encoding="utf-8") as df:
+                            json.dump({
+                                "task_id": task_id,
+                                "chunk_filename": chunk_filename,
+                                "diff_mappings": diff_items,
+                                "local_whisper_text": local_whisper_text,
+                                "gemini_text": transcription,
+                                "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                            }, df, ensure_ascii=False, indent=2)
+                        logging.info(f"[Parallel STT][Distill] ?賊冗鞈?撌脣摮?{chunk_distill_path}")
+
+                except Exception as de:
+                    logging.warning(f"[Parallel STT][Distill] ?賊冗憭望?嚗??游嚗?{de}")
+
+            else:  # local_whisper
+                transcription = WhisperPool.transcribe(chunk_path)
+                transcription = apply_glossary_fix(transcription)
+
+            # ?? ?脣?頧?蝯? ??
+            txt_output_path = os.path.splitext(chunk_path)[0] + ".txt"
+            with open(txt_output_path, "w", encoding="utf-8") as tf:
+                tf.write(transcription)
+
+            json_output_path = os.path.splitext(chunk_path)[0] + ".json"
+            with open(json_output_path, "w", encoding="utf-8") as jf:
+                json.dump({
+                    "task_id": task_id,
+                    "filename": chunk_filename,
+                    "part_no": chunk.get("part_no", chunk.get("chunk_id")),
+                    "transcription": transcription,
+                    "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                }, jf, ensure_ascii=False, indent=2)
+
+            chunk["status"] = "completed"
+            consecutive_429_count = 0
+            if stt_engine == "gemini":
+                qm.reset_key(current_key_ref[0])
+            logging.info(f"[Parallel STT] ??摰?嚗chunk_filename}")
+
+            # ?單?撖怠? manifest嚗???per-task ??
+            # 瘜冽?嚗hunk dict ?臬鈭怎?撘嚗隞銵??航銋?孵?嚗???霅?
+            with manifest_write_lock:
+                # ?霈???虫??銵??航?神??嚗?湔??chunk
+                return True
+
+        except Exception as e:
+            err_str = str(e)
+            if stt_engine in ["gemini", "vertexai"] and (
+                "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower()
+            ):
+                consecutive_429_count += 1
+                with key_lock:
+                    current_key = current_key_ref[0]
+                res = qm.handle_error(e, current_key, consecutive_429_count)
+                sleep_time = res["sleep_time"]
+                new_key = res["new_key"]
+                project_cooldown = res["project_cooldown"]
+
+                if new_key:
+                    with key_lock:
+                        current_key_ref[0] = new_key
+                    consecutive_429_count = 0
+                    logging.info(f"[Parallel STT] ???單?: {new_key[:8]}...")
+                else:
+                    logging.error("[Parallel STT] ????啗嚗?甇Ｘ迨 chunk??)
+                    break
+
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                continue
+
+            # ??429 ?航炊
+            if uploaded_file and upload_client:
+                try:
+                    upload_client.files.delete(name=uploaded_file.name)
+                except Exception:
+                    pass
+            uploaded_file = None
+            upload_client = None
+            chunk["retry_count"] += 1
+            logging.error(
+                f"[Parallel STT] chunk {chunk_filename} 憭望?嚗chunk['retry_count']}/{retry_limit}嚗?{e}"
+            )
+            with open(chunk_errors_log, "a", encoding="utf-8") as ef:
+                ef.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} [{task_id}][{chunk_filename}]: {e}\n")
+            time.sleep(5)
+
+    # ?蝯???
+    if uploaded_file and upload_client:
+        try:
+            upload_client.files.delete(name=uploaded_file.name)
+        except Exception:
+            pass
+
+    if chunk["status"] != "completed":
+        chunk["status"] = "failed"
+        return False
+    return True
+
+
+# --- 隞乩??箄◤?誨???蝛箇?撘Ⅳ嚗歇撱Ｘ?嚗?扳?蝷箄酉閫???芷嚗?---
+    # model = "gemini-2.5-flash"
+    # if 'api' in config and 'gemini_model_low_cost' in config['api']:
+    #     model = config['api']['gemini_model_low_cost']
+    # elif 'gemini' in config and 'model_name' in config['gemini']:
+    #     model = config['gemini']['model_name']
+    # 
+    # prompt = """..."""
+    # 
+    # time.sleep(2)
+    # 
+    # response = client.models.generate_content(
+    #     model=model,
+    #     contents=[uploaded_file, prompt]
+    # )
+    # return response.text
+# -------------------------------------------------------------------
+
+def get_prompt_and_model(config):
+    model = "gemini-2.5-flash"
+    if 'api' in config and 'gemini_model_low_cost' in config['api']:
+        model = config['api']['gemini_model_low_cost']
+    elif 'gemini' in config and 'model_name' in config['gemini']:
+        model = config['gemini']['model_name']
+    
+    prompt = """雿銝雿?璆剔??啁瘜?隤脩???摨抒???蝔踵???
+隢????瑼脰?蝎曄Ⅱ??擃葉???唾???銝阡摰誑銝?摰?
+??閬?摰?扯?蝎曄Ⅱ?扯?瘙?
+甇斗?獢璆萇???敺?摮豢????臬?蝥???AI 撠???賢澈??批蝷??????摮?瞍??刻???
+?渡? any ???葬撖怒??乓?蝪∪??潸????箝?摰靽?雓葦???隤牧??靘?隤脣?蝝啁???
+1. 頛詨?澆?銝敺蝜?銝剜?嚗?????閰???
+2. 靽??啁瘜?撠平銵?嚗?憒?銝敺??皛???交????餉??噩甈??箝瘜?隢?甈?嚗?
+3. 摰靽?????啁?瘜?瘜??迂????靘???瘜洵銝?曉??璇?瘜洵197璇?瘜洵126璇??輻?摨?蝚?31璇??亙餈啁陛撖怠???瘜??怠???頧??箏??渡???瘜洵銝?曉??璇?
+4. 靽???摮?嚗?憒???蝚?74?????Ｗ瘙箏???靘?嚗?擃???09撟游漲?唬?摮洵X??銋?皞撘?
+5. ?賭?皜???蝣箏?銋?銝?征?葫嚗?敺誑 [敺Ⅱ隤 璅???
+6. 隢摨虫????閮?靘? [01:23] ??[15:45]嚗??嫣噶撠??敶梢??
+7. ?嗉儘霅蝡????柴蜓憿?隢??????隢???仿?嗥? Markdown 璅?嚗???#??##嚗?
+8. ?亥儘霅?暺?暺????隢祕??閫???隤摮見嚗??芸??刻府畾菔??銝畾? Markdown ????璅?嚗?嚗?*?暺?*??*?祕??閫??*嚗?
+"""
+    return model, prompt
+
+def transcribe_chunk_gemini(client, uploaded_file, config):
+    model, prompt = get_prompt_and_model(config)
+    time.sleep(2)
+    response = client.models.generate_content(
+        model=model,
+        contents=[uploaded_file, prompt]
+    )
+    return response.text
+
+def transcribe_chunk_vertexai(client, audio_part, config):
+    model, prompt = get_prompt_and_model(config)
+    response = client.models.generate_content(
+        model=model,
+        contents=[audio_part, prompt]
+    )
+    return response.text
+
+def run_stt(task_id: str, exclusive_key: str = None):
+    """STT 銝餃撘xclusive_key ?箏?撌乩蒂?芋撘??勗???Task Dispatcher ?喳??隞??啜?""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    from workflow_helper import load_config, get_resolved_paths
+    config = load_config()
+    paths = get_resolved_paths()
+        
+    manifests_dir = paths['manifests_dir']
+    workflow_log = os.path.join(paths['logs_dir'], "workflow.log")
+    chunk_errors_log = os.path.join(paths['logs_dir'], "chunk_errors.log")
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(workflow_log, encoding='utf-8')
+        ]
+    )
+    
+    # Ensure error log directory exists
+    os.makedirs(os.path.dirname(chunk_errors_log), exist_ok=True)
+    
+    logging.info(f"--- STT Processing Task {task_id} ---")
+    manifest_path = os.path.join(manifests_dir, f"{task_id}.json")
+    if not os.path.exists(manifest_path):
+        logging.error(f"Manifest not found for task {task_id}")
+        return
+        
+    with open(manifest_path, 'r', encoding='utf-8') as f:
+        manifest = json.load(f)
+
+    chunks_manifest_path = os.path.join(manifests_dir, f"{task_id}_chunks.json")
+    if not os.path.exists(chunks_manifest_path):
+        logging.error(f"Chunks manifest not found for task {task_id}")
+        return
+        
+    with open(chunks_manifest_path, 'r', encoding='utf-8') as f:
+        chunks = json.load(f)
+        
+    if not chunks:
+        logging.error(f"No chunks found in manifest for task {task_id}")
+        return
+        
+    stt_engine = config.get("settings", {}).get("stt_engine", "gemini")
+    local_whisper_model = config.get("settings", {}).get("local_whisper_model", "small")
+
+    client = None
+    whisper_model = None
+
+    if stt_engine == "local_whisper":
+        # ??頛?WhisperPool嚗?靘?摰嚗?
+        try:
+            WhisperPool.get_model(local_whisper_model)
+        except Exception as e:
+            logging.error(f"Failed to initialize WhisperPool: {e}. Falling back to Gemini.")
+            stt_engine = "gemini"
+            
+    qm = None
+    current_key = None
+    key_lock = threading.Lock()
+
+    if stt_engine == "gemini":
+        qm = QuotaManager()
+        # ?芸?雿輻憭?喳??隞??堆?憭極銝血?璅∪?嚗?
+        if exclusive_key:
+            current_key = exclusive_key
+            logging.info(f"[STT] 雿輻憭?喳???: {current_key[:8]}...")
+        else:
+            current_key = qm.acquire_key_exclusive()
+            logging.info(f"[STT] ?????: {current_key[:8]}...")
+        client = genai.Client(api_key=current_key)
+
+        # ??頛?WhisperPool 隞亦葬?剔洵銝??chunk ??敺???
+        try:
+            WhisperPool.get_model("medium")
+        except Exception as e:
+            logging.warning(f"[STT][Distill] WhisperPool ??頛仃????踝?嚗e}")
+            
+    elif stt_engine == "vertexai":
+        v_cred_path = config.get("settings", {}).get("vertexai_credentials_path", "config/vertex_key.json")
+        cred_abs = os.path.abspath(os.path.join(script_dir, "..", v_cred_path))
+        v_project = config.get("api", {}).get("vertexai_project") or config.get("settings", {}).get("vertexai_project")
+        v_loc = config.get("api", {}).get("vertexai_location") or config.get("settings", {}).get("vertexai_location", "us-central1")
+        
+        if os.path.exists(cred_abs):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_abs
+            logging.info(f"[STT] 雿輻 Vertex AI 隡平??嚗?獢?{v_project} ({v_loc})嚗?霅?{v_cred_path}")
+        else:
+            logging.info(f"[STT] ?曆???JSON ??嚗??典??ADC 撽?嚗?獢?{v_project} ({v_loc})")
+            
+        client = genai.Client(vertexai=True, project=v_project, location=v_loc)
+        
+        try:
+            WhisperPool.get_model("medium")
+        except Exception as e:
+            pass
+
+    # ?曹澈?航??撘嚗銵????
+    current_key_ref = [current_key]
+
+    pending_chunks = [c for c in chunks if c["status"] != "completed"]
+    logging.info(f"[STT] ??{len(pending_chunks)} ??chunk 敺???銝血?摨?M={CHUNK_CONCURRENCY}")
+
+    # per-task manifest 撖怠??
+    manifest_write_lock = threading.Lock()
+    all_succeeded = True
+    # ?? 銝血??瑁????pending chunks嚗=3 銝血?摨佗???
+    with ThreadPoolExecutor(max_workers=CHUNK_CONCURRENCY) as executor:
+        futures = {
+            executor.submit(
+                process_single_chunk,
+                chunk,
+                client,
+                qm,
+                current_key_ref,
+                key_lock,
+                task_id,
+                chunks_manifest_path,
+                manifest_write_lock,
+                config,
+                chunk_errors_log,
+                stt_engine,
+            ): chunk
+            for chunk in pending_chunks
+        }
+
+        for future in as_completed(futures):
+            chunk = futures[future]
+            try:
+                success = future.result()
+                if not success:
+                    all_succeeded = False
+                # 瘥?????chunk ?單?摮?嚗? per-task ??霅瘀?
+                with manifest_write_lock:
+                    try:
+                        atomic_json_dump(chunks, chunks_manifest_path)
+                    except Exception as save_err:
+                        logging.warning(f"[STT] Manifest 摮?憭望?嚗save_err}")
+            except Exception as exc:
+                logging.error(f"[STT] chunk {chunk.get('filename')} Future ?啣虜嚗exc}")
+                chunk["status"] = "failed"
+                all_succeeded = False
+
+    # ?? ?湔銝颱遙??Manifest ?????
+    if all_succeeded:
+        manifest["status"] = "transcribed"
+        manifest["steps"]["stt"] = "completed"
+    else:
+        manifest["status"] = "partial_success"
+        manifest["steps"]["stt"] = "failed"
+
+    atomic_json_dump(manifest, manifest_path)
+
+    atomic_json_dump(chunks, chunks_manifest_path)
+
+    if stt_engine == "gemini" and qm:
+        try:
+            qm._save_state()
+        except Exception as se:
+            logging.warning(f"Failed to save quota state at run_stt end: {se}")
+        # ?仿??唳?砍撘銵?敺?嚗?憭憭極 dispatcher ?喳嚗?甇賊?????
+        if not exclusive_key and current_key_ref[0]:
+            qm.release_key(current_key_ref[0])
+
+    logging.info(f"STT Phase completed. Succeeded={all_succeeded}. Triggering Merge Agent...")
+
+    return all_succeeded
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python stt_runner.py {task_id}")
+        sys.exit(1)
+    run_stt(sys.argv[1])
+
+def atomic_json_dump(data, filepath, **kwargs):
+    import json, os, tempfile
+    directory = os.path.dirname(os.path.abspath(filepath)) or "."
+    fd, tmp_path = tempfile.mkstemp(prefix=".tmp_json_", dir=directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2, **kwargs)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, filepath)
+    except Exception:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+        raise

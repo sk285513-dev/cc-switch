@@ -1,0 +1,358 @@
+import os
+import sys
+import time
+import json
+import uuid
+import shutil
+import logging
+import argparse
+import subprocess
+from pathlib import Path
+from filelock import FileLock
+
+sys.path.insert(0, str(Path("C:/LocalAI_Workstation/scripts_v6").resolve()))
+
+import config
+from utils import SingleInstanceLock
+from process_video import extract_audio
+from vad_chunker import detect_silences_and_chunk
+from stt_runner import run_stt_for_task as run_stt
+from merge_transcript import process_task as merge_workflow
+from markdown_formatter import format_task as format_markdown
+from error_analyzer import dump_stack_snapshot
+from error_analyzer import recover_failed_task
+
+# ── 強制讀取隔離區 ──
+WORKDIR = os.environ.get("LEXMIND_WORKDIR", "C:/LocalAI_Workstation")
+MANIFESTS_DIR = os.environ.get("LEXMIND_MANIFEST_DIR", "A:/manifests_v6")
+LOGS_DIR = os.environ.get("LEXMIND_LOG_DIR", "A:/logs_v6")
+CHUNKS_DIR = os.environ.get("LEXMIND_CHUNKS_DIR", "A:/chunks_v6")
+PROCESSED_MD_DIR = os.environ.get("LEXMIND_PROCESSED_MD_DIR", "A:/processed_md_v6")
+PROCESSED_SRT_DIR = os.environ.get("LEXMIND_PROCESSED_SRT_DIR", "A:/processed_srt_v6")
+PROCESSING_DIR = os.environ.get("LEXMIND_PROCESSING_DIR", "A:/processing_v6")
+
+def ensure_dirs():
+    paths = {
+        "logs": LOGS_DIR,
+        "manifests_dir": MANIFESTS_DIR,
+        "chunks_dir": CHUNKS_DIR,
+        "processed_md": PROCESSED_MD_DIR,
+        "output_srt": PROCESSED_SRT_DIR,
+        "processing": PROCESSING_DIR
+    }
+    for p in paths.values():
+        os.makedirs(p, exist_ok=True)
+    return paths
+
+def setup_logging():
+    os.makedirs(LOGS_DIR, exist_ok=True)
+    logging.basicConfig(
+        filename=os.path.join(LOGS_DIR, "workflow.log"),
+        level=logging.INFO,
+        format="[%(asctime)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
+def log_workflow(msg):
+    print(msg, flush=True)
+    logging.info(msg)
+
+def log_error(msg):
+    print(f"[ERROR] {msg}", file=sys.stderr, flush=True)
+    logging.error(msg)
+
+def atomic_json_dump(data, path):
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, path)
+
+def get_exclusive_key():
+    state_file = "config/quota_state.json"
+    if not os.path.exists(state_file):
+        return None
+    try:
+        with open(state_file, "r", encoding="utf-8") as f:
+            state = json.load(f)
+    except Exception:
+        return None
+        
+    for model_group in config.GEMINI_API_KEYS.values():
+        for key in model_group:
+            if key not in state.get("exhausted_keys", []):
+                return key
+    return None
+
+import glob
+
+def scan_new_files():
+    search_dirs = [
+        "A:/media_input",
+        "E:/", "F:/", "G:/", "H:/", "I:/", "J:/", "K:/", "M:/"
+    ]
+    supported_exts = {".mp3", ".mp4", ".wav"}
+
+    existing_sources = set()
+    for mf in glob.glob(os.path.join(MANIFESTS_DIR, "task_*.json")):
+        if "_chunks" in mf:
+            continue
+        try:
+            with open(mf, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+                existing_sources.add(data.get("source_file"))
+        except Exception:
+            pass
+
+    for d in search_dirs:
+        if not os.path.exists(d):
+            continue
+        for root_dir, _, files in os.walk(d):
+            if any(skip in root_dir for skip in ["$RECYCLE.BIN", "System Volume Information", "Windows", "Program Files"]):
+                continue
+            for file in files:
+                ext = os.path.splitext(file)[1].lower()
+                if ext in supported_exts:
+                    abs_path = os.path.join(root_dir, file)
+                    if abs_path not in existing_sources:
+                        task_id = str(uuid.uuid4())
+                        manifest_path = os.path.join(MANIFESTS_DIR, f"task_{task_id}.json")
+                        manifest = {
+                            "task_id": task_id,
+                            "source_file": abs_path,
+                            "source_name": file,
+                            "status": "pending",
+                            "created_at": time.time(),
+                            "steps": {
+                                "preprocess": "pending",
+                                "chunk_planner": "pending",
+                                "stt": "pending",
+                                "merge": "pending",
+                                "formatter": "pending"
+                            }
+                        }
+                        try:
+                            if os.path.getsize(abs_path) > 0:
+                                atomic_json_dump(manifest, manifest_path)
+                                log_workflow(f"Workflow Engine: Found new file -> {abs_path} (Task: {task_id})")
+                                existing_sources.add(abs_path)
+                        except Exception as e:
+                            log_error(f"Cannot process {abs_path}: {e}")
+
+def process_active_tasks(chunking_only=False):
+    target_manifest = None
+    target_data = None
+    
+    for mf in sorted(glob.glob(os.path.join(MANIFESTS_DIR, "task_*.json")), key=os.path.getctime):
+        if "_chunks" in mf:
+            continue
+        try:
+            with open(mf, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+                
+            if data.get("status") == "chunked":
+                target_manifest = mf
+                target_data = data
+                break
+        except Exception:
+            pass
+            
+    if not target_manifest:
+        for mf in sorted(glob.glob(os.path.join(MANIFESTS_DIR, "task_*.json")), key=os.path.getctime):
+            if "_chunks" in mf:
+                continue
+            try:
+                with open(mf, "r", encoding="utf-8-sig") as f:
+                    data = json.load(f)
+                    
+                if data.get("status") == "pending":
+                    target_manifest = mf
+                    target_data = data
+                    break
+            except Exception:
+                pass
+                
+    if not target_manifest:
+        return False
+        
+    try:
+        run_task(target_manifest, target_data, chunking_only)
+        return True
+    except Exception as e:
+        log_error(f"Fatal error processing {target_manifest}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        try:
+            dump_stack_snapshot(target_data.get("task_id", "unknown"))
+        except Exception:
+            pass
+        return False
+
+def plan_chunks(manifest_path, data):
+    task_id = data["task_id"]
+    source_name = data["source_name"]
+    processing_dir = os.path.join(PROCESSING_DIR, task_id)
+    wav_path = os.path.join(processing_dir, f"{task_id}.wav")
+    
+    if not os.path.exists(wav_path):
+        raise FileNotFoundError(f"WAV not found for {task_id}")
+        
+    log_workflow(f"Planning chunks for {task_id}...")
+    chunk_list = detect_silences_and_chunk(wav_path, CHUNKS_DIR, task_id)
+    
+    chunks_manifest_path = os.path.join(MANIFESTS_DIR, f"task_{task_id}_chunks.json")
+    chunks_data = {
+        "task_id": task_id,
+        "source_name": source_name,
+        "chunks": chunk_list,
+        "status": "pending",
+        "created_at": time.time()
+    }
+    atomic_json_dump(chunks_data, chunks_manifest_path)
+    
+    data["steps"]["chunk_planner"] = "completed"
+    data["status"] = "chunked"
+    atomic_json_dump(data, manifest_path)
+    log_workflow(f"Chunk planning complete for {task_id}. Generated {len(chunk_list)} chunks.")
+
+def run_task(manifest_path, data, chunking_only=False):
+    task_id = data["task_id"]
+    source_file = data["source_file"]
+    
+    log_workflow(f"--- Starting task processing: {data['source_name']} ({task_id}) ---")
+    
+    if data["steps"]["preprocess"] == "pending":
+        log_workflow("Step 1: Extracting audio...")
+        processing_dir = os.path.join(PROCESSING_DIR, task_id)
+        os.makedirs(processing_dir, exist_ok=True)
+        out_wav = os.path.join(processing_dir, f"{task_id}.wav")
+        
+        success = extract_audio(source_file, out_wav)
+        if success:
+            data["steps"]["preprocess"] = "completed"
+            atomic_json_dump(data, manifest_path)
+        else:
+            data["status"] = "failed"
+            data["error"] = "Audio extraction failed"
+            atomic_json_dump(data, manifest_path)
+            return
+            
+    if data["steps"]["chunk_planner"] == "pending":
+        log_workflow("Step 2: Planning chunks...")
+        try:
+            plan_chunks(manifest_path, data)
+        except Exception as e:
+            log_error(f"Chunk planning failed: {e}")
+            data["status"] = "failed"
+            data["error"] = str(e)
+            atomic_json_dump(data, manifest_path)
+            return
+
+    if chunking_only:
+        log_workflow(f"Task {task_id} paused at chunked state due to --chunking-only mode.")
+        return
+
+    chunks_manifest_path = os.path.join(MANIFESTS_DIR, f"task_{task_id}_chunks.json")
+    if not os.path.exists(chunks_manifest_path):
+        log_error(f"Chunks manifest missing for {task_id}. Cannot proceed.")
+        return
+        
+    with open(chunks_manifest_path, "r", encoding="utf-8-sig") as f:
+        chunks_data = json.load(f)
+
+    if chunks_data.get("status") == "completed":
+        data["steps"]["stt"] = "completed"
+    else:
+        if data["steps"]["stt"] == "pending":
+            api_key = get_exclusive_key()
+            if not api_key:
+                log_error("No available Gemini API key. STT step skipped for now.")
+                return
+                
+            log_workflow("Step 3: Running STT...")
+            success = run_stt(chunks_manifest_path, api_key)
+            if success:
+                data["steps"]["stt"] = "completed"
+                atomic_json_dump(data, manifest_path)
+            else:
+                log_error("STT step did not complete successfully.")
+                return
+
+    if data["steps"]["merge"] == "pending":
+        log_workflow("Step 4: Merging transcripts (Mock)...")
+        api_key = get_exclusive_key()
+        if not api_key:
+            log_error("No available Gemini API key for merge step. Skipped for now.")
+            return
+            
+        success = merge_workflow(chunks_manifest_path, api_key)
+        if success:
+            data["steps"]["merge"] = "completed"
+            atomic_json_dump(data, manifest_path)
+            
+            merged_json = os.path.join(CHUNKS_DIR, task_id, f"{task_id}_merged.json")
+            if os.path.exists(merged_json):
+                with open(merged_json, "r", encoding="utf-8") as f:
+                    mj = json.load(f)
+                
+                md_path = os.path.join(PROCESSED_MD_DIR, f"{data['source_name']}.md")
+                srt_path = os.path.join(PROCESSED_SRT_DIR, f"{data['source_name']}.srt")
+                
+                with open(md_path, "w", encoding="utf-8") as f:
+                    f.write(f"# {data['source_name']}\n\n")
+                    f.write("This is a mock final markdown document generated by the pipeline.\n")
+                    if "final_transcript" in mj:
+                        f.write(mj["final_transcript"])
+                        
+                with open(srt_path, "w", encoding="utf-8") as f:
+                    f.write("1\n00:00:00,000 --> 00:00:10,000\nMock Subtitle Line\n")
+                    
+        else:
+            log_error("Merge step failed.")
+            return
+
+    if data["steps"]["formatter"] == "pending":
+        log_workflow("Step 5: Formatting final output (Mock)...")
+        data["steps"]["formatter"] = "completed"
+        data["status"] = "completed"
+        atomic_json_dump(data, manifest_path)
+        log_workflow(f"*** Task {task_id} fully completed! ***")
+        
+        processing_dir = os.path.join(PROCESSING_DIR, task_id)
+        if os.path.exists(processing_dir):
+            shutil.rmtree(processing_dir, ignore_errors=True)
+
+def run_loop(chunking_only=False):
+    log_workflow("Workflow Engine: Started loop. Press Ctrl+C to exit.")
+    while True:
+        scan_new_files()
+        processed_any = process_active_tasks(chunking_only)
+        if not processed_any:
+            time.sleep(10)
+
+def main():
+    setup_logging()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--one-shot", action="store_true", help="Run once and exit instead of loop")
+    parser.add_argument("--chunking-only", action="store_true", help="Only run local chunking steps (preprocess, chunk planner)")
+    args = parser.parse_args()
+    
+    paths = ensure_dirs()
+    lock_file = os.path.join(paths["manifests_dir"], "workflow.lock")
+    lock = SingleInstanceLock(lock_file)
+    
+    if not lock.acquire():
+        print(f"[Workflow Lock] Another instance of run_workflow is already running (locked on {lock_file}). Exiting.")
+        sys.exit(0)
+        
+    try:
+        if args.one_shot:
+            log_workflow("Workflow Engine: Running in one-shot mode." + (" [ȤҦ]" if args.chunking_only else ""))
+            scan_new_files()
+            process_active_tasks(args.chunking_only)
+        else:
+            run_loop(args.chunking_only)
+    finally:
+        lock.release()
+
+if __name__ == "__main__":
+    main()

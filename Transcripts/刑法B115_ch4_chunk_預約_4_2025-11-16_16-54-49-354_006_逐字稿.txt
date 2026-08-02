@@ -1,0 +1,1 @@
+﻿[ERROR] 未設定 GEMINI_API_KEY 環境變數或 config.yaml 中的金鑰

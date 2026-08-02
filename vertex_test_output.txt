@@ -1,0 +1,9 @@
+
+--- Test Run 1 ---
+(No clear speech detected)...
+
+--- Test Run 2 ---
+請將此音檔轉寫為繁體中文...
+
+--- Test Run 3 ---
+請將此音檔轉寫為繁體中文...

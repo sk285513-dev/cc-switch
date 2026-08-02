@@ -1,0 +1,661 @@
+# [CRITICAL CROSS-FILE DEPENDENCY WARNING]
+# Upstream: run_workflow.py
+# Downstream: quota_manager.py, Gemini API
+# Shared State: Chunks, API Keys, Transcripts
+
+import sqlite3
+import os
+import sys, io
+import json
+import logging
+import time
+import base64
+import yaml
+import datetime
+import subprocess
+import re
+import threading
+import queue
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+from quota_manager import QuotaManager
+from whisper_pool import WhisperPool
+from model_router import get_router
+
+# ==========================================
+# [EXPERT FIX] 動態讀取環境變數，落實 I/O 與 Port 隔離
+# ==========================================
+V6_ENV = os.environ.get("LEXMIND_ENV", "v5_prod")
+PORT = int(os.environ.get("LEXMIND_PORT", 8080))  # 實際應用 Port
+
+if V6_ENV == "v6_canary":
+    DB_PATH = "A:/logs/jobs_v6.db"
+    MANIFESTS_DIR = "A:/manifests_v6/"
+else:
+    DB_PATH = "A:/logs/jobs.db"
+    MANIFESTS_DIR = "A:/manifests/"
+
+os.makedirs(MANIFESTS_DIR, exist_ok=True)
+
+
+# ==========================================
+# [EXPERT FIX] SQLite 高併發優化：強制啟用 WAL 模式與拉長 Timeout
+# ==========================================
+def get_db_connection(db_path):
+    conn = sqlite3.connect(db_path, timeout=30.0)
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    return conn
+
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+error_log_lock = threading.Lock()
+
+def atomic_json_dump(data, filepath):
+    tmp_path = f"{filepath}.{os.getpid()}.{threading.get_ident()}.tmp"
+    import json
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    max_retries = 30
+    for i in range(max_retries):
+        try:
+            os.replace(tmp_path, filepath)
+            break
+        except PermissionError:
+            if i == max_retries - 1:
+                logging.error(f"嚴重 I/O 錯誤：等待 {max_retries} 次後仍無法覆寫 {filepath}")
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+                raise
+            import random
+            sleep_time = (0.1 * (1.2 ** i)) + random.uniform(0.01, 0.05)
+            time.sleep(min(sleep_time, 2.0))
+
+# [Block A / G] 狀態寫入收斂區塊
+def manifest_writer_thread(chunks_manifest_path, manifest_update_queue):
+    """背景單一寫入者：批次合併 processing / retrying / failed / completed 狀態到 chunks manifest"""
+    logging.info("[ManifestWriter] Background writer started.")
+
+    while True:
+        updates = []
+        stop_seen = False
+
+        try:
+            item = manifest_update_queue.get(timeout=2.0)
+            if item == "STOP":
+                manifest_update_queue.task_done()
+                break
+            updates.append(item)
+
+            while not manifest_update_queue.empty():
+                try:
+                    val = manifest_update_queue.get_nowait()
+                    if val == "STOP":
+                        stop_seen = True
+                    else:
+                        updates.append(val)
+                except queue.Empty:
+                    break
+
+            if not updates:
+                if stop_seen:
+                    manifest_update_queue.task_done()
+                    break
+                continue
+
+            if os.path.exists(chunks_manifest_path):
+                with open(chunks_manifest_path, "r", encoding="utf-8-sig") as f:
+                    try:
+                        current_chunks = json.load(f)
+                    except Exception:
+                        current_chunks = []
+            else:
+                current_chunks = []
+
+            index = {}
+            for c in current_chunks:
+                if isinstance(c, dict) and c.get("filename"):
+                    index[c["filename"]] = c
+
+            updated = False
+            for u in updates:
+                if not isinstance(u, dict):
+                    continue
+
+                filename = u.get("filename")
+                status = u.get("status")
+                if not filename or not status:
+                    continue
+
+                existing = index.get(filename, {"filename": filename})
+                existing["status"] = status
+
+                if "started_at" in u:
+                    existing["started_at"] = u["started_at"]
+                if "updated_at" in u:
+                    existing["updated_at"] = u["updated_at"]
+                if "failed_at" in u:
+                    existing["failed_at"] = u["failed_at"]
+                if "retry_count" in u:
+                    existing["retry_count"] = u["retry_count"]
+                if "last_error" in u:
+                    existing["last_error"] = u["last_error"]
+
+                index[filename] = existing
+                updated = True
+
+            if updated:
+                atomic_json_dump(list(index.values()), chunks_manifest_path)
+
+            for _ in updates:
+                manifest_update_queue.task_done()
+
+            if stop_seen:
+                manifest_update_queue.task_done()
+                break
+
+        except queue.Empty:
+            continue
+        except Exception as e:
+            logging.error(f"[ManifestWriter] Failed to write manifest batch: {e}")
+
+# [Block B / G] 蒸餾並發限制收斂區塊
+def distill_worker_thread(worker_id, distill_task_queue):
+    """背景蒸餾工作緒：限制最多只有 N 個子進程同時跑 Whisper"""
+    logging.info(f"[DistillWorker-{worker_id}] Background distill worker started.")
+    while True:
+        task = distill_task_queue.get()
+        if task == "STOP":
+            break
+            
+        try:
+            chunk_filename = task["filename"]
+            chunk_path = task["chunk_path"]
+            txt_output_path = task["txt_path"]
+            task_id = task["task_id"]
+            
+            logging.info(f"[DistillWorker-{worker_id}] Processing distill task: {chunk_filename}")
+            
+            # 直接在同一個進程內呼叫，共享 WhisperPool Semaphore，避免多進程 CUDA OOM/Deadlock
+            with open(txt_output_path, "r", encoding="utf-8-sig") as f:
+                transcription = f.read()
+            run_distill_process(task_id, chunk_filename, chunk_path, transcription)
+            
+            logging.info(f"[DistillWorker-{worker_id}] Completed distill task: {chunk_filename}")
+        except Exception as e:
+            logging.error(f"[DistillWorker-{worker_id}] Distill task failed: {e}")
+        finally:
+            distill_task_queue.task_done()
+
+def apply_glossary_fix(text):
+    glossary = {
+        "common_errors": {
+            "假芳": "甲方", "假方": "甲方",
+            "倚芳": "乙方", "倚方": "乙方", "以方": "乙方",
+            "炳芳": "丙方", "丙芳": "丙方", "炳方": "丙方",
+            "丁芳": "丁方",
+            "形式訴訟法": "刑事訴訟法",
+            "形式訴訟":   "刑事訴訟",
+            "形式法院":   "刑事法院",
+            "形式被告":   "刑事被告",
+            "形式案件":   "刑事案件",
+            "形事訴訟":   "刑事訴訟",
+            "形法": "刑法", "形訴": "刑訴",
+            "投地登記": "土地登記", "投地法": "土地法",
+            "地政治": "地政士", "遞贈式": "地政士",
+            "消滅實效": "消滅時效", "消滅士效": "消滅時效",
+            "格論": "各論",
+            "割了一個": "隔了一個", "割了好幾": "隔了好幾",
+            "抵銷法": "抵押法", "行政府": "行政府",
+        }
+    }
+    fixed_text = text
+    for wrong, right in glossary.get("common_errors", {}).items():
+        fixed_text = re.sub(wrong, right, fixed_text)
+    return fixed_text
+
+def run_distill_process(task_id, chunk_filename, chunk_path, transcription):
+    local_whisper_text = ""
+    try:
+        logging.info(f"[Parallel STT][Distill] WhisperPool 排隊（獨立進程）：{chunk_filename}")
+        local_whisper_text = WhisperPool.transcribe(chunk_path)
+        local_whisper_text = apply_glossary_fix(local_whisper_text)
+        logging.info(f"[Parallel STT][Distill] 完成：{chunk_filename}")
+
+        if local_whisper_text and transcription:
+            from difflib import SequenceMatcher
+            s = SequenceMatcher(None, local_whisper_text, transcription)
+            diff_items = []
+            for tag, i1, i2, j1, j2 in s.get_opcodes():
+                if tag == "replace":
+                    lw = local_whisper_text[i1:i2]
+                    gr = transcription[j1:j2]
+                    if 0 < len(lw) < 100 and 0 < len(gr) < 100:
+                        diff_items.append({"local_whisper_raw": lw, "gemini_corrected": gr})
+
+            distill_dir = "A:\\distillation_dataset"
+            os.makedirs(distill_dir, exist_ok=True)
+            chunk_distill_path = os.path.join(
+                distill_dir,
+                f"{task_id}_{chunk_filename.replace('.wav', '')}_distill.json"
+            )
+            atomic_json_dump({
+                "task_id": task_id,
+                "chunk_filename": chunk_filename,
+                "diff_mappings": diff_items,
+                "local_whisper_text": local_whisper_text,
+                "gemini_text": transcription,
+                "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+            }, chunk_distill_path)
+            logging.info(f"[Parallel STT][Distill] 蒸餾資料已儲存：{chunk_distill_path}")
+
+    except Exception as de:
+        logging.warning(f"[Parallel STT][Distill] 蒸餾失敗（非致命）：{de}")
+
+
+CHUNK_CONCURRENCY = 3
+API_UPLOAD_TIMEOUT      = 90
+API_TRANSCRIBE_TIMEOUT  = 150
+
+def _call_with_timeout(func, timeout_sec, *args, **kwargs):
+    import threading
+    result_box = [None]
+    error_box  = [None]
+    done_evt   = threading.Event()
+
+    def _target():
+        try:
+            result_box[0] = func(*args, **kwargs)
+        except Exception as _e:
+            error_box[0]  = _e
+        finally:
+            done_evt.set()
+
+    t = threading.Thread(target=_target, daemon=True)
+    t.start()
+    fired = done_evt.wait(timeout_sec)
+    if not fired:
+        raise TimeoutError(f"{func.__name__} 逾時 {timeout_sec}s，放棄此呼叫")
+    if error_box[0]:
+        raise error_box[0]
+    return result_box[0]
+
+# [Block C / G] 狀態機防護收斂區塊
+def process_single_chunk(
+    chunk: dict, client, qm: QuotaManager, current_key_ref: list, key_lock: threading.Lock,
+    task_id: str, chunks_manifest_path: str, config: dict, chunk_errors_log: str, stt_engine: str,
+    manifest_update_queue: queue.Queue, distill_task_queue: queue.Queue
+) -> bool:
+    chunk_path = chunk["path"]
+    chunk_filename = chunk["filename"]
+    retry_limit = 6
+    uploaded_file = None
+    upload_client = None
+    last_upload_key = None
+    consecutive_429_count = 0
+    processing_sent = False
+
+    logging.info(f"[Parallel STT] Processing chunk: {chunk_filename}")
+
+    def queue_processing_once():
+        nonlocal processing_sent
+        if not processing_sent:
+            now_ts = time.time()
+            manifest_update_queue.put({
+                "filename": chunk_filename,
+                "status": "processing",
+                "started_at": now_ts,
+                "updated_at": now_ts,
+                "retry_count": chunk.get("retry_count", 0),
+                "last_error": None,
+            })
+            processing_sent = True
+
+    def queue_retrying(error_obj):
+        now_ts = time.time()
+        manifest_update_queue.put({
+            "filename": chunk_filename,
+            "status": "retrying",
+            "updated_at": now_ts,
+            "retry_count": chunk.get("retry_count", 0),
+            "last_error": str(error_obj),
+        })
+
+    def queue_failed(error_obj):
+        now_ts = time.time()
+        manifest_update_queue.put({
+            "filename": chunk_filename,
+            "status": "failed",
+            "updated_at": now_ts,
+            "failed_at": now_ts,
+            "retry_count": chunk.get("retry_count", 0),
+            "last_error": str(error_obj),
+        })
+
+    def queue_completed():
+        now_ts = time.time()
+        manifest_update_queue.put({
+            "filename": chunk_filename,
+            "status": "completed",
+            "updated_at": now_ts,
+            "retry_count": chunk.get("retry_count", 0),
+            "last_error": None,
+        })
+
+    while chunk["retry_count"] < retry_limit:
+        try:
+            queue_processing_once()
+
+            if stt_engine in ["gemini", "vertexai"]:
+                file_size = os.path.getsize(chunk_path)
+                if file_size > 2000 * 1024 * 1024:
+                    raise ValueError(f"{chunk_filename} 超過 2GB 上傳上限")
+
+                if stt_engine == "gemini":
+                    with key_lock:
+                        active_key = current_key_ref[0]
+                    if upload_client is not None and last_upload_key != active_key:
+                        uploaded_file = None
+                        upload_client = None
+                        last_upload_key = None
+                    if not uploaded_file:
+                        with key_lock:
+                            active_key = current_key_ref[0]
+                        upload_client = genai.Client(api_key=active_key)
+                        last_upload_key = active_key
+                        with open(chunk_path, "rb") as f:
+                            audio_data = f.read()
+                        uploaded_file = types.Part.from_bytes(data=audio_data, mime_type="audio/wav")
+                    transcription = _call_with_timeout(
+                        transcribe_chunk, API_TRANSCRIBE_TIMEOUT,
+                        upload_client, uploaded_file, config, qm=qm, api_key=active_key
+                    )
+                else: # vertexai
+                    if not uploaded_file:
+                        vertex_project = config.get("api", {}).get("vertexai_project")
+                        with open(chunk_path, "rb") as f:
+                            audio_data = f.read()
+                        uploaded_file = types.Part.from_bytes(data=audio_data, mime_type="audio/wav")
+                        upload_client = genai.Client(vertexai=True, project=vertex_project, location="us-central1")
+                    transcription = _call_with_timeout(
+                        transcribe_chunk, API_TRANSCRIBE_TIMEOUT,
+                        upload_client, uploaded_file, config, qm=None, api_key=None
+                    )
+
+                txt_output_path = os.path.splitext(chunk_path)[0] + ".txt"
+                with open(txt_output_path, "w", encoding="utf-8-sig") as tf:
+                    tf.write(transcription or "")
+                json_output_path = os.path.splitext(chunk_path)[0] + ".json"
+                atomic_json_dump({
+                    "task_id": task_id, "filename": chunk_filename, "part_no": chunk.get("part_no", chunk.get("chunk_id")),
+                    "transcription": transcription, "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                }, json_output_path)
+                
+                distill_task_queue.put({
+                    "filename": chunk_filename,
+                    "chunk_path": chunk_path,
+                    "txt_path": txt_output_path,
+                    "task_id": task_id
+                })
+
+            chunk["status"] = "completed"
+            consecutive_429_count = 0
+            if stt_engine == "gemini":
+                qm.reset_key(current_key_ref[0])
+            logging.info(f"[Parallel STT] [OK] 完成：{chunk_filename}")
+            queue_completed()
+            return True
+
+        except Exception as e:
+            err_str = str(e)
+            is_429 = ("ResourceExhausted" in type(e).__name__) or ("429" in err_str)
+            if stt_engine == "gemini" and is_429:
+                consecutive_429_count += 1
+                chunk["retry_count"] += 1
+                queue_retrying(e)
+                with key_lock:
+                    current_key = current_key_ref[0]
+                res = qm.handle_error(e, current_key, consecutive_429_count)
+                sleep_time = res["sleep_time"]
+                new_key = res["new_key"]
+
+                if new_key:
+                    with key_lock:
+                        current_key_ref[0] = new_key
+                    consecutive_429_count = 0
+                else:
+                    queue_failed(e)
+                    break
+
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                continue
+            elif stt_engine == "vertexai" and "ResourceExhausted" in type(e).__name__:
+                chunk["retry_count"] += 1
+                queue_retrying(e)
+                time.sleep(15 * (chunk["retry_count"]))
+                continue
+
+            if "503" in err_str or "UNAVAILABLE" in err_str or "Server disconnected" in err_str:
+                backoff_times = [5, 10, 15, 30, 30, 30]
+                wait_503 = backoff_times[min(chunk["retry_count"], len(backoff_times)-1)]
+                chunk["retry_count"] += 1
+                with error_log_lock:
+                    with open(chunk_errors_log, "a", encoding="utf-8") as ef:
+                        ef.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} [{task_id}][{chunk_filename}]: {e}\n")
+                if chunk["retry_count"] < retry_limit:
+                    queue_retrying(e)
+                if chunk["retry_count"] == 3:
+                    with key_lock:
+                        current_key = current_key_ref[0]
+                    try:
+                        res = qm.handle_error(Exception("503"), current_key, 0)
+                        new_key = res.get("new_key")
+                        if new_key and new_key != current_key:
+                            with key_lock:
+                                current_key_ref[0] = new_key
+                            uploaded_file = None
+                    except Exception:
+                        pass
+                if chunk["retry_count"] < 3:
+                    time.sleep(wait_503)
+                    continue
+            else:
+                chunk["retry_count"] += 1
+                with error_log_lock:
+                    with open(chunk_errors_log, "a", encoding="utf-8") as ef:
+                        ef.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} [{task_id}][{chunk_filename}] (Other Error): {e}\n")
+                if chunk["retry_count"] < retry_limit:
+                    queue_retrying(e)
+
+    if chunk["status"] != "completed":
+        chunk["status"] = "failed"
+        queue_failed(f"chunk failed after retries: {chunk_filename}")
+        return False
+    return True
+
+ALLOWED_MODELS = [
+    "gemini-3.5-flash", "gemini-flash-latest", "gemini-3-flash-preview", 
+    "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-flash-lite-latest",
+]
+
+def transcribe_chunk(client, uploaded_file, config, qm=None, api_key=None) -> str:
+    router = get_router()
+    model = router.acquire()
+    prompt = """你是一位專業的台灣法律課程與講座的逐字稿整理助理。
+請將提供的音檔進行精確的繁體中文語音轉錄，並遵守以下規定：
+【重要：完整性與精確性要求】
+此檔案為極為關鍵的法律教學教材，是後續所有 AI 專案與智能庫的智慧基礎。請務必做到「一字不漏、完全轉錄」！
+嚴禁 any 摘要、縮寫、省略、或簡化發言的行為。請完整保留講師的所有口語說明、舉例與課堂細節。
+1. 輸出格式一律為繁體中文（台灣習慣用詞）。
+2. 保留台灣法律專業術語。
+3. 完整保留所有提到的法律法條名稱與條號。
+4. 保留釋字字號與法院判決字號之標準格式。
+5. 聽不清楚或不確定之處不可憑空預測，一律以 [待確認] 標記。
+6. 【絕對強制指令】：你必須在每一句話、或至少每隔 2 到 3 個語意斷點的前方，強制插入當前的時間戳記（例如 [01:23]、[05:45]）。
+7. 當辨識到章節、科目、主題、結論或堂數切換時，請自動插入適當的 Markdown 標題（#、##、###）。
+8. 若辨識到「爭點」、「重點整理」等關鍵語音字樣，請自動加粗重點標記（如：**【爭點】**）。
+9. 請過濾口語贅字（嗯、啊、那個、然後、就是說），使文字流暢。
+"""
+    if qm is not None and api_key is not None:
+        try:
+            qm.throttle_key(api_key)
+        except Exception:
+            pass
+    try:
+        from google.genai import types as genai_types
+        safety_settings = [
+            genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=genai_types.HarmBlockThreshold.BLOCK_ONLY_HIGH),
+            genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=genai_types.HarmBlockThreshold.BLOCK_ONLY_HIGH),
+            genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold=genai_types.HarmBlockThreshold.BLOCK_ONLY_HIGH),
+            genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=genai_types.HarmBlockThreshold.BLOCK_ONLY_HIGH),
+        ]
+        response = client.models.generate_content(
+            model=model,
+            contents=[uploaded_file, prompt],
+            config=genai_types.GenerateContentConfig(safety_settings=safety_settings, temperature=0.3)
+        )
+        router.report_success(model)
+        text = response.text
+        if not text or not text.strip():
+            candidates = response.candidates or []
+            finish = str(getattr(candidates[0], 'finish_reason', 'UNKNOWN')) if candidates else 'NO_CANDIDATES'
+            if 'SAFETY' in finish:
+                raise ValueError(f"Safety filter triggered (finish_reason={finish})，換模型重試")
+            raise ValueError(f"API 回傳空白內容 (finish_reason={finish})，觸發 retry")
+        return text
+    except Exception as e:
+        router.report_error(model, e)
+        raise
+
+def run_stt(task_id: str, exclusive_key: str = None):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    from workflow_helper import load_config, get_resolved_paths
+    config = load_config()
+    paths = get_resolved_paths()
+        
+    manifests_dir = paths['manifests_dir']
+    workflow_log = os.path.join(paths['logs_dir'], "workflow.log")
+    chunk_errors_log = os.path.join(paths['logs_dir'], "chunk_errors.log")
+    
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(workflow_log, encoding='utf-8')])
+    os.makedirs(os.path.dirname(chunk_errors_log), exist_ok=True)
+    
+    manifest_path = os.path.join(manifests_dir, f"{task_id}.json")
+    if not os.path.exists(manifest_path):
+        return
+    with open(manifest_path, 'r', encoding='utf-8-sig') as f:
+        manifest = json.load(f)
+
+    chunks_manifest_path = os.path.join(manifests_dir, f"{task_id}_chunks.json")
+    if not os.path.exists(chunks_manifest_path):
+        return
+    with open(chunks_manifest_path, 'r', encoding='utf-8-sig') as f:
+        chunks = json.load(f)
+        
+    if not chunks:
+        return
+        
+    stt_engine = config.get("settings", {}).get("stt_engine", "gemini")
+    qm = None
+    current_key = None
+    client = None
+    key_lock = threading.Lock()
+
+    if stt_engine == "gemini":
+        qm = QuotaManager()
+        if exclusive_key:
+            current_key = exclusive_key
+        else:
+            current_key = qm.acquire_key_exclusive()
+        client = genai.Client(api_key=current_key)
+
+    current_key_ref = [current_key]
+    pending_chunks = [c for c in chunks if c["status"] != "completed"]
+
+    manifest_update_queue = queue.Queue()
+    distill_task_queue = queue.Queue()
+
+    # 啟動背景寫入器 (解決 Bug 1: I/O 阻塞)
+    writer_thread = threading.Thread(target=manifest_writer_thread, args=(chunks_manifest_path, manifest_update_queue), daemon=True)
+    writer_thread.start()
+
+    # 啟動背景蒸餾工作池 (解決 Bug 2: 限制最多 2 個進程，防 OOM)
+    distill_workers = []
+    for i in range(6):
+        t = threading.Thread(target=distill_worker_thread, args=(i, distill_task_queue), daemon=True)
+        t.start()
+        distill_workers.append(t)
+
+    all_succeeded = True
+    with ThreadPoolExecutor(max_workers=CHUNK_CONCURRENCY) as executor:
+        futures = {
+            executor.submit(process_single_chunk, chunk, client, qm, current_key_ref, key_lock, task_id, chunks_manifest_path, config, chunk_errors_log, stt_engine, manifest_update_queue, distill_task_queue): chunk
+            for chunk in pending_chunks
+        }
+        for future in as_completed(futures):
+            chunk = futures[future]
+            try:
+                if not future.result():
+                    all_succeeded = False
+            except Exception as exc:
+                chunk["status"] = "failed"
+                all_succeeded = False
+
+    # 先等寫入佇列清空，再發 STOP，避免最後一批狀態遺失
+    manifest_update_queue.join()
+    manifest_update_queue.put("STOP")
+
+    for _ in range(6):
+        distill_task_queue.put("STOP")
+        
+    writer_thread.join()
+    for t in distill_workers:
+        t.join()
+        
+    if all_succeeded:
+        manifest["status"] = "transcribed"
+        manifest["steps"]["stt"] = "completed"
+        atomic_json_dump(manifest, manifest_path)
+        atomic_json_dump(chunks, chunks_manifest_path)
+    else:
+        for c in chunks:
+            if c["status"] == "failed":
+                c["status"] = "pending"
+                c["retry_count"] = 0
+        manifest["status"] = "chunked"
+        manifest["steps"]["stt"] = "pending"
+        atomic_json_dump(manifest, manifest_path)
+        atomic_json_dump(chunks, chunks_manifest_path)
+
+    return all_succeeded
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("task_id", type=str, nargs='?', default=None)
+    parser.add_argument("--distill", action="store_true")
+    parser.add_argument("--chunk_filename", type=str)
+    parser.add_argument("--chunk_path", type=str)
+    parser.add_argument("--txt_path", type=str)
+    args, unknown = parser.parse_known_args()
+    
+    if args.distill:
+        with open(args.txt_path, "r", encoding="utf-8-sig") as f:
+            transcription = f.read()
+        run_distill_process(args.task_id, args.chunk_filename, args.chunk_path, transcription)
+    elif args.task_id:
+        run_stt(args.task_id)
+    else:
+        print("Usage: python stt_runner.py {task_id}")
+        sys.exit(1)
+

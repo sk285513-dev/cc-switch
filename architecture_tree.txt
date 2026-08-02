@@ -1,0 +1,114 @@
+ with st.expander("⚙️ Ollama 本地模型設定"):
+tab_consult, tab_ingest, tab_cases, tab_search, tab_exam, tab_draft, tab_admin, tab_agent = st.tabs([
+with tab_consult:
+ Subheader: 💬 實務訴訟案件心證分析
+ with col_chat:
+   Section:  💡 針對本次分析結果評判與變更思路重新回答
+   with col_fb_btn:
+   with col_fb_logic:
+  Section:  💬 案情與諮詢事實輸入中心 (支援注音/Gboard語音輸入)
+  with col_aud:
+  with col_fil:
+  with col_btn1:
+  with col_btn2:
+ with col_evid:
+  tab_evid, tab_graph = st.tabs(["📚 RWS 證據看板", "📊 事件關係圖"])
+  with tab_evid:
+     with st.expander(f"📝 評估此檢索法源 (位階 L{lvl})", expanded=False):
+  with tab_graph:
+with tab_ingest:
+ Subheader: 📥 大數據多模態教材批次導入與語庫校正
+   with col_rec1:
+   with col_rec2:
+  with col_gpu0:
+   Section:  🎮 GPU 0 研讀晶片狀態
+  with col_gpu1:
+   Section:  🎮 GPU 1 研讀晶片狀態
+  with col_ctrl1:
+  with col_ctrl2:
+  with col_ctrl3:
+  with st.expander("📝 即時研讀日誌", expanded=True):
+  with st.expander("📝 完整研讀日誌", expanded=True):
+ Section:  🚀 方案一：瀏覽器小檔上傳（總量 200MB 以內）
+ Section:  📁 方案二：Windows 本地路徑大檔與資料夾模式（建議 3G 到 9G 檔案使用）
+ with col_path_input:
+ with col_add_btn:
+ with col_browse_dir:
+ with col_browse_files:
+ Section:  🤖 方案三：本機法律教材全自動搜尋與一鍵吸收模式
+ with col_bot_scan:
+ with col_bot_scan_and_run:
+   with col_item_name:
+   with col_item_del:
+with tab_cases:
+ Subheader: 📂 法律訴訟個案與關係人智慧管理模組
+  with col_res1:
+  with col_res2:
+  with col_meta1:
+  with col_meta2:
+  with col_case_chat:
+  with col_case_lists:
+    Section:  📄 訴訟書狀與證據清單
+    Section:  🔗 關聯性判例引用推薦
+    Section:  ⚖️ 法律聲明主張
+with tab_search:
+ Subheader: 🔍 教材智能索引起索與定位
+ with st.expander("🎙️ / 📂 語音與檔案多模態輸入 (檢索輔助)", expanded=False):
+  with col_aud_t3:
+  with col_fil_t3:
+       with st.expander(f"📝 評估此檢索教材 (相似度: {cos_sim:.1%})", expanded=False):
+ with col_sub_sel:
+ with col_sub_input:
+     with st.expander("📚 本次檢索關聯文獻與法規依據"):
+with tab_exam:
+ Subheader: 🎓 國家司法官會考自我修復訓練
+ with st.expander("🎙️ / 📂 語音與檔案多模態輸入 (題目/範本導入)", expanded=False):
+  with col_aud_t4:
+  with col_fil_t4:
+   with col_btn_q:
+   with col_btn_a:
+   with col_btn_s:
+  with col_q:
+  with col_a:
+     with st.expander("📚 考生作答參考之 RWS 檢索法源與經驗", expanded=True):
+    with col_res_ans:
+    with col_res_crit:
+ Subheader: 🔍 本題關聯教材定位與檢索
+       with st.expander(f"📝 評估此關聯教材 (相似度: {cos_sim:.1%})", expanded=False):
+with tab_draft:
+ Subheader: 📝 訴訟書狀自動編寫區 (IRAC 結構)
+ with col_draft_in:
+  with st.expander("🎙️ / 📂 語音與檔案多模態輸入 (起草事實導入)", expanded=False):
+   with col_aud_t5:
+   with col_fil_t5:
+ with col_draft_out:
+  Subheader: 📝 起草預覽與全文複製
+with tab_admin:
+ Subheader: 🤖 `/workflows` 系統與吸收工作流監控面板
+ Subheader: 🌐 Ollama 本地 AI 服務連接與模型設定
+ Subheader: 🗓️ 臺灣民法雙重時效精算外掛
+ Subheader: 🔒 機密案件庫 AES-256 加密資安備份
+with tab_agent:
+ Subheader: 🤖 Antigravity 智能 Agent 運行控制台
+ with col_top_left:
+ with col_top_right:
+  with st.expander("🎙️ / 📂 語音與檔案多模態評判 (評判意見導入)", expanded=False):
+   with col_aud_fb:
+   with col_fil_fb:
+ with col_dash:
+ with col_trace:
+  tab_chat_agt, tab_run_trace = st.tabs(["💬 與 Antigravity 即時對話", "📜 背景運作與工具軌跡"])
+  with tab_chat_agt:
+       with st.expander("🧠 檢視推理思考過程", expanded=False):
+        with st.expander(f"🛠️ 操作程式碼區塊 {c_idx+1} ({lang or 'text'})", expanded=False):
+    Section:  💡 針對本次代碼生成結果評判與變更思路重新回答
+    with col_fb_btn_agt:
+    with col_fb_logic_agt:
+   Section:  💬 Antigravity 開發與系統管理指令中心 (支援注音/Gboard語音輸入)
+   with col_aud_agt:
+   with col_fil_agt:
+   with col_btn1_agt:
+   with col_btn2_agt:
+  with tab_run_trace:
+      with st.expander("🧠 檢視 Agent 深度推理路徑 (Thinking Process)", expanded=False):
+     with st.expander(f"📟 工具執行回傳結果 (System Response)", expanded=False):

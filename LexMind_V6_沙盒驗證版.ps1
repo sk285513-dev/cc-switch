@@ -1,0 +1,186 @@
+# ============================================================
+#  LexMind-Omni  v2.1  (2026-07-21)  ASCII-safe edition
+# ============================================================
+$env:LEXMIND_ENV      = "v6_canary"
+$env:LEXMIND_ENTERPRISE = "1"
+$env:PYTHONUTF8       = "1"
+$env:PYTHONIOENCODING = "utf-8"
+$env:LEXMIND_MANIFEST_DIR = "A:\manifests_v6"
+$env:LEXMIND_LOG_DIR = "A:\logs_v6"
+$env:LEXMIND_WORKDIR = "C:\LocalAI_Workstation"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 | Out-Null
+
+$ROOT = "C:\LocalAI_Workstation"
+Set-Location $ROOT
+
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host "  LexMind-Omni  One-Click Startup  v2.1   " -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host ""
+
+# ── STEP 1: Kill stale processes ──────────────────────────────
+Write-Host "[1/5] Killing stale processes (Nuclear Option)..." -ForegroundColor Yellow
+
+try { taskkill /F /IM python.exe /T 2>&1 | Out-Null } catch {}
+try { taskkill /F /IM pythonw.exe /T 2>&1 | Out-Null } catch {}
+try { taskkill /F /IM node.exe /T 2>&1 | Out-Null } catch {}
+try { taskkill /F /IM ffmpeg.exe /T 2>&1 | Out-Null } catch {}
+
+Write-Host "  [OK] Killed all previous Python, Node, and FFmpeg processes." -ForegroundColor Green
+Start-Sleep -Seconds 2
+
+# ── STEP 1.5: Verify Code State Machine (patch_state_machine.ps1) ─
+Write-Host "[1.5/5] Verifying Code Integrity..." -ForegroundColor Yellow
+$verifyProcess = Start-Process powershell -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "$ROOT\patch_state_machine.ps1" -PassThru -Wait -WindowStyle Hidden
+if ($verifyProcess.ExitCode -ne 0) {
+    Write-Host "[ERROR] Code integrity verification failed! (Exit Code: $($verifyProcess.ExitCode))" -ForegroundColor Red
+    Write-Host "Please check patch_state_machine.ps1 output." -ForegroundColor Red
+    Write-Host "Aborting startup." -ForegroundColor Red
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+Write-Host "  [OK] Code verification passed." -ForegroundColor Green
+
+# ── STEP 2: Reset locks & quota ───────────────────────────────
+Write-Host "[2/5] Resetting locks and quota..." -ForegroundColor Yellow
+
+Remove-Item "$env:LEXMIND_MANIFEST_DIR\workflow.lock" -Force -ErrorAction SilentlyContinue
+'{"exhausted_keys":[]}' | Out-File "$ROOT\config\quota_state.json" -Encoding UTF8 -NoNewline
+
+Write-Host "  [OK] workflow.lock removed, quota_state.json reset" -ForegroundColor Green
+
+# ── STEP 3: Background engines ────────────────────────────────
+Write-Host "[3/5] Starting background engines..." -ForegroundColor Yellow
+
+$wf = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%.exe'" |
+      Where-Object { $_.CommandLine -match "run_workflow" }
+if ($wf) {
+    Write-Host "  [SKIP] Workflow Engine already running  PID=$($wf.ProcessId)" -ForegroundColor DarkGray
+} else {
+    Start-Process "pythonw" `
+        -ArgumentList "scripts_v6/run_workflow.py" `
+        -WorkingDirectory $ROOT `
+        -WindowStyle Hidden
+    Write-Host "  [OK]   Workflow Engine started" -ForegroundColor Green
+}
+
+$wd = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%.exe'" |
+      Where-Object { $_.CommandLine -match "watchdog_monitor\.py" }
+if ($wd) {
+    Write-Host "  [SKIP] Watchdog already running  PID=$($wd.ProcessId)" -ForegroundColor DarkGray
+} else {
+    Start-Process "pythonw" `
+        -ArgumentList "scripts_v6/watchdog_monitor.py" `
+        -WorkingDirectory $ROOT `
+        -WindowStyle Hidden
+    Write-Host "  [OK]   Watchdog started" -ForegroundColor Green
+}
+
+$ah = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%.exe'" |
+      Where-Object { $_.CommandLine -match "auto_healer\.py" }
+if ($ah) {
+    Write-Host "  [SKIP] Auto Healer already running  PID=$($ah.ProcessId)" -ForegroundColor DarkGray
+} else {
+    Start-Process "pythonw" `
+        -ArgumentList "scripts_v6/auto_healer.py" `
+        -WorkingDirectory $ROOT `
+        -WindowStyle Hidden
+    Write-Host "  [OK]   Auto Healer started" -ForegroundColor Green
+}
+
+# ── STEP 4: Streamlit UI ──────────────────────────────────────
+Write-Host "[4/5] Starting Streamlit UI..." -ForegroundColor Yellow
+
+$st = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%.exe'" |
+      Where-Object { $_.CommandLine -match "streamlit" }
+if ($st) {
+    Write-Host "  [SKIP] Streamlit already running  PID=$($st.ProcessId)" -ForegroundColor DarkGray
+} else {
+    Start-Process powershell `
+        -WindowStyle Normal `
+        -ArgumentList @(
+            "-NoProfile","-NoExit","-ExecutionPolicy","Bypass","-Command",
+            "Clear-Host; Write-Host '=== 正在啟動企業級網頁控制面板 ===' -ForegroundColor Cyan; Set-Location '$ROOT'; streamlit run app_v6.py --server.port 8506 --theme.base=`"light`""
+        ) `
+        -WorkingDirectory $ROOT
+    Write-Host "  [OK]   Streamlit starting..." -ForegroundColor Green
+    Start-Sleep -Seconds 5
+    # 開啟瀏覽器
+    Start-Process "http://localhost:8506"
+}
+
+# ── STEP 5: Monitor windows ───────────────────────────────────
+Write-Host "[5/5] Starting monitor windows..." -ForegroundColor Yellow
+
+# SRE Watchdog
+$sre = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%.exe'" |
+       Where-Object { $_.CommandLine -match "sre_watchdog" }
+if ($sre) {
+    Write-Host "  [SKIP] SRE Watchdog already running  PID=$($sre.ProcessId)" -ForegroundColor DarkGray
+} else {
+    Start-Process powershell `
+        -WindowStyle Normal `
+        -ArgumentList @(
+            "-NoExit","-ExecutionPolicy","Bypass","-Command",
+            "`$env:LEXMIND_ENV='v6_canary'; `$env:PYTHONUTF8='1'; Set-Location '$ROOT'; python scripts_v6\sre_watchdog.py"
+        ) `
+        -WorkingDirectory $ROOT
+    Write-Host "  [OK]   SRE Watchdog opened" -ForegroundColor Green
+}
+
+# KPI Runner
+$kpi = Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" |
+       Where-Object { $_.CommandLine -match "kpi_runner" }
+if ($kpi) {
+    Write-Host "  [SKIP] KPI Monitor already running  PID=$($kpi.ProcessId)" -ForegroundColor DarkGray
+} else {
+    Start-Process powershell `
+        -WindowStyle Normal `
+        -ArgumentList @("-NoExit","-ExecutionPolicy","Bypass","-File","$ROOT\kpi_runner.ps1") `
+        -WorkingDirectory $ROOT
+    Write-Host "  [OK]   KPI Monitor opened" -ForegroundColor Green
+}
+
+# Progress Dashboard (統計報表)
+$db = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%.exe'" |
+      Where-Object { $_.CommandLine -match "progress_dashboard" }
+if ($db) {
+    Write-Host "  [SKIP] Progress Dashboard already running  PID=$($db.ProcessId)" -ForegroundColor DarkGray
+} else {
+    Start-Process powershell `
+        -WindowStyle Normal `
+        -ArgumentList @(
+            "-NoExit","-ExecutionPolicy","Bypass","-Command",
+            "`$env:LEXMIND_ENV='v6_canary'; `$env:PYTHONUTF8='1'; Set-Location '$ROOT'; while (`$true) { try { python scripts_v6\progress_dashboard.py } catch {}; Write-Host '[自動重啟中，5 秒後重新整理...]' -ForegroundColor Yellow; Start-Sleep -Seconds 5 }"
+        ) `
+        -WorkingDirectory $ROOT
+    Write-Host "  [OK]   Progress Dashboard (統計報表) opened" -ForegroundColor Green
+}
+
+# Workflow Log Tail
+Write-Host "  [OK]   Workflow Log Monitor opened" -ForegroundColor Green
+Start-Process powershell `
+    -WindowStyle Normal `
+    -ArgumentList @(
+        "-NoExit","-ExecutionPolicy","Bypass","-Command",
+        "Clear-Host; Write-Host '=== 正在即時監控主工作流進度 (workflow.log) ===' -ForegroundColor Yellow; Get-Content ""$env:LEXMIND_LOG_DIR\workflow.log"" -Encoding UTF8 -Wait -Tail 30"
+    ) `
+    -WorkingDirectory $ROOT
+
+# ── Summary ───────────────────────────────────────────────────
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host "  All done! Check the following:           " -ForegroundColor Cyan
+Write-Host "  1. Streamlit  -> http://localhost:8506   " -ForegroundColor Cyan
+Write-Host "  2. SRE Watchdog  (PowerShell window)     " -ForegroundColor Cyan
+Write-Host "  3. KPI Monitor   (PowerShell window)     " -ForegroundColor Cyan
+Write-Host "  4. Dashboard     (PowerShell window)     " -ForegroundColor Cyan
+Write-Host "                                           " -ForegroundColor Cyan
+Write-Host "  Crawler: python bot_ultimate_real_crawler.py" -ForegroundColor DarkYellow
+Write-Host "  Or:      double-click Launch_Crawler_UI.vbs" -ForegroundColor DarkYellow
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Window will close in 5 seconds..." -ForegroundColor Gray
+Start-Sleep -Seconds 5

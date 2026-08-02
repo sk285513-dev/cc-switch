@@ -1,0 +1,233 @@
+import os
+import re
+import requests
+import json
+import gc
+import time
+from pathlib import Path
+import sys
+
+if sys.platform == "win32":
+    try:
+        import io
+        if hasattr(sys.stdout, 'buffer'):
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        if hasattr(sys.stderr, 'buffer'):
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+try:
+    from faster_whisper import WhisperModel
+except ImportError:
+    WhisperModel = None
+
+try:
+    import pytesseract
+    from PIL import Image
+    from pdf2image import convert_from_path, pdfinfo_from_path
+except ImportError:
+    pytesseract = None
+
+class MultimodalLegalInput:
+    def __init__(self, model_size='small', glossary_path=None, gpu_id=0):
+        if glossary_path is None:
+            # 動態判定專案根目錄中的詞庫檔案，適應任何本機磁碟路徑
+            base_dir = Path(__file__).resolve().parent.parent
+            glossary_path = str(base_dir / "legal_glossary.json")
+        self.glossary_path = glossary_path
+        self.glossary = self._load_glossary()
+        self.llm_url = f'{os.environ.get("OLLAMA_HOST", "http://localhost:11434")}/api/chat'
+        self.gpu_id = gpu_id
+        
+        # 延遲加載 WhisperModel 防止顯示卡過載
+        self.whisper_model = None
+        self.model_size = model_size
+
+    def _load_glossary(self):
+        if os.path.exists(self.glossary_path):
+            try:
+                with open(self.glossary_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                pass
+        return {
+            "common_errors": {
+                "假芳": "甲方", "假方": "甲方",
+                "倚芳": "乙方", "倚方": "乙方", "以方": "乙方",
+                "炳芳": "丙方", "丙芳": "丙方", "炳方": "丙方",
+                "丁芳": "丁方", "形法": "刑法", "形訴": "刑訴"
+            }
+        }
+
+    def apply_glossary_fix(self, text: str) -> str:
+        """第一層：硬性精準規則匹配與天干名詞提換"""
+        if not text:
+            return ""
+        fixed_text = text
+        for wrong, right in self.glossary.get("common_errors", {}).items():
+            fixed_text = re.sub(wrong, right, fixed_text)
+        return fixed_text
+
+    def transcribe_audio(self, file_path, status_callback=None):
+        """聽覺：影音轉錄，相容 VTT 格式時間軸，支援 GPU 算力分流、進度/ETA回報與 CPU 降級防爆"""
+        if WhisperModel is None:
+            return "❌ [錯誤] 未安裝 faster-whisper 套件，請執行 pip install faster-whisper"
+        
+        if not self.whisper_model:
+            # 1. 針對 Windows 平台，動態尋找並註冊 pip 安裝 of nvidia-cublas/cudnn DLL 目錄
+            import sys
+            import site
+            if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+                for sp in site.getsitepackages():
+                    cublas_bin = os.path.join(sp, "nvidia", "cublas", "bin")
+                    cudnn_bin = os.path.join(sp, "nvidia", "cudnn", "bin")
+                    for p in [cublas_bin, cudnn_bin]:
+                        if os.path.exists(p):
+                            try:
+                                os.add_dll_directory(p)
+                                os.environ["PATH"] = p + os.pathsep + os.environ["PATH"]
+                            except:
+                                pass
+
+            # 2. 自動偵測本機 GPU 數量，並開啟多顯示卡並行加速
+            try:
+                import ctranslate2
+                num_gpus = ctranslate2.get_cuda_device_count()
+            except:
+                num_gpus = 0
+
+            try:
+                if num_gpus > 0:
+                    dev_idx = self.gpu_id if num_gpus > self.gpu_id else 0
+                    print(f"🎮 檢測到 {num_gpus} 張 NVIDIA 顯示卡，已啟動 GPU 任務平行分流 (使用 GPU 索引: {dev_idx})...")
+                    self.whisper_model = WhisperModel(
+                        self.model_size, 
+                        device='cuda', 
+                        device_index=dev_idx, 
+                        compute_type='float16'
+                    )
+                else:
+                    raise RuntimeError("ctranslate2 找不到 CUDA 設備。")
+            except Exception as e:
+                print(f"⚠️ GPU 啟動失敗 ({e})，系統已自動降級為 CPU 模式運行...")
+                self.whisper_model = WhisperModel(self.model_size, device='cpu', cpu_threads=4, compute_type='int8')
+
+        print(f"🎤 正在轉錄影音學術教材 (實時進度回饋模式): {file_path}...")
+        print("     [Whisper] 正在初始化解碼器...")
+        if status_callback:
+            status_callback("正在初始化解碼器...")
+        
+        start_time = time.time()
+        try:
+            segments, info = self.whisper_model.transcribe(
+                str(file_path), 
+                beam_size=5,
+                initial_prompt="以下為台灣法律訴訟案件之開庭錄音或蒐證影音，包含原告、被告及法官之對話。"
+            )
+            total_duration = info.duration
+            raw_results = []
+            
+            for segment in segments:
+                clean_text = self.apply_glossary_fix(segment.text)
+                abs_start = segment.start
+                abs_end = segment.end
+                timestamp = f"[{int(abs_start // 3600):02d}:{int((abs_start % 3600) // 60):02d}:{abs_start % 60:05.2f} -> {int(abs_end // 3600):02d}:{int((abs_end % 3600) // 60):02d}:{abs_end % 60:05.2f}]"
+                raw_results.append(f"{timestamp} {clean_text}")
+                
+                # 動作計算時間反饋 ETA
+                current_seek = segment.end
+                percent = min(int((current_seek / total_duration) * 80) + 15, 95)
+                elapsed_time = time.time() - start_time
+                processing_speed = current_seek / elapsed_time if elapsed_time > 0 else 1.0
+                remaining_seconds = (total_duration - current_seek) / processing_speed
+                remaining_seconds = max(0.0, remaining_seconds)
+                import datetime
+                eta_str = str(datetime.timedelta(seconds=int(remaining_seconds)))
+                
+                msg = f"🎬 解碼中: {percent}% | 速度: {processing_speed:.1f}x | 剩餘時間: {eta_str} | 內文片段: {segment.text[:15]}..."
+                try:
+                    print(f"     [Whisper] {msg}")
+                except UnicodeEncodeError:
+                    print(f"     [Whisper] {msg.encode('ascii', errors='ignore').decode('ascii')}")
+                    
+                if status_callback:
+                    status_callback(msg)
+            
+            print("     [Whisper] 影音解碼完成！正在整理輸出...")
+            if status_callback:
+                status_callback("影音解碼完成！正在整理輸出...")
+            return "\n".join(raw_results)
+            
+        except Exception as e:
+            return f"轉錄失敗: {e}"
+
+
+    def ocr_document(self, file_path, status_callback=None, page_callback=None):
+        """視覺：書狀、照片 PDF 之圖形辨識"""
+        if pytesseract is None:
+            return [{"page": 1, "text": "❌ [錯誤] 未安裝 pytesseract 相關套件，請執行 pip install pytesseract pdf2image"}]
+            
+        print(f"👁️ 正在進行高保真 OCR 辨識: {file_path}...")
+        try:
+            if str(file_path).lower().endswith('.pdf'):
+                info = pdfinfo_from_path(str(file_path))
+                page_count = int(info.get("Pages", 0))
+                pages = []
+                for page_no in range(1, page_count + 1):
+                    if status_callback:
+                        status_callback(f"📄 正在進行書面 OCR 辨識第 {page_no} 頁 (共 {page_count} 頁)...")
+                    images = convert_from_path(
+                        str(file_path),
+                        first_page=page_no,
+                        last_page=page_no,
+                        dpi=200,
+                        thread_count=1,
+                    )
+                    if images:
+                        page_text = pytesseract.image_to_string(images[0], lang='chi_tra+eng')
+                        fixed_text = self.apply_glossary_fix(page_text)
+                        pages.append({"page": page_no, "text": fixed_text})
+                        if page_callback:
+                            try:
+                                page_callback(images[0], page_no)
+                            except Exception as cb_err:
+                                print(f"[WARNING] page_callback error: {cb_err}")
+                    del images
+                    gc.collect()
+                return pages
+            else:
+                with Image.open(str(file_path)) as img:
+                    raw_text = pytesseract.image_to_string(img, lang='chi_tra+eng')
+                    if page_callback:
+                        try:
+                            page_callback(img, 1)
+                        except Exception as cb_err:
+                            print(f"[WARNING] page_callback error: {cb_err}")
+                return [{"page": 1, "text": self.apply_glossary_fix(raw_text)}]
+        except Exception as e:
+            return [{"page": 1, "text": f"❌ OCR 發生異常錯誤：{e}"}]
+
+    def post_refine_using_llm(self, text: str) -> str:
+        """第二層：法語脈絡重構（大模型微觀校對）"""
+        if not text:
+            return ""
+        prompt = (
+            "你是一位在台灣法律實務界見習的高材生，精通繁體中文與台灣司法常用代稱與法條格式。\n"
+            "以下是一段由語音識別（ASR）或圖片辨識（OCR）生成的法律文本草稿，其中仍可能包含同音錯別字、"
+            "贅詞，或把「甲方」、「乙方」等天干稱呼聽錯的情況。\n"
+            "請在【不改變原話意圖】的前提下，將其完整校對為符合台灣實務用語的精準文字，並維持任何已有的時間軸。[時間軸格式必須保留]。\n\n"
+            f"待校對文本：\n{text}"
+        )
+        try:
+            payload = {
+                "model": os.environ.get("OLLAMA_MODEL", "deepseek-r1:7b"),
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False,
+                "options": {"temperature": 0.1, "num_ctx": 32768}
+            }
+            res = requests.post(self.llm_url, json=payload, timeout=60)
+            if res.status_code == 200:
+                return res.json().get('message', {}).get('content', text)
+        except Exception as e:
+            print(f"[WARNING] Local LLM correction failed (non-fatal): {e}")
+        return text

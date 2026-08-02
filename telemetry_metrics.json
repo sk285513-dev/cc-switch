@@ -1,0 +1,77 @@
+[
+    {
+        "state_id": "Tab1_律師 (時效防禦優先)",
+        "latency_sec": 0.291,
+        "ram_usage_mb": 36.01
+    },
+    {
+        "state_id": "Tab1_法官 (客觀法規對位)",
+        "latency_sec": 0.187,
+        "ram_usage_mb": 36.28
+    },
+    {
+        "state_id": "Tab1_檢察官 (刑事犯罪求處)",
+        "latency_sec": 0.167,
+        "ram_usage_mb": 36.48
+    },
+    {
+        "state_id": "Tab2_Ingest_Combo_0",
+        "latency_sec": 0.098,
+        "ram_usage_mb": 36.48
+    },
+    {
+        "state_id": "Tab2_Ingest_Combo_1",
+        "latency_sec": 0.086,
+        "ram_usage_mb": 36.52
+    },
+    {
+        "state_id": "Tab3_Exam",
+        "latency_sec": 2.023,
+        "ram_usage_mb": 36.46
+    },
+    {
+        "state_id": "Tab4_民事損害賠償起訴狀",
+        "latency_sec": 4.614,
+        "ram_usage_mb": 35.67
+    },
+    {
+        "state_id": "Tab4_刑事告訴狀",
+        "latency_sec": 4.433,
+        "ram_usage_mb": 35.79
+    },
+    {
+        "state_id": "Tab4_民事答辯狀",
+        "latency_sec": 4.44,
+        "ram_usage_mb": 35.88
+    },
+    {
+        "state_id": "Tab4_民事上訴理由狀",
+        "latency_sec": 4.458,
+        "ram_usage_mb": 35.93
+    },
+    {
+        "state_id": "Tab5_Calc_民事一般侵權損害 (2年 - 民§197)",
+        "latency_sec": 3.868,
+        "ram_usage_mb": 36.85
+    },
+    {
+        "state_id": "Tab5_Calc_一般普通請求權 (15年)",
+        "latency_sec": 4.285,
+        "ram_usage_mb": 36.8
+    },
+    {
+        "state_id": "Tab5_Calc_行政公法上請求權/工資 (5年)",
+        "latency_sec": 4.402,
+        "ram_usage_mb": 37.17
+    },
+    {
+        "state_id": "Tab5_Calc_勞基法14條30日除斥期間限制",
+        "latency_sec": 4.59,
+        "ram_usage_mb": 37.39
+    },
+    {
+        "state_id": "Tab5_Backup",
+        "latency_sec": 0.459,
+        "ram_usage_mb": 37.35
+    }
+]

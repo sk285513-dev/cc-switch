@@ -1,0 +1,31 @@
+[測試] 導航至測試環境
+
+[目錄] 測試分頁 1: 首頁 (防爆矩陣與崩潰)
+操作異常: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div[data-testid=\"stNotification\"]") to be visible
+
+操作異常: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div[data-testid=\"stNotification\"]") to be visible
+
+
+[目錄] 測試崩潰按鈕
+   [警告] 偵測到系統崩潰紅字: Traceback
+
+[目錄] 狀態重置 (進入分頁3)
+
+[目錄] 進入分頁 2: 知識餵養
+操作異常: Locator.fill: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("textarea").first
+
+   [警告] 偵測到系統崩潰紅字: Traceback
+
+[遙測] 耗時: 49.10s | RAM: 34.2 MB
+
+--- 錯誤熱力圖分析 ---
+特徵 [check_lawyer] 導致崩潰機率: 0.00%
+特徵 [check_judge] 導致崩潰機率: 0.00%
+特徵 [crash_btn] 導致崩潰機率: 100.00%
+------------------------

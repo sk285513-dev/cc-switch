@@ -1,10 +1,71 @@
-{
+﻿{
     "execution_history": [
         {
             "timestamp": "2026-06-23 01:14:57",
             "status": "failed",
             "error": "未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。",
             "message": "排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。"
+        },
+        {
+            "timestamp": "2026-07-22 02:00:03",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 0,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題司法官、律師考古題。 (已跳過重複: 0 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-23 02:00:03",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 0,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題司法官、律師考古題。 (已跳過重複: 0 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-24 02:00:13",
+            "status": "completed",
+            "message": "所有備援網站均無新考題結構，排程優雅結束。"
+        },
+        {
+            "timestamp": "2026-07-25 02:00:04",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 0,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題司法官、律師考古題。 (已跳過重複: 0 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-26 02:00:02",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 0,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題司法官、律師考古題。 (已跳過重複: 0 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-31 02:00:06",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 0,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題司法官、律師考古題。 (已跳過重複: 0 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-08-01 02:00:07",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 0,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題司法官、律師考古題。 (已跳過重複: 0 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-08-02 02:00:04",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 0,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題司法官、律師考古題。 (已跳過重複: 0 題，跳過非法律: 0 題)"
         }
     ],
     "scraped_questions": {}

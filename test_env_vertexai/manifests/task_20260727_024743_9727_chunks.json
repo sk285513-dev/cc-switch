@@ -1,0 +1,11 @@
+[
+  {
+    "chunk_id": "part_001",
+    "filename": "chunk_001__00-00_00-05.wav",
+    "start_time": 0.0,
+    "end_time": 5.0,
+    "status": "completed",
+    "path": "C:\\LocalAI_Workstation\\test_env_vertexai\\chunks\\task_20260727_024743_9727\\chunk_001__00-00_00-05.wav",
+    "retry_count": 0
+  }
+]

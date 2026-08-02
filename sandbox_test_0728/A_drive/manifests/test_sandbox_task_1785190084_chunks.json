@@ -1,0 +1,29 @@
+[
+  {
+    "chunk_id": "part_001",
+    "filename": "chunk_001__00-00_05-28.wav",
+    "start_time": 0.0,
+    "end_time": 328.445812,
+    "status": "pending",
+    "path": "C:/LocalAI_Workstation/sandbox_test_0728/A_drive/chunks\\test_sandbox_task_1785190084\\chunk_001__00-00_05-28.wav",
+    "retry_count": 0
+  },
+  {
+    "chunk_id": "part_002",
+    "filename": "chunk_002__04-58_10-19.wav",
+    "start_time": 298.445812,
+    "end_time": 619.002313,
+    "status": "pending",
+    "path": "C:/LocalAI_Workstation/sandbox_test_0728/A_drive/chunks\\test_sandbox_task_1785190084\\chunk_002__04-58_10-19.wav",
+    "retry_count": 0
+  },
+  {
+    "chunk_id": "part_003",
+    "filename": "chunk_003__09-49_11-40.wav",
+    "start_time": 589.002313,
+    "end_time": 700.0,
+    "status": "pending",
+    "path": "C:/LocalAI_Workstation/sandbox_test_0728/A_drive/chunks\\test_sandbox_task_1785190084\\chunk_003__09-49_11-40.wav",
+    "retry_count": 0
+  }
+]

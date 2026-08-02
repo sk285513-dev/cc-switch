@@ -1,0 +1,38 @@
+{
+  "task_id": "task_20260727_024743_9727",
+  "source_path": "C:\\LocalAI_Workstation\\test_env_vertexai\\test_input\\test_audio.wav",
+  "source_name": "test_audio.wav",
+  "status": "completed",
+  "created_at": "2026-07-27 02:47:43",
+  "error_count": 0,
+  "steps": {
+    "watcher": "completed",
+    "preprocess": "completed",
+    "chunk_planner": "completed",
+    "stt": "completed",
+    "merge": "completed",
+    "formatter": "completed"
+  },
+  "media_info": {
+    "duration_sec": 5.0,
+    "size_bytes": 160044,
+    "has_video": false,
+    "has_audio": true,
+    "resolution": "N/A",
+    "audio_codec": "pcm_s16le",
+    "audio_channels": 1,
+    "audio_sample_rate": 16000,
+    "extracted_audio_path": "C:\\LocalAI_Workstation\\test_env_vertexai\\chunks\\task_20260727_024743_9727\\extracted_audio.wav"
+  },
+  "chunks_count": 1,
+  "paths": {
+    "merged_full_transcript": "C:\\LocalAI_Workstation\\test_env_vertexai\\chunks\\task_20260727_024743_9727\\merged_full_transcript.txt",
+    "merged_cleaned_transcript": "C:\\LocalAI_Workstation\\test_env_vertexai\\chunks\\task_20260727_024743_9727\\merged_cleaned_transcript.txt",
+    "merged_summary": "C:\\LocalAI_Workstation\\test_env_vertexai\\chunks\\task_20260727_024743_9727\\merged_summary.txt"
+  },
+  "output_markdown": "C:\\LocalAI_Workstation\\test_env_vertexai\\test_output\\test_audio.md",
+  "output_srt": "C:\\LocalAI_Workstation\\test_env_vertexai\\test_output\\test_audio.srt",
+  "output_vtt": "C:\\LocalAI_Workstation\\test_env_vertexai\\test_output\\test_audio.vtt",
+  "output_txt": "C:\\LocalAI_Workstation\\test_env_vertexai\\test_output\\test_audio.txt",
+  "output_json_index": "C:\\LocalAI_Workstation\\test_env_vertexai\\test_output\\test_audio_index.json"
+}

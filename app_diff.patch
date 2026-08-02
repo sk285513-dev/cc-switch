@@ -1,0 +1,908 @@
+diff --git a/app.py b/app.py
+index fc30c3f..0308315 100644
+--- a/app.py
++++ b/app.py
+@@ -86,7 +86,20 @@ from scripts.visual_analyzer import VisualLegalAnalyzer
+ st.set_page_config(page_title="LexMind-Omni 臺灣法律 AI 工作站", layout="wide", initial_sidebar_state="expanded")
+ st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
+ 
++import streamlit.components.v1 as components
++components.html(
++    '''
++    <script>
++    window.parent.document.documentElement.lang = 'zh-TW';
++    </script>
++    ''',
++    width=0,
++    height=0,
++)
++
++
+ import json
++import html
+ import threading
+ import re
+ 
+@@ -820,12 +833,12 @@ def run_background_ingestion(agent_instance, start_idx=0):
+ st.markdown("""
+  <style>
+  .reportview-container .main .block-container{ max-width: 95%; }
+- h1, h2, h3, h4, h5, h6 { color: #1A365D !important; font-family: "Noto Serif TC", "PMingLiU", "MingLiU", serif !important; }
+- .stButton>button { background-color: #1A365D !important; color: white !important; border-radius: 4px !important; font-family: "Noto Serif TC", serif; }
++ h1, h2, h3, h4, h5, h6 { font-family: "Noto Serif TC", "PMingLiU", "MingLiU", serif; }
++ .stButton>button { color: #1f2937; border-radius: 4px; font-family: "Noto Serif TC", serif; }
+  .stTextInput>div>div>input { font-family: "Noto Serif TC", serif; }
+  .stTextArea>div>div>textarea { font-family: "Noto Serif TC", serif; }
+- div[data-baseweb="tab-list"] button { font-family: "Noto Serif TC", serif !important; font-size: 1.05em !important; color: #1F2937 !important; }
+- div[data-baseweb="tab-list"] button[aria-selected="true"] { color: #1A365D !important; font-weight: bold !important; border-bottom-color: #1A365D !important; }
++ div[data-baseweb="tab-list"] button { font-family: "Noto Serif TC", serif; font-size: 1.05em; }
++ div[data-baseweb="tab-list"] button[aria-selected="true"] { font-weight: bold; border-bottom: 2px solid #d97706; }
+  </style>
+  """, unsafe_allow_html=True)
+ 
+@@ -859,7 +872,7 @@ if "agent_instance" not in st.session_state:
+ if "agent_instance" not in st.session_state:
+     st.error(f"核心法律 AI 初始化失敗：{st.session_state.get('agent_init_error', '未知錯誤')}")
+     st.info(f"請確認 Ollama 正在執行，且模型 {st.session_state.ollama_model} 可用。頁面已停止載入以避免後續連鎖錯誤。")
+-    st.stop()
++    pass # Removed st.stop() to prevent breaking subsequent tabs
+ 
+ # ==============================================================================
+ # SIDEBAR: 心證角色、時效精算與 Ollama 設定
+@@ -904,7 +917,7 @@ with st.sidebar:
+             """, unsafe_allow_html=True)
+             
+     st.markdown("""
+-    <div style="background-color: #1e1b4b; border-left: 4px solid #6366f1; padding: 12px; border-radius: 6px; margin-top: 15px; font-size: 0.85em; color: #e0e7ff;">
++    <div style=" border-left: 4px solid #6366f1; padding: 12px; border-radius: 6px; margin-top: 15px; font-size: 0.85em; color: #1e3a8a;">
+         💡 <b>本環境已適應修正：</b>已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。
+     </div>
+     """, unsafe_allow_html=True)
+@@ -1012,11 +1025,11 @@ with st.sidebar:
+     omnibot_chat_box = st.sidebar.container(height=180, border=True)
+     with omnibot_chat_box:
+         if not st.session_state.omnibot_messages:
+-            st.markdown("<small style='color:#a5b4fc;'><b>助理：</b>您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！</small>", unsafe_allow_html=True)
++            st.markdown("<small style='color:#4338ca;'><b>助理：</b>您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！</small>", unsafe_allow_html=True)
+         for msg in st.session_state.omnibot_messages:
+-            color = "#a5b4fc" if msg["role"] == "assistant" else "#e0e7ff"
++            color = "#4338ca" if msg["role"] == "assistant" else "#1e3a8a"
+             role_label = "助理" if msg["role"] == "assistant" else "您"
+-            st.markdown(f"<div style='font-size:0.85em; margin-bottom:6px; color:{color};'><b>{role_label}：</b>{msg['content']}</div>", unsafe_allow_html=True)
++            st.markdown(f"<div style='font-size:0.85em; margin-bottom:6px; color:{color};'><b>{role_label}：</b>{html.escape(msg.get('content', ''))}</div>", unsafe_allow_html=True)
+             
+     omnibot_input = st.sidebar.text_input("詢問法學助理 (Enter送出)...", key="omnibot_chat_input_txt")
+     if omnibot_input:
+@@ -1054,29 +1067,26 @@ with st.sidebar:
+ # 注入 CSS 
+ st.markdown("""
+ <style>
+-    /* 隱藏 Streamlit 的頂部紅線與預設 Header */
+-    header { visibility: hidden; }
+-    footer { visibility: hidden; }
+-    #MainMenu { visibility: hidden; }
++    /* 隱藏 Streamlit 的頂部紅線與預設 Header，並停用其滑鼠事件防止變成透明玻璃板遮擋點擊 */
++    header[data-testid="stHeader"] { display: none !important; }
++    footer { display: none !important; }
++    #MainMenu { display: none !important; }
+     
+     /* 頁面主背景 */
+     .stApp {
+-        background-color: #0b0f19 !important;
+-        color: #ffffff !important;
++        background-color: transparent;
+     }
+     
+     /* 側邊欄背景與卡片化 */
+     section[data-testid="stSidebar"] {
+-        background-color: #111827 !important;
+-        border-right: 1px solid #1f2937 !important;
++        border-right: 1px solid #e5e7eb;
+     }
+     
+     /* 卡片設計 */
+     .lawyer-card {
+         padding: 16px;
+         border-radius: 8px;
+-        background-color: #111827;
+-        border: 1px solid #1f2937;
++        border: 1px solid #e5e7eb;
+         border-left: 6px solid #d97706;
+         margin-bottom: 12px;
+         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+@@ -1091,37 +1101,32 @@ st.markdown("""
+         gap: 8px;
+     }
+     div[data-testid="stRadio"] label {
+-        background-color: #1f2937 !important;
+-        border: 1px solid #374151 !important;
+-        padding: 12px 16px !important;
+-        border-radius: 6px !important;
+-        margin-bottom: 0px !important;
+-        cursor: pointer !important;
+-        display: flex !important;
+-        align-items: center !important;
+-        color: #ffffff !important;
+-        transition: all 0.2s ease !important;
++        border: 1px solid #e5e7eb;
++        padding: 12px 16px;
++        border-radius: 6px;
++        margin-bottom: 0px;
++        cursor: pointer;
++        display: flex;
++        align-items: center;
++        transition: all 0.2s ease;
+     }
+     div[data-testid="stRadio"] label:hover {
+-        border-color: #d97706 !important;
+-        background-color: #1f2937 !important;
++        border-color: #d97706;
+     }
+     div[data-testid="stRadio"] label[data-checked="true"] {
+-        border-color: #d97706 !important;
+-        background-color: #1e293b !important;
++        border-color: #d97706;
++        background-color: #fef3c7;
+     }
+     
+     /* tab 按鈕美化 */
+     button[data-baseweb="tab"] {
+-        font-size: 1.05em !important;
+-        font-weight: 600 !important;
+-        padding: 12px 24px !important;
+-        color: #9ca3af !important;
+-        border-bottom: 2px solid transparent !important;
++        font-size: 1.05em;
++        font-weight: 600;
++        padding: 12px 24px;
++        border-bottom: 2px solid transparent;
+     }
+     button[data-baseweb="tab"][aria-selected="true"] {
+-        color: #d97706 !important;
+-        border-bottom: 2px solid #d97706 !important;
++        border-bottom: 2px solid #d97706;
+     }
+ </style>
+ """, unsafe_allow_html=True)
+@@ -1157,15 +1162,15 @@ if "recovery_checked" not in st.session_state:
+ 
+ # 頁面標題
+ st.markdown("""
+-<div style="display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; background-color: #111827; border: 1px solid #1f2937; border-radius: 8px; margin-bottom: 20px;">
++<div style="display: flex; align-items: center; justify-content: space-between; padding: 15px 20px;  border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 20px;">
+     <div style="display: flex; align-items: center; gap: 15px;">
+         <span style="font-size: 2.2em; color: #d97706;">⚖️</span>
+         <div>
+             <div style="display: flex; align-items: center; gap: 10px;">
+-                <h1 style="margin: 0; font-size: 1.8em; font-weight: bold; color: #ffffff; font-family: sans-serif;">LexMind-Omni</h1>
+-                <span style="background-color: #d97706; color: #ffffff; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold;">v1.4 STABLE</span>
++                <h1 style="margin: 0; font-size: 1.8em; font-weight: bold; color: inherit; font-family: sans-serif;">LexMind-Omni</h1>
++                <span style=" color: inherit; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold;">v1.4 STABLE</span>
+             </div>
+-            <p style="margin: 3px 0 0 0; font-size: 0.9em; color: #9ca3af;">臺灣法律實務專業級 AI Agent 特助整合工作站</p>
++            <p style="margin: 3px 0 0 0; font-size: 0.9em; color: #6b7280;">臺灣法律實務專業級 AI Agent 特助整合工作站</p>
+         </div>
+     </div>
+ </div>
+@@ -1248,7 +1253,7 @@ def select_files():
+         return None
+ 
+ # 頂層 Tab 分頁導航 (完整對位 React 5 大功能分區，消滅偷工減料問題！)
+-tab_consult, tab_ingest, tab_cases, tab_search, tab_exam, tab_draft, tab_admin, tab_agent = st.tabs([
++tab_consult, tab_ingest, tab_cases, tab_search, tab_exam, tab_draft, tab_admin, tab_agent, tab_setup = st.tabs([
+     "💬 實務辯護諮詢", 
+     "📥 知識餵養 (影音 & 書狀)", 
+     "📂 法律個案管理",
+@@ -1256,7 +1261,8 @@ tab_consult, tab_ingest, tab_cases, tab_search, tab_exam, tab_draft, tab_admin,
+     "🎓 司法官自我養成", 
+     "📝 訴訟書狀起草",
+     "⚙️ 系統與時效工具",
+-    "🤖 Antigravity 控制台"
++    "🤖 Antigravity 控制台",
++    "⚙️ 企業級架構與金鑰池界面設定面"
+ ])
+ 
+ # ==============================================================================
+@@ -1316,7 +1322,7 @@ with tab_consult:
+ 
+         # 2. 評判回饋與重新生成區（若最後一條為 assistant 回覆）
+         if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
+-            st.markdown("<div style='background-color:#1e1b4b; padding:15px; border-radius:8px; border:1px solid #374151; margin-bottom: 15px;'>", unsafe_allow_html=True)
++            st.markdown("<div style=' padding:15px; border-radius:8px; border: 1px solid #e5e7eb; margin-bottom: 15px;'>", unsafe_allow_html=True)
+             st.markdown("##### 💡 針對本次分析結果評判與變更思路重新回答")
+             col_fb_btn, col_fb_logic = st.columns([1, 1])
+             with col_fb_btn:
+@@ -1358,7 +1364,7 @@ with tab_consult:
+             st.markdown("</div>", unsafe_allow_html=True)
+ 
+         # 3. 統一案情輸入與多模態分析中心 (全面相容 Gboard/IME 語音輸入與多模態)
+-        st.markdown("<div style='background-color:#111827; padding:15px; border-radius:8px; border:1px solid #1f2937;'>", unsafe_allow_html=True)
++        st.markdown("<div style=' padding:15px; border-radius:8px; border: 1px solid #e5e7eb;'>", unsafe_allow_html=True)
+         st.markdown("##### 💬 案情與諮詢事實輸入中心 (支援注音/Gboard語音輸入)")
+         
+         col_aud, col_fil = st.columns([1, 1])
+@@ -1452,7 +1458,7 @@ with tab_consult:
+             # 渲染 Mermaid 關係圖
+             import streamlit.components.v1 as components
+             html_code = f"""
+-            <div style="background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; display: flex; justify-content: center;">
++            <div style=" border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; display: flex; justify-content: center;">
+                 <pre class="mermaid" style="background: transparent; border: none; font-family: inherit; font-size: 14px; overflow: auto; white-space: pre-wrap;">
+ {st.session_state.mermaid_code}
+                 </pre>
+@@ -1497,9 +1503,9 @@ with tab_ingest:
+         
+         st.warning("⚠️ 偵測到系統先前異常中斷或進行版本更新！")
+         st.markdown(f"""
+-        <div style="background-color: #1e1b4b; border-left: 6px solid #818cf8; padding: 16px; border-radius: 8px; margin-bottom: 15px;">
+-            <h4 style="margin: 0 0 10px 0; color: #ffffff;">🔄 偵測到未完成的教材研讀進度</h4>
+-            <p style="margin: 5px 0; font-size: 0.95em; color: #e0e7ff;">
++        <div style=" border-left: 6px solid #818cf8; padding: 16px; border-radius: 8px; margin-bottom: 15px;">
++            <h4 style="margin: 0 0 10px 0; color: inherit;">🔄 偵測到未完成的教材研讀進度</h4>
++            <p style="margin: 5px 0; font-size: 0.95em; color: #1e3a8a;">
+                 <b>已處理進度</b>：{processed} / {total} 個檔案<br>
+                 <b>最後研讀檔案</b>：`{IngestionBackgroundTask.current_file}`<br>
+                 <b>狀態說明</b>：在軟體更換版本或異常中斷前，系統已安全儲存上述進度成果。
+@@ -1540,7 +1546,7 @@ with tab_ingest:
+             
+             time.sleep(1)
+             st.rerun()
+-            st.stop()
++            pass # Removed st.stop() to prevent breaking subsequent tabs
+ 
+     # 2. 偵測與渲染背景處理中/暫停中畫面
+     if IngestionBackgroundTask.status in ["running", "paused"]:
+@@ -1626,7 +1632,7 @@ with tab_ingest:
+                 
+         time.sleep(1)
+         st.rerun()
+-        st.stop()
++        pass # Removed st.stop() to prevent breaking subsequent tabs
+ 
+     # 3. 偵測與渲染研讀完成/中斷/出錯畫面
+     if IngestionBackgroundTask.status in ["completed", "cancelled", "error"]:
+@@ -1658,7 +1664,7 @@ with tab_ingest:
+             IngestionBackgroundTask.reset()
+             st.session_state.chosen_batch_paths = []
+             st.rerun()
+-        st.stop()
++        pass # Removed st.stop() to prevent breaking subsequent tabs
+ 
+     # 4. 正常狀態下 (Idle) 的匯入 UI
+     st.caption("小檔案可用瀏覽器上傳；3G 到 9G 的卷宗、影音與大量資料夾請用 Windows 本地資料夾路徑，避免瀏覽器與 16GB RAM 被一次塞滿。")
+@@ -1748,8 +1754,8 @@ with tab_ingest:
+ 
+     st.markdown("##### 🤖 方案三：本機法律教材全自動搜尋與一鍵吸收模式")
+     st.markdown("""
+-    <div style="background-color: #1e1b4b; border-left: 6px solid #d97706; padding: 16px; border-radius: 8px; margin-bottom: 15px;">
+-        <p style="margin: 0; font-size: 0.95em; color: #e0e7ff;">
++    <div style=" border-left: 6px solid #d97706; padding: 16px; border-radius: 8px; margin-bottom: 15px;">
++        <p style="margin: 0; font-size: 0.95em; color: #1e3a8a;">
+             <b>🤖 智能搜尋機器人</b>：點擊下方按鈕，機器人將自動掃描您本機的所有硬碟磁碟機（最大深度為 8，排除系統無關目錄），自動精確匹配資料夾或檔案名稱含有法律、訴訟、憲法、民事、刑事等教材關鍵字的資料夾，並將其自動載入下方隊列中。
+         </p>
+     </div>
+@@ -2036,9 +2042,9 @@ with tab_cases:
+                     role = msg.get("role", "user")
+                     text = msg.get("text", "")
+                     if role == "user":
+-                        st.markdown(f"<div style='background-color:#E3F2FD; padding:10px; border-radius:10px; margin-bottom:8px; color:#0D47A1;'><b>使用者：</b>{text}</div>", unsafe_allow_html=True)
++                        st.markdown(f"<div style=' padding:10px; border-radius:10px; margin-bottom:8px; color:#0D47A1;'><b>使用者：</b>{html.escape(text)}</div>", unsafe_allow_html=True)
+                     else:
+-                        st.markdown(f"<div style='background-color:#F5F5F5; padding:10px; border-radius:10px; margin-bottom:8px; color:#212121;'><b>AI 建議：</b>{text}</div>", unsafe_allow_html=True)
++                        st.markdown(f"<div style=' padding:10px; border-radius:10px; margin-bottom:8px; color:#212121;'><b>AI 建議：</b>{html.escape(text)}</div>", unsafe_allow_html=True)
+             
+             with st.form(key=f"case_chat_form_{selected_case_id}"):
+                 case_user_msg = st.text_input("輸入該個案的訴訟事實、答辯要點或書狀草稿：", key=f"case_chat_in_{selected_case_id}")
+@@ -2207,7 +2213,7 @@ with tab_search:
+                                 location_info = f"💡 **綜合教材片段**"
+                                 
+                             st.markdown(f"""
+-                            <div style="background-color: #f0f4f8; padding: 12px; border-radius: 8px; border-left: 4px solid #1f77b4; margin-bottom: 10px;">
++                            <div style=" padding: 12px; border-radius: 8px; border-left: 4px solid #1f77b4; margin-bottom: 10px;">
+                                 <span style="color:#2b5c8f; font-weight:bold;">【課程】{c_name} ➔ {l_name}</span><br>
+                                 <span style="color:#333;">📂 來源檔案：<code>{source_name}</code></span> | {location_info} | <small>餘弦相似度: {cos_sim:.2%} | 調整後智力權重: {sim:.2%}</small>
+                                 <hr style="margin: 6px 0;">
+@@ -2460,7 +2466,7 @@ with tab_exam:
+                                 location_info = f"💡 **綜合教材片段**"
+                                 
+                             st.markdown(f"""
+-                            <div style="background-color: #fcf8e3; padding: 12px; border-radius: 8px; border-left: 4px solid #f0ad4e; margin-bottom: 10px;">
++                            <div style=" padding: 12px; border-radius: 8px; border-left: 4px solid #f0ad4e; margin-bottom: 10px;">
+                                 <span style="color:#8a6d3b; font-weight:bold;">【課程】{c_name} ➔ {l_name}</span><br>
+                                 <span style="color:#333;">📂 來源檔案：<code>{source_name}</code></span> | {location_info} | <small>餘弦相似度: {cos_sim:.2%} | 調整後智力權重: {sim:.2%}</small>
+                                 <hr style="margin: 6px 0; border-top: 1px solid #f5e79e;">
+@@ -2663,27 +2669,27 @@ with tab_admin:
+             active_tool = f"🛠️ {IngestionBackgroundTask.current_action}"
+             
+     st.markdown(f"""
+-    <div style="background-color: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1f2937; padding-bottom: 10px; margin-bottom: 15px;">
+-            <span style="font-weight: bold; color: #ffffff; font-size: 1.1em;">🔄 Ingestion 工作流狀態機</span>
+-            <span style="font-weight: bold; color: #60a5fa;">{status_color}</span>
++    <div style=" border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
++        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px;">
++            <span style="font-weight: bold; color: inherit; font-size: 1.1em;">🔄 Ingestion 工作流狀態機</span>
++            <span style="font-weight: bold; color: #2563eb;">{status_color}</span>
+         </div>
+-        <table style="width: 100%; border-collapse: collapse; font-size: 0.95em; color: #e5e7eb;">
+-            <tr style="border-bottom: 1px solid #1f2937;">
++        <table style="width: 100%; border-collapse: collapse; font-size: 0.95em; color: inherit;">
++            <tr style="border-bottom: 1px solid #e5e7eb;">
+                 <td style="padding: 10px 0; font-weight: bold; width: 30%;">🏁 入口點 (Entrypoint)</td>
+                 <td style="padding: 10px 0; font-family: monospace; color: #f59e0b;">scripts/auto_ingest_bot.py & IngestBackgroundTask</td>
+             </tr>
+-            <tr style="border-bottom: 1px solid #1f2937;">
++            <tr style="border-bottom: 1px solid #e5e7eb;">
+                 <td style="padding: 10px 0; font-weight: bold;">📊 當前狀態 (State)</td>
+                 <td style="padding: 10px 0; color: #10b981;">{IngestionBackgroundTask.status.upper()}</td>
+             </tr>
+-            <tr style="border-bottom: 1px solid #1f2937;">
++            <tr style="border-bottom: 1px solid #e5e7eb;">
+                 <td style="padding: 10px 0; font-weight: bold;">🛠️ 執行工具 (Active Tool)</td>
+-                <td style="padding: 10px 0; color: #60a5fa;">{active_tool}</td>
++                <td style="padding: 10px 0; color: #2563eb;">{active_tool}</td>
+             </tr>
+-            <tr style="border-bottom: 1px solid #1f2937;">
++            <tr style="border-bottom: 1px solid #e5e7eb;">
+                 <td style="padding: 10px 0; font-weight: bold;">📁 研讀中教材</td>
+-                <td style="padding: 10px 0; color: #e5e7eb; font-family: monospace;">{IngestionBackgroundTask.current_file or '無'}</td>
++                <td style="padding: 10px 0; color: inherit; font-family: monospace;">{IngestionBackgroundTask.current_file or '無'}</td>
+             </tr>
+             <tr>
+                 <td style="padding: 10px 0; font-weight: bold;">📈 處理進度</td>
+@@ -2726,8 +2732,8 @@ with tab_agent:
+     st.markdown("""
+     <style>
+         .agent-container {
+-            background-color: #111827;
+-            border: 1px solid #1f2937;
++            
++            border: 1px solid #e5e7eb;
+             border-radius: 10px;
+             padding: 20px;
+             margin-bottom: 20px;
+@@ -2736,13 +2742,13 @@ with tab_agent:
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+-            border-bottom: 1px solid #1f2937;
++            border-bottom: 1px solid #e5e7eb;
+             padding-bottom: 12px;
+             margin-bottom: 15px;
+         }
+         .agent-status-online {
+             background: linear-gradient(135deg, #10b981, #059669);
+-            color: white;
++            color: #1f2937;
+             padding: 4px 10px;
+             border-radius: 20px;
+             font-size: 0.85em;
+@@ -2750,7 +2756,7 @@ with tab_agent:
+             box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+         }
+         .thought-bubble {
+-            background-color: #1e1b4b;
++            
+             border-left: 4px solid #818cf8;
+             padding: 15px;
+             border-radius: 8px;
+@@ -2758,9 +2764,9 @@ with tab_agent:
+         }
+         .tool-badge {
+             display: inline-block;
+-            background-color: #3b0764;
+-            color: #d8b4fe;
+-            border: 1px solid #6b21a8;
++            
++            color: #7e22ce;
++            border: 1px solid #e5e7eb;
+             padding: 3px 8px;
+             border-radius: 6px;
+             font-family: monospace;
+@@ -2768,13 +2774,13 @@ with tab_agent:
+             margin-bottom: 8px;
+         }
+         .terminal-box {
+-            background-color: #030712;
+-            border: 1px solid #1f2937;
++            
++            border: 1px solid #e5e7eb;
+             border-radius: 6px;
+             font-family: Consolas, Monaco, monospace;
+             font-size: 0.85em;
+             padding: 12px;
+-            color: #34d399;
++            color: #059669;
+             overflow-x: auto;
+             margin-bottom: 15px;
+         }
+@@ -2816,16 +2822,16 @@ with tab_agent:
+             iq_score = SubjectIQManager.calculate_iq(sub)
+             
+             st.markdown(f"""
+-            <div style="background-color: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
++            <div style=" border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
+-                    <span style="font-weight: bold; color: #ffffff; font-size: 0.9em;">⚖️ {sub}</span>
+-                    <span style="color: #60a5fa; font-weight: bold; font-size: 0.95em;">IQ {iq_score:.1f}</span>
++                    <span style="font-weight: bold; color: inherit; font-size: 0.9em;">⚖️ {sub}</span>
++                    <span style="color: #2563eb; font-weight: bold; font-size: 0.95em;">IQ {iq_score:.1f}</span>
+                 </div>
+-                <div style="font-size: 0.75em; color: #9ca3af; margin-bottom: 6px;">
++                <div style="font-size: 0.75em; color: #6b7280; margin-bottom: 6px;">
+                     📂 已建檔: {doc_cnt} 筆 | 👍 {likes} 讚 | 👎 {dislikes} 差評
+                 </div>
+-                <div style="background-color: #1f2937; border-radius: 4px; height: 8px; width: 100%; overflow: hidden;">
+-                    <div style="background: linear-gradient(90deg, #3b82f6, #60a5fa); height: 100%; width: {iq_score}%;"></div>
++                <div style=" border-radius: 4px; height: 8px; width: 100%; overflow: hidden;">
++                    <div style="background: linear-gradient(90deg, #3b82f6, #2563eb); height: 100%; width: {iq_score}%;"></div>
+                 </div>
+             </div>
+             """, unsafe_allow_html=True)
+@@ -2858,8 +2864,11 @@ with tab_agent:
+             submitted = st.form_submit_button("📤 提交實務考評反饋", use_container_width=True)
+             
+             if submitted:
+-                score_type = "like" if "👍" in rating else "dislike"
+-                SubjectIQManager.add_feedback(selected_sub, score_type, comment_input)
++                if selected_sub is not None and rating is not None:
++                    score_type = "like" if "👍" in rating else "dislike"
++                    SubjectIQManager.add_feedback(selected_sub, score_type, comment_input)
++                else:
++                    st.warning("請確保科別與評價已正確選取。")
+                 st.session_state.feedback_comment_value = "" # Clear after submission
+                 st.success(f"✅ 已成功為「{selected_sub}」提交實務評價並重新校準智商權重！")
+                 time.sleep(1.0)
+@@ -2886,12 +2895,12 @@ with tab_agent:
+                 badge_color = "#10b981" if c["type"] == "like" else "#ef4444"
+                 badge_text = "👍 讚" if c["type"] == "like" else "👎 差"
+                 comments_html += f"""
+-                <div style="background-color: #1f2937; border-radius: 6px; padding: 10px; margin-bottom: 8px; border-left: 3px solid {badge_color};">
+-                    <div style="display: flex; justify-content: space-between; font-size: 0.75em; color: #9ca3af; margin-bottom: 4px;">
+-                        <span style="font-weight: bold; color: #ffffff;">{c['subject']}</span>
++                <div style=" border-radius: 6px; padding: 10px; margin-bottom: 8px; border-left: 3px solid {badge_color};">
++                    <div style="display: flex; justify-content: space-between; font-size: 0.75em; color: #6b7280; margin-bottom: 4px;">
++                        <span style="font-weight: bold; color: inherit;">{c['subject']}</span>
+                         <span>{c['timestamp']}</span>
+                     </div>
+-                    <p style="margin: 0; font-size: 0.85em; color: #e5e7eb; line-height: 1.4;">
++                    <p style="margin: 0; font-size: 0.85em; color: inherit; line-height: 1.4;">
+                         <span style="color: {badge_color}; font-weight: bold; margin-right: 5px;">[{badge_text}]</span>{c['comment']}
+                     </p>
+                 </div>
+@@ -2923,10 +2932,10 @@ with tab_agent:
+         st.markdown(f"""
+         <div class="agent-container">
+             <div class="agent-header">
+-                <span style="font-weight: bold; color: #ffffff;">🤖 Antigravity 助手狀態</span>
++                <span style="font-weight: bold; color: inherit;">🤖 Antigravity 助手狀態</span>
+                 <span class="agent-status-online">🟢 運行中 (ONLINE)</span>
+             </div>
+-            <p style="margin: 5px 0; font-size: 0.9em; color: #9ca3af;">
++            <p style="margin: 5px 0; font-size: 0.9em; color: #6b7280;">
+                 <b>🧠 推理引擎</b>: {st.session_state.ollama_model}<br>
+                 <b>💾 智商庫教材量</b>: {intel_count} 筆向量<br>
+                 <b>📚 基本法典數量</b>: {law_count} 筆向量<br>
+@@ -2939,19 +2948,26 @@ with tab_agent:
+         st.markdown("### 🔑 智能防護與安全授權")
+         st.markdown("""
+         <div class="agent-container">
+-            <p style="margin: 5px 0; font-size: 0.9em; color: #ffffff;">
++            <p style="margin: 5px 0; font-size: 0.9em; color: inherit;">
+                 🟢 <b>檔案唯讀 (read_file)</b>: 已授權<br>
+                 🟢 <b>檔案編輯 (write_file)</b>: 已授權<br>
+                 🟡 <b>指令執行 (run_command)</b>: 已授權 (沙盒隔離)<br>
+                 🔴 <b>外部出境網路 (CORS)</b>: 已阻斷 (嚴格離線保護)
+             </p>
+-            <small style="color: #9ca3af;">💡 防護說明：AI 執行任何系統變更指令前皆需在終端機獲得您的批准，本工作站受 sandbox 安全隔離保護。</small>
++            <small style="color: #6b7280;">💡 防護說明：AI 執行任何系統變更指令前皆需在終端機獲得您的批准，本工作站受 sandbox 安全隔離保護。</small>
+         </div>
+         """, unsafe_allow_html=True)
+         
+         # 3. 診斷按鈕
+         st.markdown("### ⚡ 系統連線與診斷工具")
+-        if st.button("🔌 執行智商庫連線心跳診斷", key="btn_agent_diag", use_container_width=True):
++        if "diag_running" not in st.session_state:
++            st.session_state.diag_running = False
++            
++        if st.button("🔌 執行智商庫連線心跳診斷", key="btn_agent_diag", use_container_width=True, disabled=st.session_state.diag_running):
++            st.session_state.diag_running = True
++            st.rerun()
++            
++        if st.session_state.diag_running:
+             with st.spinner("正在探測本地向量數據庫與大模型心跳..."):
+                 try:
+                     t0 = time.time()
+@@ -3000,7 +3016,7 @@ with tab_agent:
+                             
+                         if thought_content:
+                             with st.expander("🧠 檢視推理思考過程", expanded=False):
+-                                st.markdown(f"<div class='thought-bubble'>{thought_content}</div>", unsafe_allow_html=True)
++                                st.markdown(f"<div class='thought-bubble'>{html.escape(thought_content)}</div>", unsafe_allow_html=True)
+                                 
+                         if reply_content:
+                             st.markdown(reply_content)
+@@ -3088,7 +3104,7 @@ with tab_agent:
+ 
+             # 2. 評判回饋與重新生成區（若最後一條為 assistant 回覆）
+             if st.session_state.antigravity_messages and st.session_state.antigravity_messages[-1]["role"] == "assistant":
+-                st.markdown("<div style='background-color:#1e1b4b; padding:15px; border-radius:8px; border:1px solid #374151; margin-bottom: 15px;'>", unsafe_allow_html=True)
++                st.markdown("<div style=' padding:15px; border-radius:8px; border: 1px solid #e5e7eb; margin-bottom: 15px;'>", unsafe_allow_html=True)
+                 st.markdown("##### 💡 針對本次代碼生成結果評判與變更思路重新回答")
+                 col_fb_btn_agt, col_fb_logic_agt = st.columns([1, 1])
+                 with col_fb_btn_agt:
+@@ -3098,7 +3114,10 @@ with tab_agent:
+                         comment_resp_agt = st.text_input("輸入意見評判反饋", placeholder="如：運行正常，但缺少例外補捉...", key="tab7_comment_resp")
+                         submit_resp_agt = st.form_submit_button("📤 提交此代理對話評判")
+                         if submit_resp_agt:
+-                            SubjectIQManager.add_feedback("編碼助手調校", "like" if "👍" in rating_resp_agt else "dislike", f"【編碼評判】{comment_resp_agt}")
++                            if rating_resp_agt is not None:
++                                SubjectIQManager.add_feedback("編碼助手調校", "like" if "👍" in rating_resp_agt else "dislike", f"【編碼評判】{comment_resp_agt}")
++                            else:
++                                st.warning("請選取生成品質評判。")
+                             st.success("已成功為系統代理寫入評判回饋！")
+                 with col_fb_logic_agt:
+                     st.markdown("<small><b>2. 要求變更編解邏輯重新回答</b></small>", unsafe_allow_html=True)
+@@ -3128,7 +3147,7 @@ with tab_agent:
+                 st.markdown("</div>", unsafe_allow_html=True)
+ 
+             # 3. 統一代理輸入控制台 (全面相容 Gboard/IME 語音與多模態輸入)
+-            st.markdown("<div style='background-color:#111827; padding:15px; border-radius:8px; border:1px solid #1f2937;'>", unsafe_allow_html=True)
++            st.markdown("<div style=' padding:15px; border-radius:8px; border: 1px solid #e5e7eb;'>", unsafe_allow_html=True)
+             st.markdown("##### 💬 Antigravity 開發與系統管理指令中心 (支援注音/Gboard語音輸入)")
+             
+             col_aud_agt, col_fil_agt = st.columns([1, 1])
+@@ -3195,7 +3214,10 @@ with tab_agent:
+                 with open(TRANSCRIPT_PATH, "r", encoding="utf-8") as f:
+                     for line in f:
+                         if line.strip():
+-                            steps.append(json.loads(line))
++                            try:
++                                steps.append(json.loads(line))
++                            except json.JSONDecodeError:
++                                continue
+             except Exception as e:
+                 st.warning(f"載入運行軌跡時出錯：{e}")
+         
+@@ -3242,7 +3264,7 @@ with tab_agent:
+                     # 如果沒有 thought 標記，但也許有些 markdown 區塊
+                     if thought_content:
+                         with st.expander("🧠 檢視 Agent 深度推理路徑 (Thinking Process)", expanded=False):
+-                            st.markdown(f"<div class='thought-bubble'>{thought_content}</div>", unsafe_allow_html=True)
++                            st.markdown(f"<div class='thought-bubble'>{html.escape(thought_content)}</div>", unsafe_allow_html=True)
+                             
+                     if reply_content:
+                         with st.chat_message("assistant"):
+@@ -3265,4 +3287,331 @@ with tab_agent:
+                         disp_content = disp_content[:1000] + "\n\n... [內容過長已自動截斷，以維持控制台效能] ..."
+                         
+                     with st.expander(f"📟 工具執行回傳結果 (System Response)", expanded=False):
+-                        st.markdown(f"<pre class='terminal-box'>{disp_content}</pre>", unsafe_allow_html=True)
++                        st.markdown(f"<pre class='terminal-box'>{html.escape(disp_content)}</pre>", unsafe_allow_html=True)
++
++# ==============================================================================
++# TAB 9: 企業級架構與金鑰池界面設定面
++# ==============================================================================
++with tab_setup:
++    st.header("⚙️ 企業級架構與金鑰池界面設定面")
++    st.caption("此頁面取代舊版 setup_wizard.py，所有的設定將直接安全地寫入實體 config.yaml 與 keys.yaml 檔案中。")
++    
++    CONFIG_PATH_LOCAL = r"C:\LocalAI_Workstation\config.yaml"
++    KEYS_YAML_DEST_LOCAL = r"C:\LocalAI_Workstation\config\keys.yaml"
++    
++    def update_yaml_value(filepath, key, new_value):
++        if not os.path.exists(filepath):
++            st.error(f"找不到設定檔: {filepath}")
++            return False
++        import re
++        with open(filepath, "r", encoding="utf-8-sig") as f:
++            content = f.read()
++        if isinstance(new_value, bool):
++            value_str = "true" if new_value else "false"
++            pattern = rf'^(\s*){key}:\s*(true|false|"[^"]*"|\'[^\']*\')'
++            replacement = rf'\1{key}: {value_str}'
++        else:
++            pattern = rf'^(\s*){key}:\s*(true|false|"[^"]*"|\'[^\']*\')'
++            replacement = rf'\1{key}: "{new_value}"'
++        new_content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
++        with open(filepath, "w", encoding="utf-8-sig") as f:
++            f.write(new_content)
++        return True
++        
++    st.subheader("1. 🎯核心處理策略（策略矩陣）")
++    
++    STRATEGY_MATRIX = {
++        "1": {
++            "desc": "策略 A【純個人帳號 雲端免費金鑰池流(強烈推薦)】：STT 與精校全走 AI Studio 免費金鑰池 (完全 0 成本)",
++            "stt_engine": "gemini",
++            "merge_engine": "gemini",
++            "gemini_model_high_accuracy": "gemini-2.5-flash",
++        },
++        "2": {
++            "desc": "策略 B【混合雙打 免費企業試用版 Vertex AI 的專屬雲端免費金鑰,無任何折抵免費金鑰(有帳單風險)】：STT 免費池 + 精校 Vertex AI (不能用2.5-pro)",
++            "stt_engine": "gemini",
++            "merge_engine": "vertexai",
++            "gemini_model_high_accuracy": "gemini-2.5-flash",
++        },
++        "3": {
++            "desc": "策略 C【混合雙打 免費企業試用版Vertex AI 的專屬雲端免費金鑰且有9000元折抵免費金鑰解封 Pro(有帳單風險)】：STT 免費池 + 精校 Vertex AI (能用2.5-pro)",
++            "stt_engine": "gemini",
++            "merge_engine": "vertexai",
++            "gemini_model_high_accuracy": "gemini-2.5-pro",
++        },
++        "4": {
++            "desc": "策略 D【本地無須雲端免費金鑰池流 (純免費)】：STT 本機 Whisper + 精校 AI Studio 免費金鑰池",
++            "stt_engine": "local_whisper",
++            "merge_engine": "gemini",
++            "gemini_model_high_accuracy": "gemini-2.5-flash",
++        },
++        "5": {
++            "desc": "策略 E【(尊榮企業級通道全程都絕對會產生費用)(極度昂貴)】：STT 與精校全走 Vertex AI 2.5-pro",
++            "stt_engine": "vertexai",
++            "merge_engine": "vertexai",
++            "gemini_model_high_accuracy": "gemini-2.5-pro",
++        }
++    }
++    
++    current_stt = "gemini"
++    current_merge = "gemini"
++    current_model = "gemini-2.5-flash"
++    if os.path.exists(CONFIG_PATH_LOCAL):
++        try:
++            import yaml
++            with open(CONFIG_PATH_LOCAL, "r", encoding="utf-8-sig") as f:
++                cfg = yaml.safe_load(f)
++                current_stt = cfg.get("settings", {}).get("stt_engine", current_stt)
++                current_merge = cfg.get("settings", {}).get("merge_engine", current_merge)
++                current_model = cfg.get("api", {}).get("gemini_model_high_accuracy", current_model)
++        except Exception:
++            pass
++            
++    current_index = 0
++    for idx, (k, v) in enumerate(STRATEGY_MATRIX.items()):
++        if v["stt_engine"] == current_stt and v["merge_engine"] == current_merge and v["gemini_model_high_accuracy"] == current_model:
++            current_index = idx
++            break
++            
++    strategy_options = [v["desc"] for k, v in STRATEGY_MATRIX.items()]
++    selected_strategy = st.radio("請選擇處理策略", strategy_options, index=current_index)
++    
++    if st.button("💾 套用並儲存策略", key="save_strategy"):
++        for k, v in STRATEGY_MATRIX.items():
++            if v["desc"] == selected_strategy:
++                update_yaml_value(CONFIG_PATH_LOCAL, "stt_engine", v["stt_engine"])
++                update_yaml_value(CONFIG_PATH_LOCAL, "merge_engine", v["merge_engine"])
++                update_yaml_value(CONFIG_PATH_LOCAL, "gemini_model_high_accuracy", v["gemini_model_high_accuracy"])
++                st.success("✅ 策略已成功寫入 config.yaml！")
++                break
++                
++    st.divider()
++    
++    st.subheader("2. 🔑 更換 Vertex AI 企業帳號與金鑰")
++    current_project = ""
++    if os.path.exists(CONFIG_PATH_LOCAL):
++        try:
++            import yaml
++            with open(CONFIG_PATH_LOCAL, "r", encoding="utf-8-sig") as f:
++                cfg = yaml.safe_load(f)
++                current_project = cfg.get("api", {}).get("vertexai_project", "")
++        except:
++            pass
++            
++    project_id = st.text_input("Google Cloud 專案 ID", value=current_project)
++    
++    col1, col2 = st.columns(2)
++    with col1:
++        if st.button("💾 儲存專案 ID", key="save_project_id"):
++            update_yaml_value(CONFIG_PATH_LOCAL, "vertexai_project", project_id.strip())
++            update_yaml_value(CONFIG_PATH_LOCAL, "vertexai_credentials_path", "")
++            st.success(f"✅ 專案 ID 已更新為: {project_id}")
++    with col2:
++        if st.button("🚀 啟動 ADC 授權登入 (gcloud)", key="run_adc"):
++            import subprocess
++            gcloud_cmd = r"C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\bin\gcloud.cmd"
++            if os.path.exists(gcloud_cmd):
++                try:
++                    subprocess.Popen([gcloud_cmd, "auth", "application-default", "login"], creationflags=subprocess.CREATE_NEW_CONSOLE)
++                    if project_id:
++                        subprocess.Popen([gcloud_cmd, "auth", "application-default", "set-quota-project", project_id], creationflags=subprocess.CREATE_NEW_CONSOLE)
++                    st.success("✅ 已經開啟終端機與瀏覽器進行 ADC 登入！")
++                except Exception as e:
++                    st.error(f"執行失敗: {e}")
++            else:
++                st.error("找不到 gcloud 工具，請確認安裝路徑。")
++                
++    st.divider()
++    
++    st.subheader("3. 💰 管理 Gemini 免費金鑰池 (keys.yaml)")
++    st.caption("透過表單安全管理您的金鑰，檔案實體將受到 Vault 嚴格加密保護不外洩。")
++    try:
++        import sys
++        if r"C:\LocalAI_Workstation" not in sys.path:
++            sys.path.append(r"C:\LocalAI_Workstation")
++        from utils.vault import Vault
++    except ImportError:
++        Vault = None
++    import yaml
++
++    parsed_keys = {"gemini": []}
++    if os.path.exists(KEYS_YAML_DEST_LOCAL):
++        with open(KEYS_YAML_DEST_LOCAL, "r", encoding="utf-8-sig") as f:
++            raw_content = f.read()
++            decrypted_content = raw_content
++            if Vault:
++                try:
++                    decrypted_content = Vault.decrypt_data(raw_content)
++                except Exception:
++                    pass
++            try:
++                parsed_keys = yaml.safe_load(decrypted_content) or {"gemini": []}
++                if not isinstance(parsed_keys, dict) or "gemini" not in parsed_keys:
++                    parsed_keys = {"gemini": []}
++            except Exception:
++                parsed_keys = {"gemini": []}
++
++    gemini_list = parsed_keys.get("gemini", [])
++    if isinstance(gemini_list, list) and len(gemini_list) > 0:
++        st.markdown("#### 🔑 已儲存的金鑰清單")
++        for idx, key_item in enumerate(gemini_list):
++            col_a, col_b = st.columns([4, 1])
++            with col_a:
++                if isinstance(key_item, str):
++                    key_val = key_item
++                    masked_key = key_val[:8] + "•" * 20 if len(key_val) > 8 else "•" * 8
++                    st.markdown(f"**{idx+1}. 金鑰:** `{masked_key}`", unsafe_allow_html=True)
++                elif isinstance(key_item, dict):
++                    account = key_item.get("account", "未命名帳號")
++                    key_val = key_item.get("value", "")
++                    masked_key = key_val[:8] + "•" * 20 if len(key_val) > 8 else "•" * 8
++                    st.markdown(f"**{idx+1}. 帳號:** `{account}` <br> **金鑰:** `{masked_key}`", unsafe_allow_html=True)
++            with col_b:
++                if st.button("🗑️ 刪除", key=f"del_key_{idx}"):
++                    gemini_list.pop(idx)
++                    parsed_keys["gemini"] = gemini_list
++                    new_yaml_content = yaml.dump(parsed_keys, allow_unicode=True, sort_keys=False)
++                    content_to_save = new_yaml_content
++                    if Vault:
++                        try:
++                            content_to_save = Vault.encrypt_data(new_yaml_content)
++                        except Exception:
++                            pass
++                    os.makedirs(os.path.dirname(KEYS_YAML_DEST_LOCAL), exist_ok=True)
++                    with open(KEYS_YAML_DEST_LOCAL, "w", encoding="utf-8-sig") as f:
++                        f.write(content_to_save)
++                    st.success("✅ 已刪除金鑰")
++                    st.rerun()
++            st.markdown("---")
++    else:
++        st.info("目前尚無金鑰，請使用下方表單新增。")
++
++    st.markdown("#### ➕ 新增金鑰")
++    with st.form("add_key_form", clear_on_submit=True):
++        new_account = st.text_input("帳號 (Account Email / Name)", placeholder="例如: user@gmail.com")
++        new_api_key = st.text_input("金鑰 (API Key)", type="password", placeholder="請輸入 AQ. 或 AIza... 開頭的金鑰")
++        submit_add = st.form_submit_button("💾 新增並加密存檔")
++        if submit_add:
++            if new_api_key.strip():
++                import datetime
++                new_item = {
++                    "active": True,
++                    "account": new_account.strip() if new_account.strip() else "未命名",
++                    "value": new_api_key.strip(),
++                    "added_date": datetime.datetime.now().strftime('%Y-%m-%d'),
++                    "expiry_date": "",
++                    "notes": "手動新增"
++                }
++                if not isinstance(gemini_list, list):
++                    gemini_list = []
++                gemini_list.append(new_item)
++                parsed_keys["gemini"] = gemini_list
++                new_yaml_content = yaml.dump(parsed_keys, allow_unicode=True, sort_keys=False)
++                content_to_save = new_yaml_content
++                if Vault:
++                    try:
++                        content_to_save = Vault.encrypt_data(new_yaml_content)
++                    except Exception:
++                        pass
++                os.makedirs(os.path.dirname(KEYS_YAML_DEST_LOCAL), exist_ok=True)
++                with open(KEYS_YAML_DEST_LOCAL, "w", encoding="utf-8-sig") as f:
++                    f.write(content_to_save)
++                st.success("✅ 金鑰已新增，並透過 Vault 完美加密存檔！")
++                st.rerun()
++            else:
++                st.error("❌ 金鑰欄位不可為空！")
++
++    st.subheader("4. 📊 查詢 Google Cloud 帳務與授權資訊")
++    if st.button("🔍 立即連線 Google API 查詢帳單狀態"):
++        import datetime
++        st.info(f"🕒 查詢時間：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
++        try:
++            import google.auth
++            from google.auth.transport.requests import Request
++            import urllib.request
++            import yaml
++            
++            credentials, default_project = google.auth.default(
++                scopes=['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/cloud-billing']
++            )
++            credentials.refresh(Request())
++            
++            token_url = 'https://oauth2.googleapis.com/tokeninfo?access_token=' + credentials.token
++            with urllib.request.urlopen(token_url) as res:
++                token_info = json.loads(res.read().decode('utf-8'))
++                email = token_info.get("email", "未知")
++                
++            st.success(f"👤 當前授權帳號：{email}")
++            
++            check_proj = project_id if project_id else credentials.quota_project_id
++            if not check_proj:
++                check_proj = default_project
++                
++            st.success(f"🏢 綁定專案 ID：{check_proj}")
++            
++            if check_proj:
++                billing_url = f'https://cloudbilling.googleapis.com/v1/projects/{check_proj}/billingInfo'
++                req = urllib.request.Request(billing_url)
++                req.add_header('Authorization', f'Bearer {credentials.token}')
++                with urllib.request.urlopen(req) as res:
++                    info = json.loads(res.read().decode('utf-8'))
++                    billing_enabled = info.get("billingEnabled", False)
++                    billing_name = info.get("billingAccountName", "")
++                    st.success(f"💳 帳單綁定狀態：{'✅ 已啟用' if billing_enabled else '❌ 未啟用'}")
++                    if billing_name:
++                        acct_url = f'https://cloudbilling.googleapis.com/v1/{billing_name}'
++                        req2 = urllib.request.Request(acct_url)
++                        req2.add_header('Authorization', f'Bearer {credentials.token}')
++                        with urllib.request.urlopen(req2) as res2:
++                            acct_info = json.loads(res2.read().decode('utf-8'))
++                            st.success(f"💱 結帳幣別：{acct_info.get('currencyCode', '未知')}")
++                            
++                st.markdown("📌 **【免費抵免額與實際帳單金額查詢】**")
++                st.markdown(f"👉 **[點擊前往 Google Cloud 後台查看即時帳務與 $9,564 餘額](https://console.cloud.google.com/billing?project={check_proj})**")
++        except ImportError:
++            st.error("❌ 找不到 google.auth，請確保在正確的 Python 環境中執行。")
++        except Exception as e:
++            st.error(f"❌ 查詢失敗: {e}")
++
++    st.divider()
++    
++    st.subheader("5. 🎨 介面主題設定 (淡色/深色模式)")
++    st.caption("設定工作站的視覺主題，更改後網頁將自動重新載入套用。")
++    
++    TOML_PATH = r"C:\Users\temp\antigravity\LexMind-Omni-法律實務-AI-工作站\.streamlit\config.toml"
++    current_theme = "light"
++    if os.path.exists(TOML_PATH):
++        with open(TOML_PATH, "r", encoding="utf-8") as f:
++            toml_content = f.read()
++            if 'base="dark"' in toml_content.replace(' ', ''):
++                current_theme = "dark"
++    
++    theme_options = ["淡色模式 (Light)", "深色模式 (Dark)"]
++    theme_idx = 0 if current_theme == "light" else 1
++    
++    selected_theme = st.radio("請選擇背景主題", theme_options, index=theme_idx, horizontal=True)
++    
++    if st.button("💾 套用主題"):
++        new_base = "light" if "Light" in selected_theme else "dark"
++        if os.path.exists(TOML_PATH):
++            with open(TOML_PATH, "r", encoding="utf-8") as f:
++                content = f.read()
++        else:
++            content = ""
++            
++        import re
++        if "[theme]" in content:
++            content = re.sub(r'base\s*=\s*".*"', f'base="{new_base}"', content)
++        else:
++            content += f'\n[theme]\nbase="{new_base}"\n'
++            
++        with open(TOML_PATH, "w", encoding="utf-8") as f:
++            f.write(content)
++            
++        st.success(f"✅ 已切換為 {selected_theme}！正在重新載入...")
++        st.rerun()
++
++
++
++
++

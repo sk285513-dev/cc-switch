@@ -1,0 +1,154 @@
+[
+    {
+        "state_id": "Tab1_律師 (時效防禦優先)",
+        "crash_detected": false,
+        "dom_text": "🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n💬 實務訴訟案件心證分析\n\nAI 會自動檢索『法條庫』與『歷史經驗智商庫』，並根據您的訴訟角色與民事/刑事大類進行重新排序 (RWS)。\n\n💬 案情與諮詢事實輸入中心 (支援注音/Gboard語音輸入)\n\n🎙️ 錄製案情語音 (Whisper 自動轉譯)\n\n00:00\n\n📂 上傳案件檔案/書狀/影像 (自動識別提取)\n\nupload\n\nUpload\n\n512MB per file • PDF, PNG, JPG, MP3, WAV, M4A, MP4, TXT\n\n✍️ 案情事實描述 / 法律諮詢輸入框 (支援 Google 鍵盤自然語言輸入/注音/手寫/語音聽寫)\n\n開啟 LexMind-VJD 判決檢索真偽驗證機制 (LexMind-VJD)\n\n📤 送出此段內容進行心證分析\n\n🧹 清空輸入\n\n📚 RWS 證據看板\n\n📊 事件關係圖\n\n以下為混合相似度與 RWS 實務得分後置頂的法源，已智慧判別優先級：\n\n尚無檢索紀錄，請在對話框輸入案件事實。",
+        "ui_truth_table": {
+            "律師 (時效防禦優先)": true,
+            "法官 (客觀法規對位)": false,
+            "檢察官 (刑事犯罪求處)": false
+        }
+    },
+    {
+        "state_id": "Tab1_法官 (客觀法規對位)",
+        "crash_detected": false,
+        "dom_text": "🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n💬 實務訴訟案件心證分析\n\nAI 會自動檢索『法條庫』與『歷史經驗智商庫』，並根據您的訴訟角色與民事/刑事大類進行重新排序 (RWS)。\n\n💬 案情與諮詢事實輸入中心 (支援注音/Gboard語音輸入)\n\n🎙️ 錄製案情語音 (Whisper 自動轉譯)\n\n00:00\n\n📂 上傳案件檔案/書狀/影像 (自動識別提取)\n\nupload\n\nUpload\n\n512MB per file • PDF, PNG, JPG, MP3, WAV, M4A, MP4, TXT\n\n✍️ 案情事實描述 / 法律諮詢輸入框 (支援 Google 鍵盤自然語言輸入/注音/手寫/語音聽寫)\n\n開啟 LexMind-VJD 判決檢索真偽驗證機制 (LexMind-VJD)\n\n📤 送出此段內容進行心證分析\n\n🧹 清空輸入\n\n📚 RWS 證據看板\n\n📊 事件關係圖\n\n以下為混合相似度與 RWS 實務得分後置頂的法源，已智慧判別優先級：\n\n尚無檢索紀錄，請在對話框輸入案件事實。",
+        "ui_truth_table": {
+            "律師 (時效防禦優先)": false,
+            "法官 (客觀法規對位)": true,
+            "檢察官 (刑事犯罪求處)": false
+        }
+    },
+    {
+        "state_id": "Tab1_檢察官 (刑事犯罪求處)",
+        "crash_detected": false,
+        "dom_text": "keyboard_double_arrow_left\n🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n💬 實務訴訟案件心證分析\n\nAI 會自動檢索『法條庫』與『歷史經驗智商庫』，並根據您的訴訟角色與民事/刑事大類進行重新排序 (RWS)。\n\n💬 案情與諮詢事實輸入中心 (支援注音/Gboard語音輸入)\n\n🎙️ 錄製案情語音 (Whisper 自動轉譯)\n\n00:00\n\n📂 上傳案件檔案/書狀/影像 (自動識別提取)\n\nupload\n\nUpload\n\n512MB per file • PDF, PNG, JPG, MP3, WAV, M4A, MP4, TXT\n\n✍️ 案情事實描述 / 法律諮詢輸入框 (支援 Google 鍵盤自然語言輸入/注音/手寫/語音聽寫)\n\n開啟 LexMind-VJD 判決檢索真偽驗證機制 (LexMind-VJD)\n\n📤 送出此段內容進行心證分析\n\n🧹 清空輸入\n\n📚 RWS 證據看板\n\n📊 事件關係圖\n\n以下為混合相似度與 RWS 實務得分後置頂的法源，已智慧判別優先級：\n\n尚無檢索紀錄，請在對話框輸入案件事實。",
+        "ui_truth_table": {
+            "律師 (時效防禦優先)": false,
+            "法官 (客觀法規對位)": false,
+            "檢察官 (刑事犯罪求處)": true
+        }
+    },
+    {
+        "state_id": "Tab2_Ingest_Combo_0",
+        "crash_detected": false,
+        "dom_text": "keyboard_double_arrow_left\n🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n📥 大數據多模態教材批次導入與語庫校正\n✅\n\n法律教材與卷宗檔案已全部批次研讀消化完畢，智商庫已成功拓寬演化！\n\nkeyboard_arrow_down\n\n📝 完整研讀日誌\n\n❌ 錯誤：預約 1 2026-04-27 22-55-27-136.mp4 | 原因: 'cp950' codec can't encode character '\\u26a0' in position 0: illegal multibyte sequence\n\n❌ 錯誤：預約 4 2026-05-24 21-04-39-545.mp4 | 原因: 'cp950' codec can't encode character '\\u26a0' in position 0: illegal multibyte sequence\n\n↩️ 確認並返回",
+        "ui_truth_table": {
+            "Combo_0": true,
+            "Combo_1": true
+        }
+    },
+    {
+        "state_id": "Tab2_Ingest_Combo_1",
+        "crash_detected": false,
+        "dom_text": "keyboard_double_arrow_left\n🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n📥 大數據多模態教材批次導入與語庫校正\n✅\n\n法律教材與卷宗檔案已全部批次研讀消化完畢，智商庫已成功拓寬演化！\n\nkeyboard_arrow_down\n\n📝 完整研讀日誌\n\n❌ 錯誤：預約 1 2026-04-27 22-55-27-136.mp4 | 原因: 'cp950' codec can't encode character '\\u26a0' in position 0: illegal multibyte sequence\n\n❌ 錯誤：預約 4 2026-05-24 21-04-39-545.mp4 | 原因: 'cp950' codec can't encode character '\\u26a0' in position 0: illegal multibyte sequence\n\n↩️ 確認並返回",
+        "ui_truth_table": {
+            "Combo_0": true,
+            "Combo_1": false
+        }
+    },
+    {
+        "state_id": "Tab3_Exam",
+        "crash_detected": false,
+        "dom_text": "keyboard_double_arrow_left\n🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n🎓 國家司法官會考自我修復訓練\n\nAI 模擬解答歷屆國家考試主觀寫作題。透過閱卷教授的批改卡，AI 將邏輯盲點、少見解或寫錯的法條內化至大腦。\n\nkeyboard_arrow_right\n\n🎙️ / 📂 語音與檔案多模態輸入 (題目/範本導入)\n\n歷屆司法官考題題目\n\n學界推薦高分教授解答範本\n\nMissing Submit Button\n\nThis form has no submit button, which means that user interactions will never be sent to your Streamlit app.\n\nTo create a submit button, use the st.form_submit_button() function.\n\nFor more information, refer to the documentation for forms.\n\n🔍 本題關聯教材定位與檢索\n\n系統會依記您上方輸入的考古題題目，自動或手動比對並定位資料庫中相關的教材頁碼與影音時間戳記。\n\n請輸入考古題相關爭點或關鍵字（預設為上方題目）\n\nMissing Submit Button\n\nThis form has no submit button, which means that user interactions will never be sent to your Streamlit app.\n\nTo create a submit button, use the st.form_submit_button() function.\n\nFor more information, refer to the documentation for forms.",
+        "ui_truth_table": {
+            "Exam": true
+        }
+    },
+    {
+        "state_id": "Tab4_民事損害賠償起訴狀",
+        "crash_detected": false,
+        "dom_text": "🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n📝 訴訟書狀自動編寫區 (IRAC 結構)\n\n根據委託人口述或筆錄，自動匹配 RWS 篩選出的黃金法條，一鍵生成合乎司法院審級規範的合格書狀草稿。\n\nkeyboard_arrow_down\n\n🎙️ / 📂 語音與檔案多模態輸入 (起草事實導入)\n\n錄製事實語音 (Whisper 本地轉錄)\n\n00:00\n\n上傳事實文件/起草參考 (自動提取)\n\nupload\n\nUpload\n\n512MB per file • PDF, PNG, JPG, MP3, WAV, M4A, MP4, TXT\n\n事實細節輸入（越詳細，事實涵攝與法源引用越精準，支援注音/Gboard語音輸入）\n\n訴訟書狀/文書類型\n\n民事損害賠償起訴狀\n\n✍️ 自動起草專業文書/書狀\n\n📝 起草預覽與全文複製\n\n在左側欄位輸入口語事實並點擊「✍️ 自動起草專業文書/書狀」按鈕後，此處將實時生成高水準的文書內容。\n\n🕵️ LexMind-Review 契約合規智慧審查\n\n貼上現有合約條款或協議文字，系統將自動套用合規風險 Checklists，掃描不平等條款、違約金風險及管轄權漏洞，並提供具體建議增補條款。\n\n請輸入或貼上要審查的契約/合約文字\n\n🔍 執行契約合規審查",
+        "ui_truth_table": {
+            "民事損害賠償起訴狀": true,
+            "刑事告訴狀": false,
+            "民事答辯狀": false,
+            "民事上訴理由狀": false
+        }
+    },
+    {
+        "state_id": "Tab4_刑事告訴狀",
+        "crash_detected": false,
+        "dom_text": "🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n📝 訴訟書狀自動編寫區 (IRAC 結構)\n\n根據委託人口述或筆錄，自動匹配 RWS 篩選出的黃金法條，一鍵生成合乎司法院審級規範的合格書狀草稿。\n\nkeyboard_arrow_down\n\n🎙️ / 📂 語音與檔案多模態輸入 (起草事實導入)\n\n錄製事實語音 (Whisper 本地轉錄)\n\n00:00\n\n上傳事實文件/起草參考 (自動提取)\n\nupload\n\nUpload\n\n512MB per file • PDF, PNG, JPG, MP3, WAV, M4A, MP4, TXT\n\n事實細節輸入（越詳細，事實涵攝與法源引用越精準，支援注音/Gboard語音輸入）\n\n訴訟書狀/文書類型\n\n民事損害賠償起訴狀\n\n✍️ 自動起草專業文書/書狀\n\n📝 起草預覽與全文複製\n\n在左側欄位輸入口語事實並點擊「✍️ 自動起草專業文書/書狀」按鈕後，此處將實時生成高水準的文書內容。\n\n🕵️ LexMind-Review 契約合規智慧審查\n\n貼上現有合約條款或協議文字，系統將自動套用合規風險 Checklists，掃描不平等條款、違約金風險及管轄權漏洞，並提供具體建議增補條款。\n\n請輸入或貼上要審查的契約/合約文字\n\n🔍 執行契約合規審查",
+        "ui_truth_table": {
+            "民事損害賠償起訴狀": false,
+            "刑事告訴狀": true,
+            "民事答辯狀": false,
+            "民事上訴理由狀": false
+        }
+    },
+    {
+        "state_id": "Tab4_民事答辯狀",
+        "crash_detected": false,
+        "dom_text": "🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n📝 訴訟書狀自動編寫區 (IRAC 結構)\n\n根據委託人口述或筆錄，自動匹配 RWS 篩選出的黃金法條，一鍵生成合乎司法院審級規範的合格書狀草稿。\n\nkeyboard_arrow_down\n\n🎙️ / 📂 語音與檔案多模態輸入 (起草事實導入)\n\n錄製事實語音 (Whisper 本地轉錄)\n\n00:00\n\n上傳事實文件/起草參考 (自動提取)\n\nupload\n\nUpload\n\n512MB per file • PDF, PNG, JPG, MP3, WAV, M4A, MP4, TXT\n\n事實細節輸入（越詳細，事實涵攝與法源引用越精準，支援注音/Gboard語音輸入）\n\n訴訟書狀/文書類型\n\n民事損害賠償起訴狀\n\n✍️ 自動起草專業文書/書狀\n\n📝 起草預覽與全文複製\n\n在左側欄位輸入口語事實並點擊「✍️ 自動起草專業文書/書狀」按鈕後，此處將實時生成高水準的文書內容。\n\n🕵️ LexMind-Review 契約合規智慧審查\n\n貼上現有合約條款或協議文字，系統將自動套用合規風險 Checklists，掃描不平等條款、違約金風險及管轄權漏洞，並提供具體建議增補條款。\n\n請輸入或貼上要審查的契約/合約文字\n\n🔍 執行契約合規審查",
+        "ui_truth_table": {
+            "民事損害賠償起訴狀": false,
+            "刑事告訴狀": false,
+            "民事答辯狀": true,
+            "民事上訴理由狀": false
+        }
+    },
+    {
+        "state_id": "Tab4_民事上訴理由狀",
+        "crash_detected": false,
+        "dom_text": "🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n📝 訴訟書狀自動編寫區 (IRAC 結構)\n\n根據委託人口述或筆錄，自動匹配 RWS 篩選出的黃金法條，一鍵生成合乎司法院審級規範的合格書狀草稿。\n\nkeyboard_arrow_down\n\n🎙️ / 📂 語音與檔案多模態輸入 (起草事實導入)\n\n錄製事實語音 (Whisper 本地轉錄)\n\n00:00\n\n上傳事實文件/起草參考 (自動提取)\n\nupload\n\nUpload\n\n512MB per file • PDF, PNG, JPG, MP3, WAV, M4A, MP4, TXT\n\n事實細節輸入（越詳細，事實涵攝與法源引用越精準，支援注音/Gboard語音輸入）\n\n訴訟書狀/文書類型\n\n民事損害賠償起訴狀\n\n✍️ 自動起草專業文書/書狀\n\n📝 起草預覽與全文複製\n\n在左側欄位輸入口語事實並點擊「✍️ 自動起草專業文書/書狀」按鈕後，此處將實時生成高水準的文書內容。\n\n🕵️ LexMind-Review 契約合規智慧審查\n\n貼上現有合約條款或協議文字，系統將自動套用合規風險 Checklists，掃描不平等條款、違約金風險及管轄權漏洞，並提供具體建議增補條款。\n\n請輸入或貼上要審查的契約/合約文字\n\n🔍 執行契約合規審查",
+        "ui_truth_table": {
+            "民事損害賠償起訴狀": false,
+            "刑事告訴狀": false,
+            "民事答辯狀": false,
+            "民事上訴理由狀": true
+        }
+    },
+    {
+        "state_id": "Tab5_Calc_民事一般侵權損害 (2年 - 民§197)",
+        "crash_detected": false,
+        "dom_text": "keyboard_double_arrow_left\n🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n民事一般侵權損害 (2年 - 民§197)\n\n⚖️ 執行精密時效推算\n\n🎉\n\n截止日為：2028-07-21\n\n- **起算日**：2026-07-22\n- **休日順延**：False (延 0 天)\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n🤖 /workflows 系統與吸收工作流監控面板\n\n即時呈現本地自動化吸收工作流 (Ingestion Workflow) 狀態機之執行狀態、Entrypoint、當前狀態與執行工具三元素。\n\n🔄 Ingestion 工作流狀態機\n🟢 已完成 (Completed)\n🏁 入口點 (Entrypoint)\tscripts/auto_ingest_bot.py & IngestBackgroundTask\n📊 當前狀態 (State)\tCOMPLETED\n🛠️ 執行工具 (Active Tool)\t無 (None)\n📁 研讀中教材\tGPU 0: 閒置 | GPU 1: 閒置\n📈 處理進度\t2 / 148 個檔案\n\n🔄 刷新監控面板進度\n\n🌐 Ollama 本地 AI 服務連接與模型設定\n💡\n\nOllama 連線網址與已下載模型之選取已移至左側邊欄 (Sidebar)，方便在所有功能頁面隨時切換與測試。\n\n🗓️ 臺灣民法雙重時效精算外掛\n💡\n\n為了讓您隨時隨地在不同功能分頁中皆能精算時效，本精算外掛功能已整合移至**「左側邊欄 (Sidebar)」**，您可以隨時在側邊欄進行推算並檢視結果，無須切換頁面。\n\n🔒 機密案件庫 AES-256 加密資安備份\n\n🤐 一鍵打包並以 AES 加密導出資料庫",
+        "ui_truth_table": {
+            "民事一般侵權損害 (2年 - 民§197)": true,
+            "一般普通請求權 (15年)": false,
+            "行政公法上請求權/工資 (5年)": false,
+            "勞基法14條30日除斥期間限制": false
+        }
+    },
+    {
+        "state_id": "Tab5_Calc_一般普通請求權 (15年)",
+        "crash_detected": false,
+        "dom_text": "keyboard_double_arrow_left\n🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n一般普通請求權 (15年)\n\n⚖️ 執行精密時效推算\n\n🎉\n\n截止日為：2041-07-22\n\n- **起算日**：2026-07-22\n- **休日順延**：True (延 1 天)\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n🤖 /workflows 系統與吸收工作流監控面板\n\n即時呈現本地自動化吸收工作流 (Ingestion Workflow) 狀態機之執行狀態、Entrypoint、當前狀態與執行工具三元素。\n\n🔄 Ingestion 工作流狀態機\n🟢 已完成 (Completed)\n🏁 入口點 (Entrypoint)\tscripts/auto_ingest_bot.py & IngestBackgroundTask\n📊 當前狀態 (State)\tCOMPLETED\n🛠️ 執行工具 (Active Tool)\t無 (None)\n📁 研讀中教材\tGPU 0: 閒置 | GPU 1: 閒置\n📈 處理進度\t2 / 148 個檔案\n\n🔄 刷新監控面板進度\n\n🌐 Ollama 本地 AI 服務連接與模型設定\n💡\n\nOllama 連線網址與已下載模型之選取已移至左側邊欄 (Sidebar)，方便在所有功能頁面隨時切換與測試。\n\n🗓️ 臺灣民法雙重時效精算外掛\n💡\n\n為了讓您隨時隨地在不同功能分頁中皆能精算時效，本精算外掛功能已整合移至**「左側邊欄 (Sidebar)」**，您可以隨時在側邊欄進行推算並檢視結果，無須切換頁面。\n\n🔒 機密案件庫 AES-256 加密資安備份\n\n🤐 一鍵打包並以 AES 加密導出資料庫",
+        "ui_truth_table": {
+            "民事一般侵權損害 (2年 - 民§197)": false,
+            "一般普通請求權 (15年)": true,
+            "行政公法上請求權/工資 (5年)": false,
+            "勞基法14條30日除斥期間限制": false
+        }
+    },
+    {
+        "state_id": "Tab5_Calc_行政公法上請求權/工資 (5年)",
+        "crash_detected": false,
+        "dom_text": "keyboard_double_arrow_left\n🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n行政公法上請求權/工資 (5年)\n\n⚖️ 執行精密時效推算\n\n🎉\n\n截止日為：2031-07-21\n\n- **起算日**：2026-07-22\n- **休日順延**：False (延 0 天)\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n🤖 /workflows 系統與吸收工作流監控面板\n\n即時呈現本地自動化吸收工作流 (Ingestion Workflow) 狀態機之執行狀態、Entrypoint、當前狀態與執行工具三元素。\n\n🔄 Ingestion 工作流狀態機\n🟢 已完成 (Completed)\n🏁 入口點 (Entrypoint)\tscripts/auto_ingest_bot.py & IngestBackgroundTask\n📊 當前狀態 (State)\tCOMPLETED\n🛠️ 執行工具 (Active Tool)\t無 (None)\n📁 研讀中教材\tGPU 0: 閒置 | GPU 1: 閒置\n📈 處理進度\t2 / 148 個檔案\n\n🔄 刷新監控面板進度\n\n🌐 Ollama 本地 AI 服務連接與模型設定\n💡\n\nOllama 連線網址與已下載模型之選取已移至左側邊欄 (Sidebar)，方便在所有功能頁面隨時切換與測試。\n\n🗓️ 臺灣民法雙重時效精算外掛\n💡\n\n為了讓您隨時隨地在不同功能分頁中皆能精算時效，本精算外掛功能已整合移至**「左側邊欄 (Sidebar)」**，您可以隨時在側邊欄進行推算並檢視結果，無須切換頁面。\n\n🔒 機密案件庫 AES-256 加密資安備份\n\n🤐 一鍵打包並以 AES 加密導出資料庫",
+        "ui_truth_table": {
+            "民事一般侵權損害 (2年 - 民§197)": false,
+            "一般普通請求權 (15年)": false,
+            "行政公法上請求權/工資 (5年)": true,
+            "勞基法14條30日除斥期間限制": false
+        }
+    },
+    {
+        "state_id": "Tab5_Calc_勞基法14條30日除斥期間限制",
+        "crash_detected": false,
+        "dom_text": "keyboard_double_arrow_left\n🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n勞基法14條30日除斥期間限制\n\n⚖️ 執行精密時效推算\n\n🎉\n\n截止日為：2026-08-20\n\n- **起算日**：2026-07-22\n- **休日順延**：False (延 0 天)\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n🤖 /workflows 系統與吸收工作流監控面板\n\n即時呈現本地自動化吸收工作流 (Ingestion Workflow) 狀態機之執行狀態、Entrypoint、當前狀態與執行工具三元素。\n\n🔄 Ingestion 工作流狀態機\n🟢 已完成 (Completed)\n🏁 入口點 (Entrypoint)\tscripts/auto_ingest_bot.py & IngestBackgroundTask\n📊 當前狀態 (State)\tCOMPLETED\n🛠️ 執行工具 (Active Tool)\t無 (None)\n📁 研讀中教材\tGPU 0: 閒置 | GPU 1: 閒置\n📈 處理進度\t2 / 148 個檔案\n\n🔄 刷新監控面板進度\n\n🌐 Ollama 本地 AI 服務連接與模型設定\n💡\n\nOllama 連線網址與已下載模型之選取已移至左側邊欄 (Sidebar)，方便在所有功能頁面隨時切換與測試。\n\n🗓️ 臺灣民法雙重時效精算外掛\n💡\n\n為了讓您隨時隨地在不同功能分頁中皆能精算時效，本精算外掛功能已整合移至**「左側邊欄 (Sidebar)」**，您可以隨時在側邊欄進行推算並檢視結果，無須切換頁面。\n\n🔒 機密案件庫 AES-256 加密資安備份\n\n🤐 一鍵打包並以 AES 加密導出資料庫",
+        "ui_truth_table": {
+            "民事一般侵權損害 (2年 - 民§197)": false,
+            "一般普通請求權 (15年)": false,
+            "行政公法上請求權/工資 (5年)": false,
+            "勞基法14條30日除斥期間限制": true
+        }
+    },
+    {
+        "state_id": "Tab5_Backup",
+        "crash_detected": false,
+        "dom_text": "keyboard_double_arrow_left\n🔑 實務心證角色\n\n切換思考視角，RWS 動態混合檢索將自動對應該角色實務深度重新分配：\n\n律師視角 (程序/時效防禦優先)\n\n法官心證 (客觀案件事實對抗)\n\n檢察官 (刑事追訴/公訴犯罪)\n\n🗓️ 民法雙重時效精算\n\n事件發生日 (YYYY-MM-DD)\n\nPress the down arrow key to interact with the calendar and select a date. Press the escape button to close the calendar.\n\nSelected date is 2026/07/21. Select the second date.\n\n法定時效特徵\n\n勞基法14條30日除斥期間限制\n\n⚖️ 執行精密時效推算\n\n🎉\n\n截止日為：2026-08-20\n\n- **起算日**：2026-07-22\n- **休日順延**：False (延 0 天)\n💡 本環境已適應修正：已啟用「天干代名詞」深度對齊模組，全自動過濾「假芳、倚芳、丙方」等語音識別雜訊。\nkeyboard_arrow_down\n\n⚙️ Ollama 本地模型設定\n\nOllama 伺服器網址 (Ollama URL)\n\nOllama 本地大語言模型\n\ndeepseek-r1:7b\n\n⚡ 測試連線狀態\n\n🌐 外網題庫自動排程狀態\n❌\n\n上次自動同步失敗\n\n時間: 2026-07-16 02:00:04\n\n錯誤訊息: 排程執行發生致命崩潰: 未能在網頁中定位到任何考題區塊，可能目標網站結構已更換。\n\n🚀 點我立即手動執行外部同步\n\n🤖 LexMind-Bot™️ 隨身法學智能助理\n\nLexMind-Omni 精簡版：主打極速、白話台灣法律常識與智慧財產權入門引導。\n\n助理：您好！我是小助理。您可以問我任何關於民法、專利、商標或著作權的簡單法律問題！\n\n詢問法學助理 (Enter送出)...\n\n⚖️ LexMind-Omni 雙軌法律智能 AI 研究工作站\n\nWindows 11 本地自治版 ── Matt Pocock & Karpathy 雙軌架構防禦體系\n\n⚖️\nLexMind-Omni\nv1.4 STABLE\n\n臺灣法律實務專業級 AI Agent 特助整合工作站\n\n💬 實務辯護諮詢\n\n📥 知識餵養 (影音 & 書狀)\n\n📂 法律個案管理\n\n🔍 教材檢索與定位\n\n🎓 司法官自我養成\n\n📝 訴訟書狀起草\n\n⚙️ 系統與時效工具\n\n🤖 Antigravity 控制台\n\n⚙️ 企業級架構與金鑰池界面設定面\n\n🤖 /workflows 系統與吸收工作流監控面板\n\n即時呈現本地自動化吸收工作流 (Ingestion Workflow) 狀態機之執行狀態、Entrypoint、當前狀態與執行工具三元素。\n\n🔄 Ingestion 工作流狀態機\n🟢 已完成 (Completed)\n🏁 入口點 (Entrypoint)\tscripts/auto_ingest_bot.py & IngestBackgroundTask\n📊 當前狀態 (State)\tCOMPLETED\n🛠️ 執行工具 (Active Tool)\t無 (None)\n📁 研讀中教材\tGPU 0: 閒置 | GPU 1: 閒置\n📈 處理進度\t2 / 148 個檔案\n\n🔄 刷新監控面板進度\n\n🌐 Ollama 本地 AI 服務連接與模型設定\n💡\n\nOllama 連線網址與已下載模型之選取已移至左側邊欄 (Sidebar)，方便在所有功能頁面隨時切換與測試。\n\n🗓️ 臺灣民法雙重時效精算外掛\n💡\n\n為了讓您隨時隨地在不同功能分頁中皆能精算時效，本精算外掛功能已整合移至**「左側邊欄 (Sidebar)」**，您可以隨時在側邊欄進行推算並檢視結果，無須切換頁面。\n\n🔒 機密案件庫 AES-256 加密資安備份\n\n🤐 一鍵打包並以 AES 加密導出資料庫",
+        "ui_truth_table": {
+            "AES_Backup": true
+        }
+    }
+]

@@ -1,0 +1,4 @@
+[BOOTSTRAP] GOOGLE_CLOUD_PROJECT = 'project-bbb51788-254b-4ec3-ad7' (from config.yaml)
+[BOOTSTRAP] GCLOUD_PROJECT = 'project-bbb51788-254b-4ec3-ad7' (from config.yaml)
+﻿C:\LocalAI_Workstation\scripts_v6\run_workflow.py:317: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  cutoff = _dt.utcnow() + _td(hours=8) - _td(minutes=3)

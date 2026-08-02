@@ -1,0 +1,37 @@
+2026-07-20 07:23:03.918 Uvicorn server started on 0.0.0.0:8507
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8507
+  Network URL: http://192.168.100.199:8507
+  External URL: http://124.218.45.75:8507
+
+[WARNING] Failed to load ingest state: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)
+[WARNING] Failed to load ingest state: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)
+2026-07-20 13:06:54.211 Uncaught app execution
+Traceback (most recent call last):
+  File "C:\LocalAI_Workstation\app.py", line 253, in load_from_disk
+    state = json.load(f)
+            ^^^^^^^^^^^^
+  File "C:\Python312\Lib\json\__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\json\__init__.py", line 335, in loads
+    raise JSONDecodeError("Unexpected UTF-8 BOM (decode using utf-8-sig)",
+json.decoder.JSONDecodeError: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python312\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "C:\Python312\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 789, in code_to_exec
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\app.py", line 1154, in <module>
+    if IngestionBackgroundTask.load_from_disk():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\app.py", line 276, in load_from_disk
+    print(f"[WARNING] Failed to load ingest state: {e}")
+ValueError: I/O operation on closed file.

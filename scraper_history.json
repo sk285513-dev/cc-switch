@@ -1,0 +1,416 @@
+﻿{
+    "execution_history": [
+        {
+            "timestamp": "2026-07-17 12:43:50",
+            "status": "completed",
+            "total_parsed": 3,
+            "skipped_duplicate": 0,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 3 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 0 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 13:09:36",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 3,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 3 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 13:22:36",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 3,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 3 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 13:25:30",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 3,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 3 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 13:28:37",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 3,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 3 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 13:33:03",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 3,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 3 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 13:33:47",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 3,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 3 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 13:40:56",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 3,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 3 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 16:17:57",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 3,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 0 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 3 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 16:20:46",
+            "status": "completed",
+            "total_parsed": 2,
+            "skipped_duplicate": 3,
+            "skipped_non_legal": 0,
+            "message": "同步成功！本次共新同步 2 題 LawPlayer 司法官/律師 考古題。 (已跳過重複: 3 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 16:30:49",
+            "status": "completed",
+            "total_parsed": 15,
+            "skipped_duplicate": 0,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 15 題 LawPlayer 考古題。 (已跳過重複: 0 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-17 16:31:58",
+            "status": "completed",
+            "total_parsed": 13,
+            "skipped_duplicate": 2,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 13 題 LawPlayer 考古題。 (已跳過重複: 2 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-20 15:56:53",
+            "status": "completed",
+            "total_parsed": 6,
+            "skipped_duplicate": 9,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 6 題 LawPlayer 考古題。 (已跳過重複: 9 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-20 15:57:34",
+            "status": "completed",
+            "total_parsed": 5,
+            "skipped_duplicate": 10,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 5 題 LawPlayer 考古題。 (已跳過重複: 10 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-20 15:59:44",
+            "status": "completed",
+            "total_parsed": 4,
+            "skipped_duplicate": 11,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 4 題 LawPlayer 考古題。 (已跳過重複: 11 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-20 16:01:46",
+            "status": "completed",
+            "total_parsed": 2,
+            "skipped_duplicate": 13,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 2 題 LawPlayer 考古題。 (已跳過重複: 13 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-20 16:03:50",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 15,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 0 題 LawPlayer 考古題。 (已跳過重複: 15 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-20 16:05:52",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 15,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 0 題 LawPlayer 考古題。 (已跳過重複: 15 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-20 16:07:57",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 15,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 0 題 LawPlayer 考古題。 (已跳過重複: 15 題，跳過非法律: 0 題)"
+        },
+        {
+            "timestamp": "2026-07-20 16:10:04",
+            "status": "completed",
+            "total_parsed": 0,
+            "skipped_duplicate": 15,
+            "skipped_non_legal": 0,
+            "message": "深度同步成功！本次共新寫入 0 題 LawPlayer 考古題。 (已跳過重複: 15 題，跳過非法律: 0 題)"
+        }
+    ],
+    "scraped_questions": {
+        "lp_2023_01": {
+            "scraped_at": "2026-07-17 12:43:47",
+            "year": "112年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_2023_02": {
+            "scraped_at": "2026-07-17 12:43:48",
+            "year": "112年",
+            "subject": "刑法"
+        },
+        "lp_2023_03": {
+            "scraped_at": "2026-07-17 12:43:49",
+            "year": "112年",
+            "subject": "行政法"
+        },
+        "lp_2023_04": {
+            "scraped_at": "2026-07-17 16:20:44",
+            "year": "112年",
+            "subject": "商事法"
+        },
+        "lp_2023_05": {
+            "scraped_at": "2026-07-17 16:20:45",
+            "year": "112年",
+            "subject": "刑事訴訟法"
+        },
+        "lp_adv_110_001": {
+            "scraped_at": "2026-07-17 16:30:34",
+            "year": "110年",
+            "subject": "商事法"
+        },
+        "lp_adv_110_002": {
+            "scraped_at": "2026-07-17 16:30:34",
+            "year": "110年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_111_003": {
+            "scraped_at": "2026-07-17 16:30:35",
+            "year": "111年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_adv_112_004": {
+            "scraped_at": "2026-07-17 16:30:38",
+            "year": "112年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_110_005": {
+            "scraped_at": "2026-07-17 16:30:38",
+            "year": "110年",
+            "subject": "商事法"
+        },
+        "lp_adv_110_006": {
+            "scraped_at": "2026-07-17 16:30:39",
+            "year": "110年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_110_007": {
+            "scraped_at": "2026-07-17 16:30:41",
+            "year": "110年",
+            "subject": "商事法"
+        },
+        "lp_adv_111_008": {
+            "scraped_at": "2026-07-17 16:30:42",
+            "year": "111年",
+            "subject": "商事法"
+        },
+        "lp_adv_111_009": {
+            "scraped_at": "2026-07-17 16:30:42",
+            "year": "111年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_112_010": {
+            "scraped_at": "2026-07-17 16:30:45",
+            "year": "112年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_112_011": {
+            "scraped_at": "2026-07-17 16:30:46",
+            "year": "112年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_112_012": {
+            "scraped_at": "2026-07-17 16:30:46",
+            "year": "112年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_112_013": {
+            "scraped_at": "2026-07-17 16:30:48",
+            "year": "112年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_112_014": {
+            "scraped_at": "2026-07-17 16:30:48",
+            "year": "112年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_adv_111_015": {
+            "scraped_at": "2026-07-17 16:30:49",
+            "year": "111年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_111_001": {
+            "scraped_at": "2026-07-17 16:31:46",
+            "year": "111年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_adv_111_002": {
+            "scraped_at": "2026-07-17 16:31:46",
+            "year": "111年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_110_003": {
+            "scraped_at": "2026-07-17 16:31:47",
+            "year": "110年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_112_005": {
+            "scraped_at": "2026-07-17 16:31:47",
+            "year": "112年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_111_007": {
+            "scraped_at": "2026-07-17 16:31:50",
+            "year": "111年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_adv_110_008": {
+            "scraped_at": "2026-07-17 16:31:50",
+            "year": "110年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_adv_112_009": {
+            "scraped_at": "2026-07-17 16:31:51",
+            "year": "112年",
+            "subject": "商事法"
+        },
+        "lp_adv_110_010": {
+            "scraped_at": "2026-07-17 16:31:53",
+            "year": "110年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_110_011": {
+            "scraped_at": "2026-07-17 16:31:53",
+            "year": "110年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_111_012": {
+            "scraped_at": "2026-07-17 16:31:54",
+            "year": "111年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_111_013": {
+            "scraped_at": "2026-07-17 16:31:56",
+            "year": "111年",
+            "subject": "商事法"
+        },
+        "lp_adv_111_014": {
+            "scraped_at": "2026-07-17 16:31:57",
+            "year": "111年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_adv_110_015": {
+            "scraped_at": "2026-07-17 16:31:57",
+            "year": "110年",
+            "subject": "商事法"
+        },
+        "lp_adv_112_001": {
+            "scraped_at": "2026-07-20 15:56:49",
+            "year": "112年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_112_002": {
+            "scraped_at": "2026-07-20 15:56:49",
+            "year": "112年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_adv_110_004": {
+            "scraped_at": "2026-07-20 15:56:51",
+            "year": "110年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_112_006": {
+            "scraped_at": "2026-07-20 15:56:52",
+            "year": "112年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_112_008": {
+            "scraped_at": "2026-07-20 15:56:52",
+            "year": "112年",
+            "subject": "商事法"
+        },
+        "lp_adv_112_015": {
+            "scraped_at": "2026-07-20 15:56:53",
+            "year": "112年",
+            "subject": "商事法"
+        },
+        "lp_adv_112_003": {
+            "scraped_at": "2026-07-20 15:57:30",
+            "year": "112年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_111_006": {
+            "scraped_at": "2026-07-20 15:57:31",
+            "year": "111年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_adv_112_007": {
+            "scraped_at": "2026-07-20 15:57:33",
+            "year": "112年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_111_011": {
+            "scraped_at": "2026-07-20 15:57:33",
+            "year": "111年",
+            "subject": "刑法與刑事訴訟法"
+        },
+        "lp_adv_110_012": {
+            "scraped_at": "2026-07-20 15:57:34",
+            "year": "110年",
+            "subject": "商事法"
+        },
+        "lp_adv_111_005": {
+            "scraped_at": "2026-07-20 15:59:39",
+            "year": "111年",
+            "subject": "商事法"
+        },
+        "lp_adv_110_009": {
+            "scraped_at": "2026-07-20 15:59:40",
+            "year": "110年",
+            "subject": "商事法"
+        },
+        "lp_adv_111_010": {
+            "scraped_at": "2026-07-20 15:59:43",
+            "year": "111年",
+            "subject": "民法與民事訴訟法"
+        },
+        "lp_adv_110_014": {
+            "scraped_at": "2026-07-20 15:59:43",
+            "year": "110年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_111_004": {
+            "scraped_at": "2026-07-20 16:01:43",
+            "year": "111年",
+            "subject": "憲法與行政法"
+        },
+        "lp_adv_110_013": {
+            "scraped_at": "2026-07-20 16:01:45",
+            "year": "110年",
+            "subject": "刑法與刑事訴訟法"
+        }
+    }
+}

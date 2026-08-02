@@ -1,0 +1,80 @@
+2026-07-25 18:16:59.471 Uvicorn server started on 0.0.0.0:8501
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.100.199:8501
+
+﻿KeyManager: Failed to load keys - Access Denied: Access Denied: 只有 api_proxy.py 可以存取金鑰保險箱。
+2026-07-25 18:22:29.650 Uncaught app execution
+Traceback (most recent call last):
+  File "C:\LocalAI_Workstation\utils\vault.py", line 20, in _verify_process
+    raise Exception("Access Denied: �u�� api_proxy.py �i�H�s�����_�O�I�c�C")
+Exception: Access Denied: �u�� api_proxy.py �i�H�s�����_�O�I�c�C
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\LocalAI_Workstation\utils\key_manager.py", line 50, in load_keys
+    decrypted_content = Vault.decrypt_data(raw_content)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\utils\vault.py", line 60, in decrypt_data
+    fernet = Fernet(cls._get_or_create_key())
+                    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\utils\vault.py", line 26, in _get_or_create_key
+    cls._verify_process()
+  File "C:\LocalAI_Workstation\utils\vault.py", line 22, in _verify_process
+    raise Exception(f"Access Denied: {e}")
+Exception: Access Denied: Access Denied: �u�� api_proxy.py �i�H�s�����_�O�I�c�C
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python312\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "C:\Python312\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 789, in code_to_exec
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\app.py", line 3510, in <module>
+    loaded_keys = KeyManager.load_keys()
+                  ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\utils\key_manager.py", line 64, in load_keys
+    print(f"KeyManager: Failed to load keys - {e}")
+ValueError: I/O operation on closed file.
+2026-07-25 18:22:57.686 Uncaught app execution
+Traceback (most recent call last):
+  File "C:\LocalAI_Workstation\utils\vault.py", line 20, in _verify_process
+    raise Exception("Access Denied: �u�� api_proxy.py �i�H�s�����_�O�I�c�C")
+Exception: Access Denied: �u�� api_proxy.py �i�H�s�����_�O�I�c�C
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\LocalAI_Workstation\utils\key_manager.py", line 50, in load_keys
+    decrypted_content = Vault.decrypt_data(raw_content)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\utils\vault.py", line 60, in decrypt_data
+    fernet = Fernet(cls._get_or_create_key())
+                    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\utils\vault.py", line 26, in _get_or_create_key
+    cls._verify_process()
+  File "C:\LocalAI_Workstation\utils\vault.py", line 22, in _verify_process
+    raise Exception(f"Access Denied: {e}")
+Exception: Access Denied: Access Denied: �u�� api_proxy.py �i�H�s�����_�O�I�c�C
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python312\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "C:\Python312\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 789, in code_to_exec
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\app.py", line 3510, in <module>
+    loaded_keys = KeyManager.load_keys()
+                  ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\utils\key_manager.py", line 64, in load_keys
+    print(f"KeyManager: Failed to load keys - {e}")
+ValueError: I/O operation on closed file.

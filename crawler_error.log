@@ -1,0 +1,31 @@
+[啟動] 樹狀圖階層式 UI 深度遍歷測試 (Tree-Hierarchical Deep Crawl) 完整 15 項防護版
+Traceback (most recent call last):
+  File "C:\LocalAI_Workstation\bot_ultimate_real_crawler.py", line 270, in <module>
+    asyncio.run(explore_tree())
+  File "C:\Python312\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\bot_ultimate_real_crawler.py", line 61, in explore_tree
+    await page.goto("http://localhost:8501", timeout=60000)
+  File "C:\Python312\Lib\site-packages\playwright\async_api\_generated.py", line 9764, in goto
+    await self._impl_obj.goto(
+  File "C:\Python312\Lib\site-packages\playwright\_impl\_page.py", line 560, in goto
+    return await self._main_frame.goto(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\playwright\_impl\_frame.py", line 156, in goto
+    await self._channel.send(
+  File "C:\Python312\Lib\site-packages\playwright\_impl\_connection.py", line 69, in send
+    return await self._connection.wrap_api_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\playwright\_impl\_connection.py", line 563, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.Error: Page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8501/
+Call log:
+  - navigating to "http://localhost:8501/", waiting until "load"
+

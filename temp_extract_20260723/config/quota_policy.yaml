@@ -1,0 +1,5 @@
+base_backoff_seconds: 30
+backoff_multiplier: 2
+jitter_fraction: 0.2
+daily_limit_cooldown_seconds: 300
+max_backoff_seconds: null  # No upper limit, rely on model suggestion

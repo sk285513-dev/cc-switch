@@ -1,0 +1,7 @@
+[ERROR] 雲端 Gemini ASR 轉錄失敗: Failed to upload bytes (HTTP 413): {
+  "error": {
+    "code": 413,
+    "message": "Media is too large. Limit: 2147483648",
+    "status": "FAILED_PRECONDITION"
+  }
+}

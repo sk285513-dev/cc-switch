@@ -1,0 +1,22 @@
+{
+  "task_id": "test_sandbox_task_1785190084",
+  "source_path": "H:\\憲法霖洄\\ch15\\預約 15 2026-03-16 12-42-50-970.mp4",
+  "source_name": "預約 15 2026-03-16 12-42-50-970.mp4",
+  "steps": {
+    "preprocess": "completed",
+    "chunk_planner": "completed"
+  },
+  "status": "chunked",
+  "media_info": {
+    "duration_sec": 700.0,
+    "size_bytes": 3811923929,
+    "has_video": true,
+    "has_audio": true,
+    "resolution": "1920x1080",
+    "audio_codec": "aac",
+    "audio_channels": 2,
+    "audio_sample_rate": 44100,
+    "extracted_audio_path": "C:/LocalAI_Workstation/sandbox_test_0728/A_drive/chunks\\test_sandbox_task_1785190084\\extracted_audio.wav"
+  },
+  "chunks_count": 3
+}

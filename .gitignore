@@ -7,3 +7,13 @@
 __pycache__/
 logs/
 scratch/
+
+# Auto-added by Setup Wizard for Security
+vertex_key.json
+config/keys.yaml
+config/quota_state.json
+.env
+
+config/backups/
+sandbox_ssot/
+config/vault.key

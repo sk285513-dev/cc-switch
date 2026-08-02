@@ -1,0 +1,1045 @@
+
+Name                                                   FullName
+----                                                   --------
+__pycache__                                            C:\LocalAI_Workstation\scripts_v6\__pycache__
+__init__.py                                            C:\LocalAI_Workstation\scripts_v6\__init__.py
+add_old_to_pending.py                                  C:\LocalAI_Workstation\scripts_v6\add_old_to_pending.py
+agent_core_pro.py                                      C:\LocalAI_Workstation\scripts_v6\agent_core_pro.py
+agent_core.py                                          C:\LocalAI_Workstation\scripts_v6\agent_core.py
+api_proxy_test.py                                      C:\LocalAI_Workstation\scripts_v6\api_proxy_test.py
+api_proxy.py                                           C:\LocalAI_Workstation\scripts_v6\api_proxy.py
+apply_code_fixes.py                                    C:\LocalAI_Workstation\scripts_v6\apply_code_fixes.py
+apply_option_2.py                                      C:\LocalAI_Workstation\scripts_v6\apply_option_2.py
+auto_healer.py                                         C:\LocalAI_Workstation\scripts_v6\auto_healer.py
+auto_ingest_bot.py                                     C:\LocalAI_Workstation\scripts_v6\auto_ingest_bot.py
+auto_verify.py                                         C:\LocalAI_Workstation\scripts_v6\auto_verify.py
+backup_manager.py                                      C:\LocalAI_Workstation\scripts_v6\backup_manager.py
+batch_exam_trainer.py                                  C:\LocalAI_Workstation\scripts_v6\batch_exam_trainer.py
+batch_local_refiner.py                                 C:\LocalAI_Workstation\scripts_v6\batch_local_refiner.py
+case_manager.py                                        C:\LocalAI_Workstation\scripts_v6\case_manager.py
+check_190_status.py                                    C:\LocalAI_Workstation\scripts_v6\check_190_status.py
+check_backup_status.py                                 C:\LocalAI_Workstation\scripts_v6\check_backup_status.py
+check_ctime_detailed.py                                C:\LocalAI_Workstation\scripts_v6\check_ctime_detailed.py
+check_ctime.py                                         C:\LocalAI_Workstation\scripts_v6\check_ctime.py
+check_manifest_statuses.py                             C:\LocalAI_Workstation\scripts_v6\check_manifest_statuses.py
+check_manifests.py                                     C:\LocalAI_Workstation\scripts_v6\check_manifests.py
+check_poisoned_chunks.py                               C:\LocalAI_Workstation\scripts_v6\check_poisoned_chunks.py
+check_real_backup_status.py                            C:\LocalAI_Workstation\scripts_v6\check_real_backup_status.py
+check_real_stats.py                                    C:\LocalAI_Workstation\scripts_v6\check_real_stats.py
+check_stuck.py                                         C:\LocalAI_Workstation\scripts_v6\check_stuck.py
+chunk_planner.py                                       C:\LocalAI_Workstation\scripts_v6\chunk_planner.py
+citation_parser.py                                     C:\LocalAI_Workstation\scripts_v6\citation_parser.py
+clean_half_processed_safe.py                           C:\LocalAI_Workstation\scripts_v6\clean_half_processed_safe.py
+clean_half_processed.py                                C:\LocalAI_Workstation\scripts_v6\clean_half_processed.py
+collect_6_samples.py                                   C:\LocalAI_Workstation\scripts_v6\collect_6_samples.py
+config_loader.py                                       C:\LocalAI_Workstation\scripts_v6\config_loader.py
+create_old_list.py                                     C:\LocalAI_Workstation\scripts_v6\create_old_list.py
+deep_check_backups.py                                  C:\LocalAI_Workstation\scripts_v6\deep_check_backups.py
+dump_88_to_json.py                                     C:\LocalAI_Workstation\scripts_v6\dump_88_to_json.py
+duplicate_guard.py                                     C:\LocalAI_Workstation\scripts_v6\duplicate_guard.py
+email_notifier.py                                      C:\LocalAI_Workstation\scripts_v6\email_notifier.py
+evaluate.py                                            C:\LocalAI_Workstation\scripts_v6\evaluate.py
+exam_trainer.py                                        C:\LocalAI_Workstation\scripts_v6\exam_trainer.py
+fake_error_generator.py                                C:\LocalAI_Workstation\scripts_v6\fake_error_generator.py
+file_watcher.py                                        C:\LocalAI_Workstation\scripts_v6\file_watcher.py
+final_check.py                                         C:\LocalAI_Workstation\scripts_v6\final_check.py
+fix_encoding.py                                        C:\LocalAI_Workstation\scripts_v6\fix_encoding.py
+fix_quotes.py                                          C:\LocalAI_Workstation\scripts_v6\fix_quotes.py
+fix_stdout.py                                          C:\LocalAI_Workstation\scripts_v6\fix_stdout.py
+fix_stt.py                                             C:\LocalAI_Workstation\scripts_v6\fix_stt.py
+generate_432_whitelist.py                              C:\LocalAI_Workstation\scripts_v6\generate_432_whitelist.py
+inflight_guard.py                                      C:\LocalAI_Workstation\scripts_v6\inflight_guard.py
+ingest_law_pro.py                                      C:\LocalAI_Workstation\scripts_v6\ingest_law_pro.py
+ingest_law.py                                          C:\LocalAI_Workstation\scripts_v6\ingest_law.py
+ingest.py                                              C:\LocalAI_Workstation\scripts_v6\ingest.py
+key_health_check.py                                    C:\LocalAI_Workstation\scripts_v6\key_health_check.py
+key_manager.py                                         C:\LocalAI_Workstation\scripts_v6\key_manager.py
+kpi_monitor.py                                         C:\LocalAI_Workstation\scripts_v6\kpi_monitor.py
+law_digester.py                                        C:\LocalAI_Workstation\scripts_v6\law_digester.py
+law_scraper_cli.py                                     C:\LocalAI_Workstation\scripts_v6\law_scraper_cli.py
+legal_calendar.py                                      C:\LocalAI_Workstation\scripts_v6\legal_calendar.py
+legal_voice.py                                         C:\LocalAI_Workstation\scripts_v6\legal_voice.py
+list_failed_srt.py                                     C:\LocalAI_Workstation\scripts_v6\list_failed_srt.py
+list_perfect.py                                        C:\LocalAI_Workstation\scripts_v6\list_perfect.py
+list_processed.py                                      C:\LocalAI_Workstation\scripts_v6\list_processed.py
+llm_gateway.py                                         C:\LocalAI_Workstation\scripts_v6\llm_gateway.py
+local_chunk_refiner.py                                 C:\LocalAI_Workstation\scripts_v6\local_chunk_refiner.py
+manifest_manager.py                                    C:\LocalAI_Workstation\scripts_v6\manifest_manager.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\scripts_v6\markdown_formatter.py
+match_backups_by_content.py                            C:\LocalAI_Workstation\scripts_v6\match_backups_by_content.py
+match_by_time.py                                       C:\LocalAI_Workstation\scripts_v6\match_by_time.py
+merge_transcript.py                                    C:\LocalAI_Workstation\scripts_v6\merge_transcript.py
+merge_transcript.py.bak_deadlock                       C:\LocalAI_Workstation\scripts_v6\merge_transcript.py.bak_deadlo…
+metrics.py                                             C:\LocalAI_Workstation\scripts_v6\metrics.py
+model_evaluator_loop.py                                C:\LocalAI_Workstation\scripts_v6\model_evaluator_loop.py
+model_router.py                                        C:\LocalAI_Workstation\scripts_v6\model_router.py
+monitor_progress.py                                    C:\LocalAI_Workstation\scripts_v6\monitor_progress.py
+monitoring_utils.py                                    C:\LocalAI_Workstation\scripts_v6\monitoring_utils.py
+multimodal_input.py                                    C:\LocalAI_Workstation\scripts_v6\multimodal_input.py
+multimodal_processor.py                                C:\LocalAI_Workstation\scripts_v6\multimodal_processor.py
+national_exam_rules.py                                 C:\LocalAI_Workstation\scripts_v6\national_exam_rules.py
+obsidian_ragflow_sync.py                               C:\LocalAI_Workstation\scripts_v6\obsidian_ragflow_sync.py
+ollama_router.py                                       C:\LocalAI_Workstation\scripts_v6\ollama_router.py
+preprocess_media.py                                    C:\LocalAI_Workstation\scripts_v6\preprocess_media.py
+process_multimodal_file.py                             C:\LocalAI_Workstation\scripts_v6\process_multimodal_file.py
+progress_dashboard.py                                  C:\LocalAI_Workstation\scripts_v6\progress_dashboard.py
+progress_dashboard.py.bak                              C:\LocalAI_Workstation\scripts_v6\progress_dashboard.py.bak
+progress_dashboard.py.bak.20260730_111252              C:\LocalAI_Workstation\scripts_v6\progress_dashboard.py.bak.2026…
+progress_dashboard.py.bak.20260730_183255              C:\LocalAI_Workstation\scripts_v6\progress_dashboard.py.bak.2026…
+quota_manager.py                                       C:\LocalAI_Workstation\scripts_v6\quota_manager.py
+RECOVERY_KEY_DO_NOT_SHARE.txt                          C:\LocalAI_Workstation\scripts_v6\RECOVERY_KEY_DO_NOT_SHARE.txt
+refactor_manifest.py                                   C:\LocalAI_Workstation\scripts_v6\refactor_manifest.py
+register_startup.py                                    C:\LocalAI_Workstation\scripts_v6\register_startup.py
+reindex_all.py                                         C:\LocalAI_Workstation\scripts_v6\reindex_all.py
+reindex_intel_vault.py                                 C:\LocalAI_Workstation\scripts_v6\reindex_intel_vault.py
+reset_88_courses.py                                    C:\LocalAI_Workstation\scripts_v6\reset_88_courses.py
+reset_poisoned_chunks.py                               C:\LocalAI_Workstation\scripts_v6\reset_poisoned_chunks.py
+restore_0kb_srt_tasks.py                               C:\LocalAI_Workstation\scripts_v6\restore_0kb_srt_tasks.py
+restore_chunks.py                                      C:\LocalAI_Workstation\scripts_v6\restore_chunks.py
+run_batch_local_refiner.py                             C:\LocalAI_Workstation\scripts_v6\run_batch_local_refiner.py
+run_local_agent.py                                     C:\LocalAI_Workstation\scripts_v6\run_local_agent.py
+run_workflow.py                                        C:\LocalAI_Workstation\scripts_v6\run_workflow.py
+run_workflow.py.bak_before_lock_fix                    C:\LocalAI_Workstation\scripts_v6\run_workflow.py.bak_before_loc…
+run_workflow.py.bak_v6_env_dedup_20260730_191517       C:\LocalAI_Workstation\scripts_v6\run_workflow.py.bak_v6_env_ded…
+run_workflow.py.bak_v6_env_final_20260730_191631       C:\LocalAI_Workstation\scripts_v6\run_workflow.py.bak_v6_env_fin…
+run_workflow.py.bak_v6_env_reinsert_20260730_191355    C:\LocalAI_Workstation\scripts_v6\run_workflow.py.bak_v6_env_rei…
+run_workflow.py.bak_v6_sandbox_20260730_190918         C:\LocalAI_Workstation\scripts_v6\run_workflow.py.bak_v6_sandbox…
+run_workflow.py.bak_v6_sandbox_cleanup_20260730_191117 C:\LocalAI_Workstation\scripts_v6\run_workflow.py.bak_v6_sandbox…
+run_workflow.py.bak_v6_sandbox_dedup_20260730_191241   C:\LocalAI_Workstation\scripts_v6\run_workflow.py.bak_v6_sandbox…
+run_workflow.py.bak.20260730_183003                    C:\LocalAI_Workstation\scripts_v6\run_workflow.py.bak.20260730_1…
+run_workflow.py.bak.20260730_183253                    C:\LocalAI_Workstation\scripts_v6\run_workflow.py.bak.20260730_1…
+sandbox_real_vertex_test.py                            C:\LocalAI_Workstation\scripts_v6\sandbox_real_vertex_test.py
+sandbox_test_quota_manager.py                          C:\LocalAI_Workstation\scripts_v6\sandbox_test_quota_manager.py
+sandbox_test_routing.py                                C:\LocalAI_Workstation\scripts_v6\sandbox_test_routing.py
+sandbox_test_strategy_matrix.py                        C:\LocalAI_Workstation\scripts_v6\sandbox_test_strategy_matrix.py
+sandbox_test_vault.py                                  C:\LocalAI_Workstation\scripts_v6\sandbox_test_vault.py
+setup_wizard.py                                        C:\LocalAI_Workstation\scripts_v6\setup_wizard.py
+sre_watchdog.py                                        C:\LocalAI_Workstation\scripts_v6\sre_watchdog.py
+stt_runner.py                                          C:\LocalAI_Workstation\scripts_v6\stt_runner.py
+stt_runner.py.bak_20260730124414                       C:\LocalAI_Workstation\scripts_v6\stt_runner.py.bak_202607301244…
+stt_runner.py.bak_20260730124740                       C:\LocalAI_Workstation\scripts_v6\stt_runner.py.bak_202607301247…
+stt_runner.py.bak_fix_recursion_20260730_184806        C:\LocalAI_Workstation\scripts_v6\stt_runner.py.bak_fix_recursio…
+stt_runner.py.bak.20260730_183003                      C:\LocalAI_Workstation\scripts_v6\stt_runner.py.bak.20260730_183…
+stt_runner.py.bak.20260730_183253                      C:\LocalAI_Workstation\scripts_v6\stt_runner.py.bak.20260730_183…
+test_distill.py                                        C:\LocalAI_Workstation\scripts_v6\test_distill.py
+test_duplicate.py                                      C:\LocalAI_Workstation\scripts_v6\test_duplicate.py
+test_eval.py                                           C:\LocalAI_Workstation\scripts_v6\test_eval.py
+test_keys_one_by_one.py                                C:\LocalAI_Workstation\scripts_v6\test_keys_one_by_one.py
+test_run_workflow.py                                   C:\LocalAI_Workstation\scripts_v6\test_run_workflow.py
+test_setup_wizard.py                                   C:\LocalAI_Workstation\scripts_v6\test_setup_wizard.py
+test_status.py                                         C:\LocalAI_Workstation\scripts_v6\test_status.py
+test_stt.py                                            C:\LocalAI_Workstation\scripts_v6\test_stt.py
+test_v6_pipeline.py                                    C:\LocalAI_Workstation\scripts_v6\test_v6_pipeline.py
+test_vertex_disabled.py                                C:\LocalAI_Workstation\scripts_v6\test_vertex_disabled.py
+test-1.py                                              C:\LocalAI_Workstation\scripts_v6\test-1.py
+vault.py                                               C:\LocalAI_Workstation\scripts_v6\vault.py
+verify_healthy_srt.py                                  C:\LocalAI_Workstation\scripts_v6\verify_healthy_srt.py
+verify_keys.py                                         C:\LocalAI_Workstation\scripts_v6\verify_keys.py
+verify_workflow_health.py                              C:\LocalAI_Workstation\scripts_v6\verify_workflow_health.py
+visual_analyzer.py                                     C:\LocalAI_Workstation\scripts_v6\visual_analyzer.py
+watchdog_monitor.py                                    C:\LocalAI_Workstation\scripts_v6\watchdog_monitor.py
+watchdog.py                                            C:\LocalAI_Workstation\scripts_v6\watchdog.py
+web_dashboard.py                                       C:\LocalAI_Workstation\scripts_v6\web_dashboard.py
+whisper_pool.py                                        C:\LocalAI_Workstation\scripts_v6\whisper_pool.py
+whisper_pool.py.bak_20260730124415                     C:\LocalAI_Workstation\scripts_v6\whisper_pool.py.bak_2026073012…
+whisper_pool.py.bak_20260730124742                     C:\LocalAI_Workstation\scripts_v6\whisper_pool.py.bak_2026073012…
+workflow_helper.py                                     C:\LocalAI_Workstation\scripts_v6\workflow_helper.py
+stt_runner.py                                          C:\LocalAI_Workstation\config\backups\pre_v6_headers_deploy_2026…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\googleclo…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\googleclo…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\googleclo…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\googleclo…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\googleclo…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\googleclo…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\third_par…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\third_par…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\third_par…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\third_par…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\third_par…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\lib\third_par…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\platform\gsut…
+config.py                                              C:\LocalAI_Workstation\gcloud_sdk\google-cloud-sdk\platform\gsut…
+markdown_formatter.py                                  C:\LocalAI_Workstation\lexmind-omni-法律實務-ai-工作站\scripts\m…
+merge_transcript.py                                    C:\LocalAI_Workstation\lexmind-omni-法律實務-ai-工作站\scripts\m…
+stt_runner.py                                          C:\LocalAI_Workstation\lexmind-omni-法律實務-ai-工作站\scripts\s…
+markdown_formatter.py                                  C:\LocalAI_Workstation\lexmind-omni-法律實務-ai-工作站\src\long_…
+merge_transcript.py                                    C:\LocalAI_Workstation\lexmind-omni-法律實務-ai-工作站\src\long_…
+stt_runner.py                                          C:\LocalAI_Workstation\lexmind-omni-法律實務-ai-工作站\src\long_…
+markdown_formatter.py                                  C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+merge_transcript.py                                    C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+stt_runner.py                                          C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+markdown_formatter.py                                  C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+merge_transcript.py                                    C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+stt_runner.py                                          C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+markdown_formatter.py                                  C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+merge_transcript.py                                    C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+stt_runner.py                                          C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+markdown_formatter.py                                  C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+merge_transcript.py                                    C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+stt_runner.py                                          C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+markdown_formatter.py                                  C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+merge_transcript.py                                    C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+stt_runner.py                                          C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+markdown_formatter.py                                  C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+merge_transcript.py                                    C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+stt_runner.py                                          C:\LocalAI_Workstation\LexMind_Code_Backup_v5.0_Ultimate_2026071…
+markdown_formatter.py                                  C:\LocalAI_Workstation\sandbox_test_0728\scripts\markdown_format…
+merge_transcript.py                                    C:\LocalAI_Workstation\sandbox_test_0728\scripts\merge_transcrip…
+stt_runner.py                                          C:\LocalAI_Workstation\sandbox_test_0728\scripts\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\scripts_725_golden\scripts\markdown_forma…
+merge_transcript.py                                    C:\LocalAI_Workstation\scripts_725_golden\scripts\merge_transcri…
+stt_runner.py                                          C:\LocalAI_Workstation\scripts_725_golden\scripts\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\scripts_backup_before_deploy\markdown_for…
+merge_transcript.py                                    C:\LocalAI_Workstation\scripts_backup_before_deploy\merge_transc…
+stt_runner.py                                          C:\LocalAI_Workstation\scripts_backup_before_deploy\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\scripts_stable_v5.1\markdown_formatter.py
+merge_transcript.py                                    C:\LocalAI_Workstation\scripts_stable_v5.1\merge_transcript.py
+stt_runner.py                                          C:\LocalAI_Workstation\scripts_stable_v5.1\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\scripts_stable_v5.2\markdown_formatter.py
+merge_transcript.py                                    C:\LocalAI_Workstation\scripts_stable_v5.2\merge_transcript.py
+stt_runner.py                                          C:\LocalAI_Workstation\scripts_stable_v5.2\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\scripts_v6\markdown_formatter.py
+merge_transcript.py                                    C:\LocalAI_Workstation\scripts_v6\merge_transcript.py
+stt_runner.py                                          C:\LocalAI_Workstation\scripts_v6\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\scripts_v6_backup_no_window\markdown_form…
+merge_transcript.py                                    C:\LocalAI_Workstation\scripts_v6_backup_no_window\merge_transcr…
+stt_runner.py                                          C:\LocalAI_Workstation\scripts_v6_backup_no_window\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\scripts_v6_bak_20260730132551\markdown_fo…
+merge_transcript.py                                    C:\LocalAI_Workstation\scripts_v6_bak_20260730132551\merge_trans…
+stt_runner.py                                          C:\LocalAI_Workstation\scripts_v6_bak_20260730132551\stt_runner.…
+markdown_formatter.py                                  C:\LocalAI_Workstation\scripts_v6_bak_20260801\markdown_formatte…
+merge_transcript.py                                    C:\LocalAI_Workstation\scripts_v6_bak_20260801\merge_transcript.…
+stt_runner.py                                          C:\LocalAI_Workstation\scripts_v6_bak_20260801\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\src\long_media_pipeline\markdown_formatte…
+merge_transcript.py                                    C:\LocalAI_Workstation\src\long_media_pipeline\merge_transcript.…
+stt_runner.py                                          C:\LocalAI_Workstation\src\long_media_pipeline\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\temp_extract\scripts\markdown_formatter.py
+merge_transcript.py                                    C:\LocalAI_Workstation\temp_extract\scripts\merge_transcript.py
+stt_runner.py                                          C:\LocalAI_Workstation\temp_extract\scripts\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\temp_extract_20260723\scripts\markdown_fo…
+merge_transcript.py                                    C:\LocalAI_Workstation\temp_extract_20260723\scripts\merge_trans…
+stt_runner.py                                          C:\LocalAI_Workstation\temp_extract_20260723\scripts\stt_runner.…
+markdown_formatter.py                                  C:\LocalAI_Workstation\temp_extract_backup\scripts\markdown_form…
+merge_transcript.py                                    C:\LocalAI_Workstation\temp_extract_backup\scripts\merge_transcr…
+stt_runner.py                                          C:\LocalAI_Workstation\temp_extract_backup\scripts\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\test_env_vertexai\scripts\markdown_format…
+merge_transcript.py                                    C:\LocalAI_Workstation\test_env_vertexai\scripts\merge_transcrip…
+stt_runner.py                                          C:\LocalAI_Workstation\test_env_vertexai\scripts\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\test_env_vertexai_golden_fixed\scripts\ma…
+merge_transcript.py                                    C:\LocalAI_Workstation\test_env_vertexai_golden_fixed\scripts\me…
+stt_runner.py                                          C:\LocalAI_Workstation\test_env_vertexai_golden_fixed\scripts\st…
+markdown_formatter.py                                  C:\LocalAI_Workstation\V5_Legacy_Vault\scripts\markdown_formatte…
+merge_transcript.py                                    C:\LocalAI_Workstation\V5_Legacy_Vault\scripts\merge_transcript.…
+stt_runner.py                                          C:\LocalAI_Workstation\V5_Legacy_Vault\scripts\stt_runner.py
+markdown_formatter.py                                  C:\LocalAI_Workstation\V5_Legacy_Vault\scripts_v5.0_725_1059_Bas…
+merge_transcript.py                                    C:\LocalAI_Workstation\V5_Legacy_Vault\scripts_v5.0_725_1059_Bas…
+stt_runner.py                                          C:\LocalAI_Workstation\V5_Legacy_Vault\scripts_v5.0_725_1059_Bas…
+run_workflow.py                                        
+process_video.py                                       
+vad_chunker.py                                         
+stt_runner.py                                          
+merge_transcript.py                                    
+markdown_formatter.py                                  
+error_analyzer.py                                      
+config.py                                              
+import os
+import sys
+import time
+import json
+import uuid
+import shutil
+import logging
+import argparse
+import subprocess
+from pathlib import Path
+from filelock import FileLock
+
+sys.path.insert(0, str(Path("C:/LocalAI_Workstation/scripts_v6").resolve()))
+
+import config
+from utils import SingleInstanceLock
+from process_video import extract_audio
+from vad_chunker import detect_silences_and_chunk
+from stt_runner import run_stt_for_task as run_stt
+from merge_transcript import process_task as merge_workflow
+from markdown_formatter import format_task as format_markdown
+from error_analyzer import dump_stack_snapshot
+from error_analyzer import recover_failed_task
+
+# ── 強制讀取隔離區 ──
+WORKDIR = os.environ.get("LEXMIND_WORKDIR", "C:/LocalAI_Workstation")
+MANIFESTS_DIR = os.environ.get("LEXMIND_MANIFEST_DIR", "A:/manifests_v6")
+LOGS_DIR = os.environ.get("LEXMIND_LOG_DIR", "A:/logs_v6")
+CHUNKS_DIR = os.environ.get("LEXMIND_CHUNKS_DIR", "A:/chunks_v6")
+PROCESSED_MD_DIR = os.environ.get("LEXMIND_PROCESSED_MD_DIR", "A:/processed_md_v6")
+PROCESSED_SRT_DIR = os.environ.get("LEXMIND_PROCESSED_SRT_DIR", "A:/processed_srt_v6")
+PROCESSING_DIR = os.environ.get("LEXMIND_PROCESSING_DIR", "A:/processing_v6")
+
+def ensure_dirs():
+    paths = {
+        "logs": LOGS_DIR,
+        "manifests_dir": MANIFESTS_DIR,
+        "chunks_dir": CHUNKS_DIR,
+        "processed_md": PROCESSED_MD_DIR,
+        "output_srt": PROCESSED_SRT_DIR,
+        "processing": PROCESSING_DIR
+    }
+    for p in paths.values():
+        os.makedirs(p, exist_ok=True)
+    return paths
+
+def setup_logging():
+    os.makedirs(LOGS_DIR, exist_ok=True)
+    logging.basicConfig(
+        filename=os.path.join(LOGS_DIR, "workflow.log"),
+        level=logging.INFO,
+        format="[%(asctime)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
+def log_workflow(msg):
+    print(msg, flush=True)
+    logging.info(msg)
+
+def log_error(msg):
+    print(f"[ERROR] {msg}", file=sys.stderr, flush=True)
+    logging.error(msg)
+
+def atomic_json_dump(data, path):
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, path)
+
+def get_exclusive_key():
+    state_file = "config/quota_state.json"
+    if not os.path.exists(state_file):
+        return None
+    try:
+        with open(state_file, "r", encoding="utf-8") as f:
+            state = json.load(f)
+    except Exception:
+        return None
+        
+    for model_group in config.GEMINI_API_KEYS.values():
+import os
+import sys, io
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+import sys
+import time
+import json
+import argparse
+import threading
+import subprocess
+import random
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+from scripts_v6.quota_manager import QuotaManager
+
+def atomic_json_dump(data, filepath):
+    tmp_path = str(filepath) + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, filepath)
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("民法總則_法律行為之效力", "本課堂主要講解民法總則中有關法律行為之效力。法律行為以意思表示為要素，若意思表示有瑕疵，如詐欺或脅迫，得於知悉後一年內撤銷其意思表示。行為能力制度旨在保護限制行為能力人，限制行為能力人所為之單獨行為，無效。"),
+        ("民法債編_侵權行為責任要件", "今天探討民法第一百八十四條獨立侵權行為責任之成立要件。因故意或過失，不法侵害他人之權利者，負損害賠償責任。消滅時效自請求權人知悉有損害及賠償義務人時起算，二年內不行使而消滅。"),
+        ("民法物權_共有物之處分與管理", "共有物之處分、變更及設定負擔，應得共有人全體之同意。但依土地法第三十四條之一，共有人人數及應有部分合計過半數即可。共有物分割協議須全體同意始生效力。"),
+        ("土地法_土地登記效力與絕對效力", "土地登記規則規定，依本法所為之登記，有絕對效力。第三人信賴登記而取得土地權利者，其權利受法律保護，以維護交易安全。未登記土地所有權處分受限。"),
+        ("土地稅法_地價稅減免與申報要件", "土地稅法規定，自用住宅用地之地價稅按千分之二課徵。其餘非自用住宅用地則按基本稅率課徵，符合一定要件之公有土地得申請免稅。"),
+        ("民事訴訟法_管轄權與合意管轄", "民事訴訟法規定，訴訟由被告住所地之法院管轄。但當事人得以書面合意約定第一審管轄法院，此即為合意管轄之要件與程序。因不動產涉訟者，專屬不動產所在地法院管轄。"),
+        ("行政程序法_行政處分之定義與撤銷", "行政處分係指行政機關就公法上具體事件所為之決定或其他公權力措施，而對外直接發生法律效果之單方行政行為。違法行政處分得由原處分機關或上級機關依法撤銷。"),
+        ("刑法總則_正當防衛與緊急避難", "對於現在不法之侵害，而出於防衛自己或他人權利之行為，不罰，此為正當防衛。因避免自己或他人生命、身體、自由、財產之緊急危難，而出於不得已之行為，不罰，此為緊急避難。"),
+        ("公司法_股東會召集程序與決議", "公司法規定，股東常會之召集，應於二十日前通知各股東；股東臨時會之召集，則應於十日前通知各股東。股東會決議分普通決議與特別決議。"),
+        ("勞動基準法_勞動契約終止與資遣費", "勞動基準法保障勞工權益，規定雇主終止勞動契約時，應依勞工工作年資給予預告期間，並依法給付資遣費。定期契約與不定期契約之認定標準不同。"),
+        ("專利法_發明專利三要件", "專利法規定發明專利必須具備產業利用性、新穎性及進步性。申請專利應向專利專責機關提出申請書、說明書及必要圖式。專利權期限自申請日起算二十年。"),
+        ("著作權法_合理使用與侵權責任", "著作權法為協調社會公共利益，規定在合理範圍內，得合理使用他人已公開發表之著作，並應明示出處及合理引用。擅自重製他人著作者應負侵權賠償責任。"),
+        ("票據法_票據權利消滅時效", "票據法規定執票人對匯票承兌人及本票發票人之權利，自到期日起算，三年間不行使，因時效而消滅。支票權利時效為一年，對前手之追索權為四個月。"),
+        ("保險法_保險利益之存在與認定", "保險法規定要保人對於被保險人之生命或身體，應具有保險利益。無保險利益之保險契約，其契約為無效，以防道德危險。財物保險亦須有保險利益。"),
+        ("強制執行法_查封程序與效力", "強制執行法規定查封之效力。實施查封後，債務人對查封物所為之處分，對於債權人不生效力。查封得由執行法官指派書記官進行動產或不動產之限制處分。"),
+        ("國家賠償法_公務員責任與國賠要件", "國家賠償法規定公務員於執行職務行使公權力時，因故意或過失不法侵害人民自由或權利者，國家應負損害賠償責任。賠償請求應先以書面向賠償義務機關協議。"),
+        ("行政訴訟法_撤銷訴訟與訴願程序", "行政訴訟法規定，人民不服訴願決定者，得向行政法院提起撤銷訴訟。撤銷訴訟之提起，應於訴願決定書送達後二個月內之法定期間內為之。"),
+        ("消費者保護法_郵購買買七日猶豫期", "消費者保護法規定郵購或訪問買賣之消費者，對所收受之商品不願買受時，得於收受商品後七日內，退回商品或書面通知解除契約，無須說明理由及負擔費用。"),
+        ("公寓大廈管理條例_規約與區分所有", "公寓大廈區分所有權人會議之決議，對於區分所有權人及住戶均有拘束力。規約為管理公寓大廈之共同遵守事項，須報請地方主管機關備查。"),
+        ("家庭暴力防治法_保護令申請與執行", "家庭暴力防治法規定，法院得依被害人申請核發通常保護令、暫時保護令或緊急保護令。違反保護令罪者，處三年以下有期徒刑、拘役或科或併科罰金。"),
+        ("信託法_信託財產獨立性原則", "信託法規定信託財產具有獨立性，受託人因信託財產關係對他人所負之債務，僅得以信託財產為限負其履行責任。信託財產原則上不得強制執行。"),
+        ("公平交易法_限制競爭與聯合行為", "公平交易法旨在維護交易秩序與消費者利益。事業不得為聯合行為或濫用市場優勢地位，亦不得為限制競爭或不正競爭之行為。違反者處以行政罰鍰。"),
+        ("營業秘密法_損害賠償與懲罰性賠償", "營業秘密法規定，故意洩漏或盜用他人營業秘密者，應負損害賠償責任。法院得依侵害情節，酌定三倍以下之懲罰性賠償。侵害營業秘密罪最重可處五年有期徒刑。"),
+        ("金融消費者保護法_金融爭議評議", "金融消費者與金融服務業發生爭議時，得向評議機構申請評議。評議決定在一定額度內對金融服務業具有拘束力，以保護弱勢金融消費者。"),
+        ("個人資料保護法_蒐集處理與告知義務", "個人資料保護法規定公務或非公務機關蒐集個人資料時，應向當事人明確告知蒐集目的、類別及利用期間、地區與對象。違反者負有民刑事及行政責任。"),
+        ("破產法_破產宣告與和解程序", "破產法規定，法院為破產宣告時，應選任破產管理人，並決定債權申報期間。破產人對其財產之處分權即行喪失，應全權移交破產管理人。"),
+        ("仲裁法_仲裁協議效力與仲裁判斷", "仲裁法規定當事人約定將爭議提交仲裁者，法院應依當事人聲請裁定停止訴訟程序，命當事人依約進行仲裁。仲裁判斷與法院確定判決有同一效力。"),
+        ("海商法_載貨證券之物權效力", "海商法規定運送人或船長發給載貨證券後，對於載貨證券持有人應負依載貨證券所載內容交付貨物之責任。載貨證券之交付具物權效力。"),
+        ("涉外民事法律適用法_準據法之選定", "涉外民事法律適用法旨在解決涉外事件之法律衝突。法律行為之準據法，依當事人意思表示所定之法律；無約定者依關係最切地法，如不動產所在地法。"),
+        ("家事事件法_調解程序與非訟事件", "家事事件法規定家事事件除法律另有規定外，於起訴前應經法院調解程序。調解成立者，與確定判決有同一之效力，並能聲請強制執行。")
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("通用法律教材", "本課堂主要介紹臺灣法律實務與救濟程序，涵蓋民刑事實體法與程序法之基本概念。")
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+import os
+import sys
+import time
+import json
+import argparse
+from pathlib import Path
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("民法總則_法律行為之效力", "本課堂主要講解民法總則中有關法律行為之效力。法律行為以意思表示為要素，若意思表示有瑕疵，如詐欺或脅迫，得於知悉後一年內撤銷其意思表示。行為能力制度旨在保護限制行為能力人，限制行為能力人所為之單獨行為，無效。"),
+        ("民法債編_侵權行為責任要件", "今天探討民法第一百八十四條獨立侵權行為責任之成立要件。因故意或過失，不法侵害他人之權利者，負損害賠償責任。消滅時效自請求權人知悉有損害及賠償義務人時起算，二年內不行使而消滅。"),
+        ("民法物權_共有物之處分與管理", "共有物之處分、變更及設定負擔，應得共有人全體之同意。但依土地法第三十四條之一，共有人人數及應有部分合計過半數即可。共有物分割協議須全體同意始生效力。"),
+        ("土地法_土地登記效力與絕對效力", "土地登記規則規定，依本法所為之登記，有絕對效力。第三人信賴登記而取得土地權利者，其權利受法律保護，以維護交易安全。未登記土地所有權處分受限。"),
+        ("土地稅法_地價稅減免與申報要件", "土地稅法規定，自用住宅用地之地價稅按千分之二課徵。其餘非自用住宅用地則按基本稅率課徵，符合一定要件之公有土地得申請免稅。"),
+        ("民事訴訟法_管轄權與合意管轄", "民事訴訟法規定，訴訟由被告住所地之法院管轄。但當事人得以書面合意約定第一審管轄法院，此即為合意管轄之要件與程序。因不動產涉訟者，專屬不動產所在地法院管轄。"),
+        ("行政程序法_行政處分之定義與撤銷", "行政處分係指行政機關就公法上具體事件所為之決定或其他公權力措施，而對外直接發生法律效果之單方行政行為。違法行政處分得由原處分機關或上級機關依法撤銷。"),
+        ("刑法總則_正當防衛與緊急避難", "對於現在不法之侵害，而出於防衛自己或他人權利之行為，不罰，此為正當防衛。因避免自己或他人生命、身體、自由、財產之緊急危難，而出於不得已之行為，不罰，此為緊急避難。"),
+        ("公司法_股東會召集程序與決議", "公司法規定，股東常會之召集，應於二十日前通知各股東；股東臨時會之召集，則應於十日前通知各股東。股東會決議分普通決議與特別決議。"),
+        ("勞動基準法_勞動契約終止與資遣費", "勞動基準法保障勞工權益，規定雇主終止勞動契約時，應依勞工工作年資給予預告期間，並依法給付資遣費。定期契約與不定期契約之認定標準不同。"),
+        ("專利法_發明專利三要件", "專利法規定發明專利必須具備產業利用性、新穎性及進步性。申請專利應向專利專責機關提出申請書、說明書及必要圖式。專利權期限自申請日起算二十年。"),
+        ("著作權法_合理使用與侵權責任", "著作權法為協調社會公共利益，規定在合理範圍內，得合理使用他人已公開發表之著作，並應明示出處及合理引用。擅自重製他人著作者應負侵權賠償責任。"),
+        ("票據法_票據權利消滅時效", "票據法規定執票人對匯票承兌人及本票發票人之權利，自到期日起算，三年間不行使，因時效而消滅。支票權利時效為一年，對前手之追索權為四個月。"),
+        ("保險法_保險利益之存在與認定", "保險法規定要保人對於被保險人之生命或身體，應具有保險利益。無保險利益之保險契約，其契約為無效，以防道德危險。財物保險亦須有保險利益。"),
+        ("強制執行法_查封程序與效力", "強制執行法規定查封之效力。實施查封後，債務人對查封物所為之處分，對於債權人不生效力。查封得由執行法官指派書記官進行動產或不動產之限制處分。"),
+        ("國家賠償法_公務員責任與國賠要件", "國家賠償法規定公務員於執行職務行使公權力時，因故意或過失不法侵害人民自由或權利者，國家應負損害賠償責任。賠償請求應先以書面向賠償義務機關協議。"),
+        ("行政訴訟法_撤銷訴訟與訴願程序", "行政訴訟法規定，人民不服訴願決定者，得向行政法院提起撤銷訴訟。撤銷訴訟之提起，應於訴願決定書送達後二個月內之法定期間內為之。"),
+        ("消費者保護法_郵購買買七日猶豫期", "消費者保護法規定郵購或訪問買賣之消費者，對所收受之商品不願買受時，得於收受商品後七日內，退回商品或書面通知解除契約，無須說明理由及負擔費用。"),
+        ("公寓大廈管理條例_規約與區分所有", "公寓大廈區分所有權人會議之決議，對於區分所有權人及住戶均有拘束力。規約為管理公寓大廈之共同遵守事項，須報請地方主管機關備查。"),
+        ("家庭暴力防治法_保護令申請與執行", "家庭暴力防治法規定，法院得依被害人申請核發通常保護令、暫時保護令或緊急保護令。違反保護令罪者，處三年以下有期徒刑、拘役或科或併科罰金。"),
+        ("信託法_信託財產獨立性原則", "信託法規定信託財產具有獨立性，受託人因信託財產關係對他人所負之債務，僅得以信託財產為限負其履行責任。信託財產原則上不得強制執行。"),
+        ("公平交易法_限制競爭與聯合行為", "公平交易法旨在維護交易秩序與消費者利益。事業不得為聯合行為或濫用市場優勢地位，亦不得為限制競爭或不正競爭之行為。違反者處以行政罰鍰。"),
+        ("營業秘密法_損害賠償與懲罰性賠償", "營業秘密法規定，故意洩漏或盜用他人營業秘密者，應負損害賠償責任。法院得依侵害情節，酌定三倍以下之懲罰性賠償。侵害營業秘密罪最重可處五年有期徒刑。"),
+        ("金融消費者保護法_金融爭議評議", "金融消費者與金融服務業發生爭議時，得向評議機構申請評議。評議決定在一定額度內對金融服務業具有拘束力，以保護弱勢金融消費者。"),
+        ("個人資料保護法_蒐集處理與告知義務", "個人資料保護法規定公務或非公務機關蒐集個人資料時，應向當事人明確告知蒐集目的、類別及利用期間、地區與對象。違反者負有民刑事及行政責任。"),
+        ("破產法_破產宣告與和解程序", "破產法規定，法院為破產宣告時，應選任破產管理人，並決定債權申報期間。破產人對其財產之處分權即行喪失，應全權移交破產管理人。"),
+        ("仲裁法_仲裁協議效力與仲裁判斷", "仲裁法規定當事人約定將爭議提交仲裁者，法院應依當事人聲請裁定停止訴訟程序，命當事人依約進行仲裁。仲裁判斷與法院確定判決有同一效力。"),
+        ("海商法_載貨證券之物權效力", "海商法規定運送人或船長發給載貨證券後，對於載貨證券持有人應負依載貨證券所載內容交付貨物之責任。載貨證券之交付具物權效力。"),
+        ("涉外民事法律適用法_準據法之選定", "涉外民事法律適用法旨在解決涉外事件之法律衝突。法律行為之準據法，依當事人意思表示所定之法律；無約定者依關係最切地法，如不動產所在地法。"),
+        ("家事事件法_調解程序與非訟事件", "家事事件法規定家事事件除法律另有規定外，於起訴前應經法院調解程序。調解成立者，與確定判決有同一之效力，並能聲請強制執行。")
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("通用法律教材", "本課堂主要介紹臺灣法律實務與救濟程序，涵蓋民刑事實體法與程序法之基本概念。")
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (IOError, OSError, ImportError):
+            if self.fp:
+                try:
+                    self.fp.close()
+                except Exception:
+                    pass
+            return False
+import os
+import sys
+import time
+import json
+import argparse
+import threading
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+from scripts.quota_manager import QuotaManager
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("民法總則_法律行為之效力", "本課堂主要講解民法總則中有關法律行為之效力。法律行為以意思表示為要素，若意思表示有瑕疵，如詐欺或脅迫，得於知悉後一年內撤銷其意思表示。行為能力制度旨在保護限制行為能力人，限制行為能力人所為之單獨行為，無效。"),
+        ("民法債編_侵權行為責任要件", "今天探討民法第一百八十四條獨立侵權行為責任之成立要件。因故意或過失，不法侵害他人之權利者，負損害賠償責任。消滅時效自請求權人知悉有損害及賠償義務人時起算，二年內不行使而消滅。"),
+        ("民法物權_共有物之處分與管理", "共有物之處分、變更及設定負擔，應得共有人全體之同意。但依土地法第三十四條之一，共有人人數及應有部分合計過半數即可。共有物分割協議須全體同意始生效力。"),
+        ("土地法_土地登記效力與絕對效力", "土地登記規則規定，依本法所為之登記，有絕對效力。第三人信賴登記而取得土地權利者，其權利受法律保護，以維護交易安全。未登記土地所有權處分受限。"),
+        ("土地稅法_地價稅減免與申報要件", "土地稅法規定，自用住宅用地之地價稅按千分之二課徵。其餘非自用住宅用地則按基本稅率課徵，符合一定要件之公有土地得申請免稅。"),
+        ("民事訴訟法_管轄權與合意管轄", "民事訴訟法規定，訴訟由被告住所地之法院管轄。但當事人得以書面合意約定第一審管轄法院，此即為合意管轄之要件與程序。因不動產涉訟者，專屬不動產所在地法院管轄。"),
+        ("行政程序法_行政處分之定義與撤銷", "行政處分係指行政機關就公法上具體事件所為之決定或其他公權力措施，而對外直接發生法律效果之單方行政行為。違法行政處分得由原處分機關或上級機關依法撤銷。"),
+        ("刑法總則_正當防衛與緊急避難", "對於現在不法之侵害，而出於防衛自己或他人權利之行為，不罰，此為正當防衛。因避免自己或他人生命、身體、自由、財產之緊急危難，而出於不得已之行為，不罰，此為緊急避難。"),
+        ("公司法_股東會召集程序與決議", "公司法規定，股東常會之召集，應於二十日前通知各股東；股東臨時會之召集，則應於十日前通知各股東。股東會決議分普通決議與特別決議。"),
+        ("勞動基準法_勞動契約終止與資遣費", "勞動基準法保障勞工權益，規定雇主終止勞動契約時，應依勞工工作年資給予預告期間，並依法給付資遣費。定期契約與不定期契約之認定標準不同。"),
+        ("專利法_發明專利三要件", "專利法規定發明專利必須具備產業利用性、新穎性及進步性。申請專利應向專利專責機關提出申請書、說明書及必要圖式。專利權期限自申請日起算二十年。"),
+        ("著作權法_合理使用與侵權責任", "著作權法為協調社會公共利益，規定在合理範圍內，得合理使用他人已公開發表之著作，並應明示出處及合理引用。擅自重製他人著作者應負侵權賠償責任。"),
+        ("票據法_票據權利消滅時效", "票據法規定執票人對匯票承兌人及本票發票人之權利，自到期日起算，三年間不行使，因時效而消滅。支票權利時效為一年，對前手之追索權為四個月。"),
+        ("保險法_保險利益之存在與認定", "保險法規定要保人對於被保險人之生命或身體，應具有保險利益。無保險利益之保險契約，其契約為無效，以防道德危險。財物保險亦須有保險利益。"),
+        ("強制執行法_查封程序與效力", "強制執行法規定查封之效力。實施查封後，債務人對查封物所為之處分，對於債權人不生效力。查封得由執行法官指派書記官進行動產或不動產之限制處分。"),
+        ("國家賠償法_公務員責任與國賠要件", "國家賠償法規定公務員於執行職務行使公權力時，因故意或過失不法侵害人民自由或權利者，國家應負損害賠償責任。賠償請求應先以書面向賠償義務機關協議。"),
+        ("行政訴訟法_撤銷訴訟與訴願程序", "行政訴訟法規定，人民不服訴願決定者，得向行政法院提起撤銷訴訟。撤銷訴訟之提起，應於訴願決定書送達後二個月內之法定期間內為之。"),
+        ("消費者保護法_郵購買買七日猶豫期", "消費者保護法規定郵購或訪問買賣之消費者，對所收受之商品不願買受時，得於收受商品後七日內，退回商品或書面通知解除契約，無須說明理由及負擔費用。"),
+        ("公寓大廈管理條例_規約與區分所有", "公寓大廈區分所有權人會議之決議，對於區分所有權人及住戶均有拘束力。規約為管理公寓大廈之共同遵守事項，須報請地方主管機關備查。"),
+        ("家庭暴力防治法_保護令申請與執行", "家庭暴力防治法規定，法院得依被害人申請核發通常保護令、暫時保護令或緊急保護令。違反保護令罪者，處三年以下有期徒刑、拘役或科或併科罰金。"),
+        ("信託法_信託財產獨立性原則", "信託法規定信託財產具有獨立性，受託人因信託財產關係對他人所負之債務，僅得以信託財產為限負其履行責任。信託財產原則上不得強制執行。"),
+        ("公平交易法_限制競爭與聯合行為", "公平交易法旨在維護交易秩序與消費者利益。事業不得為聯合行為或濫用市場優勢地位，亦不得為限制競爭或不正競爭之行為。違反者處以行政罰鍰。"),
+        ("營業秘密法_損害賠償與懲罰性賠償", "營業秘密法規定，故意洩漏或盜用他人營業秘密者，應負損害賠償責任。法院得依侵害情節，酌定三倍以下之懲罰性賠償。侵害營業秘密罪最重可處五年有期徒刑。"),
+        ("金融消費者保護法_金融爭議評議", "金融消費者與金融服務業發生爭議時，得向評議機構申請評議。評議決定在一定額度內對金融服務業具有拘束力，以保護弱勢金融消費者。"),
+        ("個人資料保護法_蒐集處理與告知義務", "個人資料保護法規定公務或非公務機關蒐集個人資料時，應向當事人明確告知蒐集目的、類別及利用期間、地區與對象。違反者負有民刑事及行政責任。"),
+        ("破產法_破產宣告與和解程序", "破產法規定，法院為破產宣告時，應選任破產管理人，並決定債權申報期間。破產人對其財產之處分權即行喪失，應全權移交破產管理人。"),
+        ("仲裁法_仲裁協議效力與仲裁判斷", "仲裁法規定當事人約定將爭議提交仲裁者，法院應依當事人聲請裁定停止訴訟程序，命當事人依約進行仲裁。仲裁判斷與法院確定判決有同一效力。"),
+        ("海商法_載貨證券之物權效力", "海商法規定運送人或船長發給載貨證券後，對於載貨證券持有人應負依載貨證券所載內容交付貨物之責任。載貨證券之交付具物權效力。"),
+        ("涉外民事法律適用法_準據法之選定", "涉外民事法律適用法旨在解決涉外事件之法律衝突。法律行為之準據法，依當事人意思表示所定之法律；無約定者依關係最切地法，如不動產所在地法。"),
+        ("家事事件法_調解程序與非訟事件", "家事事件法規定家事事件除法律另有規定外，於起訴前應經法院調解程序。調解成立者，與確定判決有同一之效力，並能聲請強制執行。")
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("通用法律教材", "本課堂主要介紹臺灣法律實務與救濟程序，涵蓋民刑事實體法與程序法之基本概念。")
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (IOError, OSError, ImportError):
+            if self.fp:
+                try:
+                    self.fp.close()
+import os
+import sys
+import time
+import json
+import argparse
+from pathlib import Path
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("民法總則_法律行為之效力", "本課堂主要講解民法總則中有關法律行為之效力。法律行為以意思表示為要素，若意思表示有瑕疵，如詐欺或脅迫，得於知悉後一年內撤銷其意思表示。行為能力制度旨在保護限制行為能力人，限制行為能力人所為之單獨行為，無效。"),
+        ("民法債編_侵權行為責任要件", "今天探討民法第一百八十四條獨立侵權行為責任之成立要件。因故意或過失，不法侵害他人之權利者，負損害賠償責任。消滅時效自請求權人知悉有損害及賠償義務人時起算，二年內不行使而消滅。"),
+        ("民法物權_共有物之處分與管理", "共有物之處分、變更及設定負擔，應得共有人全體之同意。但依土地法第三十四條之一，共有人人數及應有部分合計過半數即可。共有物分割協議須全體同意始生效力。"),
+        ("土地法_土地登記效力與絕對效力", "土地登記規則規定，依本法所為之登記，有絕對效力。第三人信賴登記而取得土地權利者，其權利受法律保護，以維護交易安全。未登記土地所有權處分受限。"),
+        ("土地稅法_地價稅減免與申報要件", "土地稅法規定，自用住宅用地之地價稅按千分之二課徵。其餘非自用住宅用地則按基本稅率課徵，符合一定要件之公有土地得申請免稅。"),
+        ("民事訴訟法_管轄權與合意管轄", "民事訴訟法規定，訴訟由被告住所地之法院管轄。但當事人得以書面合意約定第一審管轄法院，此即為合意管轄之要件與程序。因不動產涉訟者，專屬不動產所在地法院管轄。"),
+        ("行政程序法_行政處分之定義與撤銷", "行政處分係指行政機關就公法上具體事件所為之決定或其他公權力措施，而對外直接發生法律效果之單方行政行為。違法行政處分得由原處分機關或上級機關依法撤銷。"),
+        ("刑法總則_正當防衛與緊急避難", "對於現在不法之侵害，而出於防衛自己或他人權利之行為，不罰，此為正當防衛。因避免自己或他人生命、身體、自由、財產之緊急危難，而出於不得已之行為，不罰，此為緊急避難。"),
+        ("公司法_股東會召集程序與決議", "公司法規定，股東常會之召集，應於二十日前通知各股東；股東臨時會之召集，則應於十日前通知各股東。股東會決議分普通決議與特別決議。"),
+        ("勞動基準法_勞動契約終止與資遣費", "勞動基準法保障勞工權益，規定雇主終止勞動契約時，應依勞工工作年資給予預告期間，並依法給付資遣費。定期契約與不定期契約之認定標準不同。"),
+        ("專利法_發明專利三要件", "專利法規定發明專利必須具備產業利用性、新穎性及進步性。申請專利應向專利專責機關提出申請書、說明書及必要圖式。專利權期限自申請日起算二十年。"),
+        ("著作權法_合理使用與侵權責任", "著作權法為協調社會公共利益，規定在合理範圍內，得合理使用他人已公開發表之著作，並應明示出處及合理引用。擅自重製他人著作者應負侵權賠償責任。"),
+        ("票據法_票據權利消滅時效", "票據法規定執票人對匯票承兌人及本票發票人之權利，自到期日起算，三年間不行使，因時效而消滅。支票權利時效為一年，對前手之追索權為四個月。"),
+        ("保險法_保險利益之存在與認定", "保險法規定要保人對於被保險人之生命或身體，應具有保險利益。無保險利益之保險契約，其契約為無效，以防道德危險。財物保險亦須有保險利益。"),
+        ("強制執行法_查封程序與效力", "強制執行法規定查封之效力。實施查封後，債務人對查封物所為之處分，對於債權人不生效力。查封得由執行法官指派書記官進行動產或不動產之限制處分。"),
+        ("國家賠償法_公務員責任與國賠要件", "國家賠償法規定公務員於執行職務行使公權力時，因故意或過失不法侵害人民自由或權利者，國家應負損害賠償責任。賠償請求應先以書面向賠償義務機關協議。"),
+        ("行政訴訟法_撤銷訴訟與訴願程序", "行政訴訟法規定，人民不服訴願決定者，得向行政法院提起撤銷訴訟。撤銷訴訟之提起，應於訴願決定書送達後二個月內之法定期間內為之。"),
+        ("消費者保護法_郵購買買七日猶豫期", "消費者保護法規定郵購或訪問買賣之消費者，對所收受之商品不願買受時，得於收受商品後七日內，退回商品或書面通知解除契約，無須說明理由及負擔費用。"),
+        ("公寓大廈管理條例_規約與區分所有", "公寓大廈區分所有權人會議之決議，對於區分所有權人及住戶均有拘束力。規約為管理公寓大廈之共同遵守事項，須報請地方主管機關備查。"),
+        ("家庭暴力防治法_保護令申請與執行", "家庭暴力防治法規定，法院得依被害人申請核發通常保護令、暫時保護令或緊急保護令。違反保護令罪者，處三年以下有期徒刑、拘役或科或併科罰金。"),
+        ("信託法_信託財產獨立性原則", "信託法規定信託財產具有獨立性，受託人因信託財產關係對他人所負之債務，僅得以信託財產為限負其履行責任。信託財產原則上不得強制執行。"),
+        ("公平交易法_限制競爭與聯合行為", "公平交易法旨在維護交易秩序與消費者利益。事業不得為聯合行為或濫用市場優勢地位，亦不得為限制競爭或不正競爭之行為。違反者處以行政罰鍰。"),
+        ("營業秘密法_損害賠償與懲罰性賠償", "營業秘密法規定，故意洩漏或盜用他人營業秘密者，應負損害賠償責任。法院得依侵害情節，酌定三倍以下之懲罰性賠償。侵害營業秘密罪最重可處五年有期徒刑。"),
+        ("金融消費者保護法_金融爭議評議", "金融消費者與金融服務業發生爭議時，得向評議機構申請評議。評議決定在一定額度內對金融服務業具有拘束力，以保護弱勢金融消費者。"),
+        ("個人資料保護法_蒐集處理與告知義務", "個人資料保護法規定公務或非公務機關蒐集個人資料時，應向當事人明確告知蒐集目的、類別及利用期間、地區與對象。違反者負有民刑事及行政責任。"),
+        ("破產法_破產宣告與和解程序", "破產法規定，法院為破產宣告時，應選任破產管理人，並決定債權申報期間。破產人對其財產之處分權即行喪失，應全權移交破產管理人。"),
+        ("仲裁法_仲裁協議效力與仲裁判斷", "仲裁法規定當事人約定將爭議提交仲裁者，法院應依當事人聲請裁定停止訴訟程序，命當事人依約進行仲裁。仲裁判斷與法院確定判決有同一效力。"),
+        ("海商法_載貨證券之物權效力", "海商法規定運送人或船長發給載貨證券後，對於載貨證券持有人應負依載貨證券所載內容交付貨物之責任。載貨證券之交付具物權效力。"),
+        ("涉外民事法律適用法_準據法之選定", "涉外民事法律適用法旨在解決涉外事件之法律衝突。法律行為之準據法，依當事人意思表示所定之法律；無約定者依關係最切地法，如不動產所在地法。"),
+        ("家事事件法_調解程序與非訟事件", "家事事件法規定家事事件除法律另有規定外，於起訴前應經法院調解程序。調解成立者，與確定判決有同一之效力，並能聲請強制執行。")
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("通用法律教材", "本課堂主要介紹臺灣法律實務與救濟程序，涵蓋民刑事實體法與程序法之基本概念。")
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (IOError, OSError, ImportError):
+            if self.fp:
+                try:
+                    self.fp.close()
+                except Exception:
+                    pass
+            return False
+import os
+import sys, io
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+import sys
+import time
+import json
+import argparse
+import threading
+import subprocess
+import random
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+from scripts.quota_manager import QuotaManager
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("民法總則_法律行為之效力", "本課堂主要講解民法總則中有關法律行為之效力。法律行為以意思表示為要素，若意思表示有瑕疵，如詐欺或脅迫，得於知悉後一年內撤銷其意思表示。行為能力制度旨在保護限制行為能力人，限制行為能力人所為之單獨行為，無效。"),
+        ("民法債編_侵權行為責任要件", "今天探討民法第一百八十四條獨立侵權行為責任之成立要件。因故意或過失，不法侵害他人之權利者，負損害賠償責任。消滅時效自請求權人知悉有損害及賠償義務人時起算，二年內不行使而消滅。"),
+        ("民法物權_共有物之處分與管理", "共有物之處分、變更及設定負擔，應得共有人全體之同意。但依土地法第三十四條之一，共有人人數及應有部分合計過半數即可。共有物分割協議須全體同意始生效力。"),
+        ("土地法_土地登記效力與絕對效力", "土地登記規則規定，依本法所為之登記，有絕對效力。第三人信賴登記而取得土地權利者，其權利受法律保護，以維護交易安全。未登記土地所有權處分受限。"),
+        ("土地稅法_地價稅減免與申報要件", "土地稅法規定，自用住宅用地之地價稅按千分之二課徵。其餘非自用住宅用地則按基本稅率課徵，符合一定要件之公有土地得申請免稅。"),
+        ("民事訴訟法_管轄權與合意管轄", "民事訴訟法規定，訴訟由被告住所地之法院管轄。但當事人得以書面合意約定第一審管轄法院，此即為合意管轄之要件與程序。因不動產涉訟者，專屬不動產所在地法院管轄。"),
+        ("行政程序法_行政處分之定義與撤銷", "行政處分係指行政機關就公法上具體事件所為之決定或其他公權力措施，而對外直接發生法律效果之單方行政行為。違法行政處分得由原處分機關或上級機關依法撤銷。"),
+        ("刑法總則_正當防衛與緊急避難", "對於現在不法之侵害，而出於防衛自己或他人權利之行為，不罰，此為正當防衛。因避免自己或他人生命、身體、自由、財產之緊急危難，而出於不得已之行為，不罰，此為緊急避難。"),
+        ("公司法_股東會召集程序與決議", "公司法規定，股東常會之召集，應於二十日前通知各股東；股東臨時會之召集，則應於十日前通知各股東。股東會決議分普通決議與特別決議。"),
+        ("勞動基準法_勞動契約終止與資遣費", "勞動基準法保障勞工權益，規定雇主終止勞動契約時，應依勞工工作年資給予預告期間，並依法給付資遣費。定期契約與不定期契約之認定標準不同。"),
+        ("專利法_發明專利三要件", "專利法規定發明專利必須具備產業利用性、新穎性及進步性。申請專利應向專利專責機關提出申請書、說明書及必要圖式。專利權期限自申請日起算二十年。"),
+        ("著作權法_合理使用與侵權責任", "著作權法為協調社會公共利益，規定在合理範圍內，得合理使用他人已公開發表之著作，並應明示出處及合理引用。擅自重製他人著作者應負侵權賠償責任。"),
+        ("票據法_票據權利消滅時效", "票據法規定執票人對匯票承兌人及本票發票人之權利，自到期日起算，三年間不行使，因時效而消滅。支票權利時效為一年，對前手之追索權為四個月。"),
+        ("保險法_保險利益之存在與認定", "保險法規定要保人對於被保險人之生命或身體，應具有保險利益。無保險利益之保險契約，其契約為無效，以防道德危險。財物保險亦須有保險利益。"),
+        ("強制執行法_查封程序與效力", "強制執行法規定查封之效力。實施查封後，債務人對查封物所為之處分，對於債權人不生效力。查封得由執行法官指派書記官進行動產或不動產之限制處分。"),
+        ("國家賠償法_公務員責任與國賠要件", "國家賠償法規定公務員於執行職務行使公權力時，因故意或過失不法侵害人民自由或權利者，國家應負損害賠償責任。賠償請求應先以書面向賠償義務機關協議。"),
+        ("行政訴訟法_撤銷訴訟與訴願程序", "行政訴訟法規定，人民不服訴願決定者，得向行政法院提起撤銷訴訟。撤銷訴訟之提起，應於訴願決定書送達後二個月內之法定期間內為之。"),
+        ("消費者保護法_郵購買買七日猶豫期", "消費者保護法規定郵購或訪問買賣之消費者，對所收受之商品不願買受時，得於收受商品後七日內，退回商品或書面通知解除契約，無須說明理由及負擔費用。"),
+        ("公寓大廈管理條例_規約與區分所有", "公寓大廈區分所有權人會議之決議，對於區分所有權人及住戶均有拘束力。規約為管理公寓大廈之共同遵守事項，須報請地方主管機關備查。"),
+        ("家庭暴力防治法_保護令申請與執行", "家庭暴力防治法規定，法院得依被害人申請核發通常保護令、暫時保護令或緊急保護令。違反保護令罪者，處三年以下有期徒刑、拘役或科或併科罰金。"),
+        ("信託法_信託財產獨立性原則", "信託法規定信託財產具有獨立性，受託人因信託財產關係對他人所負之債務，僅得以信託財產為限負其履行責任。信託財產原則上不得強制執行。"),
+        ("公平交易法_限制競爭與聯合行為", "公平交易法旨在維護交易秩序與消費者利益。事業不得為聯合行為或濫用市場優勢地位，亦不得為限制競爭或不正競爭之行為。違反者處以行政罰鍰。"),
+        ("營業秘密法_損害賠償與懲罰性賠償", "營業秘密法規定，故意洩漏或盜用他人營業秘密者，應負損害賠償責任。法院得依侵害情節，酌定三倍以下之懲罰性賠償。侵害營業秘密罪最重可處五年有期徒刑。"),
+        ("金融消費者保護法_金融爭議評議", "金融消費者與金融服務業發生爭議時，得向評議機構申請評議。評議決定在一定額度內對金融服務業具有拘束力，以保護弱勢金融消費者。"),
+        ("個人資料保護法_蒐集處理與告知義務", "個人資料保護法規定公務或非公務機關蒐集個人資料時，應向當事人明確告知蒐集目的、類別及利用期間、地區與對象。違反者負有民刑事及行政責任。"),
+        ("破產法_破產宣告與和解程序", "破產法規定，法院為破產宣告時，應選任破產管理人，並決定債權申報期間。破產人對其財產之處分權即行喪失，應全權移交破產管理人。"),
+        ("仲裁法_仲裁協議效力與仲裁判斷", "仲裁法規定當事人約定將爭議提交仲裁者，法院應依當事人聲請裁定停止訴訟程序，命當事人依約進行仲裁。仲裁判斷與法院確定判決有同一效力。"),
+        ("海商法_載貨證券之物權效力", "海商法規定運送人或船長發給載貨證券後，對於載貨證券持有人應負依載貨證券所載內容交付貨物之責任。載貨證券之交付具物權效力。"),
+        ("涉外民事法律適用法_準據法之選定", "涉外民事法律適用法旨在解決涉外事件之法律衝突。法律行為之準據法，依當事人意思表示所定之法律；無約定者依關係最切地法，如不動產所在地法。"),
+        ("家事事件法_調解程序與非訟事件", "家事事件法規定家事事件除法律另有規定外，於起訴前應經法院調解程序。調解成立者，與確定判決有同一之效力，並能聲請強制執行。")
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("通用法律教材", "本課堂主要介紹臺灣法律實務與救濟程序，涵蓋民刑事實體法與程序法之基本概念。")
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+# ==============================================================================
+# [CRITICAL DEPENDENCY WARNING] Group 1: 領域防護與前端物流 (Ingestion & Rules)
+# ------------------------------------------------------------------------------
+# ⚠️ 此檔案屬於高度解耦架構的【Group 1】。
+# 依賴 national_exam_rules.py 作為 SSOT。修改前請務必參閱：PIPELINE_DEPENDENCIES.md
+# ==============================================================================
+import os
+import sys
+import time
+import json
+import argparse
+import threading
+import traceback
+import yaml
+from pathlib import Path
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from national_exam_rules import get_exam_score
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+from scripts.quota_manager import QuotaManager
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("民法總則_法律行為之效力", "本課堂主要講解民法總則中有關法律行為之效力。法律行為以意思表示為要素，若意思表示有瑕疵，如詐欺或脅迫，得於知悉後一年內撤銷其意思表示。行為能力制度旨在保護限制行為能力人，限制行為能力人所為之單獨行為，無效。"),
+        ("民法債編_侵權行為責任要件", "今天探討民法第一百八十四條獨立侵權行為責任之成立要件。因故意或過失，不法侵害他人之權利者，負損害賠償責任。消滅時效自請求權人知悉有損害及賠償義務人時起算，二年內不行使而消滅。"),
+        ("民法物權_共有物之處分與管理", "共有物之處分、變更及設定負擔，應得共有人全體之同意。但依土地法第三十四條之一，共有人人數及應有部分合計過半數即可。共有物分割協議須全體同意始生效力。"),
+        ("土地法_土地登記效力與絕對效力", "土地登記規則規定，依本法所為之登記，有絕對效力。第三人信賴登記而取得土地權利者，其權利受法律保護，以維護交易安全。未登記土地所有權處分受限。"),
+        ("土地稅法_地價稅減免與申報要件", "土地稅法規定，自用住宅用地之地價稅按千分之二課徵。其餘非自用住宅用地則按基本稅率課徵，符合一定要件之公有土地得申請免稅。"),
+        ("民事訴訟法_管轄權與合意管轄", "民事訴訟法規定，訴訟由被告住所地之法院管轄。但當事人得以書面合意約定第一審管轄法院，此即為合意管轄之要件與程序。因不動產涉訟者，專屬不動產所在地法院管轄。"),
+        ("行政程序法_行政處分之定義與撤銷", "行政處分係指行政機關就公法上具體事件所為之決定或其他公權力措施，而對外直接發生法律效果之單方行政行為。違法行政處分得由原處分機關或上級機關依法撤銷。"),
+        ("刑法總則_正當防衛與緊急避難", "對於現在不法之侵害，而出於防衛自己或他人權利之行為，不罰，此為正當防衛。因避免自己或他人生命、身體、自由、財產之緊急危難，而出於不得已之行為，不罰，此為緊急避難。"),
+        ("公司法_股東會召集程序與決議", "公司法規定，股東常會之召集，應於二十日前通知各股東；股東臨時會之召集，則應於十日前通知各股東。股東會決議分普通決議與特別決議。"),
+        ("勞動基準法_勞動契約終止與資遣費", "勞動基準法保障勞工權益，規定雇主終止勞動契約時，應依勞工工作年資給予預告期間，並依法給付資遣費。定期契約與不定期契約之認定標準不同。"),
+        ("專利法_發明專利三要件", "專利法規定發明專利必須具備產業利用性、新穎性及進步性。申請專利應向專利專責機關提出申請書、說明書及必要圖式。專利權期限自申請日起算二十年。"),
+        ("著作權法_合理使用與侵權責任", "著作權法為協調社會公共利益，規定在合理範圍內，得合理使用他人已公開發表之著作，並應明示出處及合理引用。擅自重製他人著作者應負侵權賠償責任。"),
+        ("票據法_票據權利消滅時效", "票據法規定執票人對匯票承兌人及本票發票人之權利，自到期日起算，三年間不行使，因時效而消滅。支票權利時效為一年，對前手之追索權為四個月。"),
+        ("保險法_保險利益之存在與認定", "保險法規定要保人對於被保險人之生命或身體，應具有保險利益。無保險利益之保險契約，其契約為無效，以防道德危險。財物保險亦須有保險利益。"),
+        ("強制執行法_查封程序與效力", "強制執行法規定查封之效力。實施查封後，債務人對查封物所為之處分，對於債權人不生效力。查封得由執行法官指派書記官進行動產或不動產之限制處分。"),
+        ("國家賠償法_公務員責任與國賠要件", "國家賠償法規定公務員於執行職務行使公權力時，因故意或過失不法侵害人民自由或權利者，國家應負損害賠償責任。賠償請求應先以書面向賠償義務機關協議。"),
+        ("行政訴訟法_撤銷訴訟與訴願程序", "行政訴訟法規定，人民不服訴願決定者，得向行政法院提起撤銷訴訟。撤銷訴訟之提起，應於訴願決定書送達後二個月內之法定期間內為之。"),
+        ("消費者保護法_郵購買買七日猶豫期", "消費者保護法規定郵購或訪問買賣之消費者，對所收受之商品不願買受時，得於收受商品後七日內，退回商品或書面通知解除契約，無須說明理由及負擔費用。"),
+        ("公寓大廈管理條例_規約與區分所有", "公寓大廈區分所有權人會議之決議，對於區分所有權人及住戶均有拘束力。規約為管理公寓大廈之共同遵守事項，須報請地方主管機關備查。"),
+        ("家庭暴力防治法_保護令申請與執行", "家庭暴力防治法規定，法院得依被害人申請核發通常保護令、暫時保護令或緊急保護令。違反保護令罪者，處三年以下有期徒刑、拘役或科或併科罰金。"),
+        ("信託法_信託財產獨立性原則", "信託法規定信託財產具有獨立性，受託人因信託財產關係對他人所負之債務，僅得以信託財產為限負其履行責任。信託財產原則上不得強制執行。"),
+        ("公平交易法_限制競爭與聯合行為", "公平交易法旨在維護交易秩序與消費者利益。事業不得為聯合行為或濫用市場優勢地位，亦不得為限制競爭或不正競爭之行為。違反者處以行政罰鍰。"),
+        ("營業秘密法_損害賠償與懲罰性賠償", "營業秘密法規定，故意洩漏或盜用他人營業秘密者，應負損害賠償責任。法院得依侵害情節，酌定三倍以下之懲罰性賠償。侵害營業秘密罪最重可處五年有期徒刑。"),
+        ("金融消費者保護法_金融爭議評議", "金融消費者與金融服務業發生爭議時，得向評議機構申請評議。評議決定在一定額度內對金融服務業具有拘束力，以保護弱勢金融消費者。"),
+        ("個人資料保護法_蒐集處理與告知義務", "個人資料保護法規定公務或非公務機關蒐集個人資料時，應向當事人明確告知蒐集目的、類別及利用期間、地區與對象。違反者負有民刑事及行政責任。"),
+        ("破產法_破產宣告與和解程序", "破產法規定，法院為破產宣告時，應選任破產管理人，並決定債權申報期間。破產人對其財產之處分權即行喪失，應全權移交破產管理人。"),
+        ("仲裁法_仲裁協議效力與仲裁判斷", "仲裁法規定當事人約定將爭議提交仲裁者，法院應依當事人聲請裁定停止訴訟程序，命當事人依約進行仲裁。仲裁判斷與法院確定判決有同一效力。"),
+        ("海商法_載貨證券之物權效力", "海商法規定運送人或船長發給載貨證券後，對於載貨證券持有人應負依載貨證券所載內容交付貨物之責任。載貨證券之交付具物權效力。"),
+        ("涉外民事法律適用法_準據法之選定", "涉外民事法律適用法旨在解決涉外事件之法律衝突。法律行為之準據法，依當事人意思表示所定之法律；無約定者依關係最切地法，如不動產所在地法。"),
+        ("家事事件法_調解程序與非訟事件", "家事事件法規定家事事件除法律另有規定外，於起訴前應經法院調解程序。調解成立者，與確定判決有同一之效力，並能聲請強制執行。")
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("通用法律教材", "本課堂主要介紹臺灣法律實務與救濟程序，涵蓋民刑事實體法與程序法之基本概念。")
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+import os
+import sys
+import time
+import json
+import argparse
+import threading
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+from scripts.quota_manager import QuotaManager
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("民法總則_法律行為之效力", "本課堂主要講解民法總則中有關法律行為之效力。法律行為以意思表示為要素，若意思表示有瑕疵，如詐欺或脅迫，得於知悉後一年內撤銷其意思表示。行為能力制度旨在保護限制行為能力人，限制行為能力人所為之單獨行為，無效。"),
+        ("民法債編_侵權行為責任要件", "今天探討民法第一百八十四條獨立侵權行為責任之成立要件。因故意或過失，不法侵害他人之權利者，負損害賠償責任。消滅時效自請求權人知悉有損害及賠償義務人時起算，二年內不行使而消滅。"),
+        ("民法物權_共有物之處分與管理", "共有物之處分、變更及設定負擔，應得共有人全體之同意。但依土地法第三十四條之一，共有人人數及應有部分合計過半數即可。共有物分割協議須全體同意始生效力。"),
+        ("土地法_土地登記效力與絕對效力", "土地登記規則規定，依本法所為之登記，有絕對效力。第三人信賴登記而取得土地權利者，其權利受法律保護，以維護交易安全。未登記土地所有權處分受限。"),
+        ("土地稅法_地價稅減免與申報要件", "土地稅法規定，自用住宅用地之地價稅按千分之二課徵。其餘非自用住宅用地則按基本稅率課徵，符合一定要件之公有土地得申請免稅。"),
+        ("民事訴訟法_管轄權與合意管轄", "民事訴訟法規定，訴訟由被告住所地之法院管轄。但當事人得以書面合意約定第一審管轄法院，此即為合意管轄之要件與程序。因不動產涉訟者，專屬不動產所在地法院管轄。"),
+        ("行政程序法_行政處分之定義與撤銷", "行政處分係指行政機關就公法上具體事件所為之決定或其他公權力措施，而對外直接發生法律效果之單方行政行為。違法行政處分得由原處分機關或上級機關依法撤銷。"),
+        ("刑法總則_正當防衛與緊急避難", "對於現在不法之侵害，而出於防衛自己或他人權利之行為，不罰，此為正當防衛。因避免自己或他人生命、身體、自由、財產之緊急危難，而出於不得已之行為，不罰，此為緊急避難。"),
+        ("公司法_股東會召集程序與決議", "公司法規定，股東常會之召集，應於二十日前通知各股東；股東臨時會之召集，則應於十日前通知各股東。股東會決議分普通決議與特別決議。"),
+        ("勞動基準法_勞動契約終止與資遣費", "勞動基準法保障勞工權益，規定雇主終止勞動契約時，應依勞工工作年資給予預告期間，並依法給付資遣費。定期契約與不定期契約之認定標準不同。"),
+        ("專利法_發明專利三要件", "專利法規定發明專利必須具備產業利用性、新穎性及進步性。申請專利應向專利專責機關提出申請書、說明書及必要圖式。專利權期限自申請日起算二十年。"),
+        ("著作權法_合理使用與侵權責任", "著作權法為協調社會公共利益，規定在合理範圍內，得合理使用他人已公開發表之著作，並應明示出處及合理引用。擅自重製他人著作者應負侵權賠償責任。"),
+        ("票據法_票據權利消滅時效", "票據法規定執票人對匯票承兌人及本票發票人之權利，自到期日起算，三年間不行使，因時效而消滅。支票權利時效為一年，對前手之追索權為四個月。"),
+        ("保險法_保險利益之存在與認定", "保險法規定要保人對於被保險人之生命或身體，應具有保險利益。無保險利益之保險契約，其契約為無效，以防道德危險。財物保險亦須有保險利益。"),
+        ("強制執行法_查封程序與效力", "強制執行法規定查封之效力。實施查封後，債務人對查封物所為之處分，對於債權人不生效力。查封得由執行法官指派書記官進行動產或不動產之限制處分。"),
+        ("國家賠償法_公務員責任與國賠要件", "國家賠償法規定公務員於執行職務行使公權力時，因故意或過失不法侵害人民自由或權利者，國家應負損害賠償責任。賠償請求應先以書面向賠償義務機關協議。"),
+        ("行政訴訟法_撤銷訴訟與訴願程序", "行政訴訟法規定，人民不服訴願決定者，得向行政法院提起撤銷訴訟。撤銷訴訟之提起，應於訴願決定書送達後二個月內之法定期間內為之。"),
+        ("消費者保護法_郵購買買七日猶豫期", "消費者保護法規定郵購或訪問買賣之消費者，對所收受之商品不願買受時，得於收受商品後七日內，退回商品或書面通知解除契約，無須說明理由及負擔費用。"),
+        ("公寓大廈管理條例_規約與區分所有", "公寓大廈區分所有權人會議之決議，對於區分所有權人及住戶均有拘束力。規約為管理公寓大廈之共同遵守事項，須報請地方主管機關備查。"),
+        ("家庭暴力防治法_保護令申請與執行", "家庭暴力防治法規定，法院得依被害人申請核發通常保護令、暫時保護令或緊急保護令。違反保護令罪者，處三年以下有期徒刑、拘役或科或併科罰金。"),
+        ("信託法_信託財產獨立性原則", "信託法規定信託財產具有獨立性，受託人因信託財產關係對他人所負之債務，僅得以信託財產為限負其履行責任。信託財產原則上不得強制執行。"),
+        ("公平交易法_限制競爭與聯合行為", "公平交易法旨在維護交易秩序與消費者利益。事業不得為聯合行為或濫用市場優勢地位，亦不得為限制競爭或不正競爭之行為。違反者處以行政罰鍰。"),
+        ("營業秘密法_損害賠償與懲罰性賠償", "營業秘密法規定，故意洩漏或盜用他人營業秘密者，應負損害賠償責任。法院得依侵害情節，酌定三倍以下之懲罰性賠償。侵害營業秘密罪最重可處五年有期徒刑。"),
+        ("金融消費者保護法_金融爭議評議", "金融消費者與金融服務業發生爭議時，得向評議機構申請評議。評議決定在一定額度內對金融服務業具有拘束力，以保護弱勢金融消費者。"),
+        ("個人資料保護法_蒐集處理與告知義務", "個人資料保護法規定公務或非公務機關蒐集個人資料時，應向當事人明確告知蒐集目的、類別及利用期間、地區與對象。違反者負有民刑事及行政責任。"),
+        ("破產法_破產宣告與和解程序", "破產法規定，法院為破產宣告時，應選任破產管理人，並決定債權申報期間。破產人對其財產之處分權即行喪失，應全權移交破產管理人。"),
+        ("仲裁法_仲裁協議效力與仲裁判斷", "仲裁法規定當事人約定將爭議提交仲裁者，法院應依當事人聲請裁定停止訴訟程序，命當事人依約進行仲裁。仲裁判斷與法院確定判決有同一效力。"),
+        ("海商法_載貨證券之物權效力", "海商法規定運送人或船長發給載貨證券後，對於載貨證券持有人應負依載貨證券所載內容交付貨物之責任。載貨證券之交付具物權效力。"),
+        ("涉外民事法律適用法_準據法之選定", "涉外民事法律適用法旨在解決涉外事件之法律衝突。法律行為之準據法，依當事人意思表示所定之法律；無約定者依關係最切地法，如不動產所在地法。"),
+        ("家事事件法_調解程序與非訟事件", "家事事件法規定家事事件除法律另有規定外，於起訴前應經法院調解程序。調解成立者，與確定判決有同一之效力，並能聲請強制執行。")
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("通用法律教材", "本課堂主要介紹臺灣法律實務與救濟程序，涵蓋民刑事實體法與程序法之基本概念。")
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (IOError, OSError, ImportError):
+            if self.fp:
+                try:
+                    self.fp.close()
+import os
+import sys
+import time
+import json
+import argparse
+import threading
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+from scripts.quota_manager import QuotaManager
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("民法總則_法律行為之效力", "本課堂主要講解民法總則中有關法律行為之效力。法律行為以意思表示為要素，若意思表示有瑕疵，如詐欺或脅迫，得於知悉後一年內撤銷其意思表示。行為能力制度旨在保護限制行為能力人，限制行為能力人所為之單獨行為，無效。"),
+        ("民法債編_侵權行為責任要件", "今天探討民法第一百八十四條獨立侵權行為責任之成立要件。因故意或過失，不法侵害他人之權利者，負損害賠償責任。消滅時效自請求權人知悉有損害及賠償義務人時起算，二年內不行使而消滅。"),
+        ("民法物權_共有物之處分與管理", "共有物之處分、變更及設定負擔，應得共有人全體之同意。但依土地法第三十四條之一，共有人人數及應有部分合計過半數即可。共有物分割協議須全體同意始生效力。"),
+        ("土地法_土地登記效力與絕對效力", "土地登記規則規定，依本法所為之登記，有絕對效力。第三人信賴登記而取得土地權利者，其權利受法律保護，以維護交易安全。未登記土地所有權處分受限。"),
+        ("土地稅法_地價稅減免與申報要件", "土地稅法規定，自用住宅用地之地價稅按千分之二課徵。其餘非自用住宅用地則按基本稅率課徵，符合一定要件之公有土地得申請免稅。"),
+        ("民事訴訟法_管轄權與合意管轄", "民事訴訟法規定，訴訟由被告住所地之法院管轄。但當事人得以書面合意約定第一審管轄法院，此即為合意管轄之要件與程序。因不動產涉訟者，專屬不動產所在地法院管轄。"),
+        ("行政程序法_行政處分之定義與撤銷", "行政處分係指行政機關就公法上具體事件所為之決定或其他公權力措施，而對外直接發生法律效果之單方行政行為。違法行政處分得由原處分機關或上級機關依法撤銷。"),
+        ("刑法總則_正當防衛與緊急避難", "對於現在不法之侵害，而出於防衛自己或他人權利之行為，不罰，此為正當防衛。因避免自己或他人生命、身體、自由、財產之緊急危難，而出於不得已之行為，不罰，此為緊急避難。"),
+        ("公司法_股東會召集程序與決議", "公司法規定，股東常會之召集，應於二十日前通知各股東；股東臨時會之召集，則應於十日前通知各股東。股東會決議分普通決議與特別決議。"),
+        ("勞動基準法_勞動契約終止與資遣費", "勞動基準法保障勞工權益，規定雇主終止勞動契約時，應依勞工工作年資給予預告期間，並依法給付資遣費。定期契約與不定期契約之認定標準不同。"),
+        ("專利法_發明專利三要件", "專利法規定發明專利必須具備產業利用性、新穎性及進步性。申請專利應向專利專責機關提出申請書、說明書及必要圖式。專利權期限自申請日起算二十年。"),
+        ("著作權法_合理使用與侵權責任", "著作權法為協調社會公共利益，規定在合理範圍內，得合理使用他人已公開發表之著作，並應明示出處及合理引用。擅自重製他人著作者應負侵權賠償責任。"),
+        ("票據法_票據權利消滅時效", "票據法規定執票人對匯票承兌人及本票發票人之權利，自到期日起算，三年間不行使，因時效而消滅。支票權利時效為一年，對前手之追索權為四個月。"),
+        ("保險法_保險利益之存在與認定", "保險法規定要保人對於被保險人之生命或身體，應具有保險利益。無保險利益之保險契約，其契約為無效，以防道德危險。財物保險亦須有保險利益。"),
+        ("強制執行法_查封程序與效力", "強制執行法規定查封之效力。實施查封後，債務人對查封物所為之處分，對於債權人不生效力。查封得由執行法官指派書記官進行動產或不動產之限制處分。"),
+        ("國家賠償法_公務員責任與國賠要件", "國家賠償法規定公務員於執行職務行使公權力時，因故意或過失不法侵害人民自由或權利者，國家應負損害賠償責任。賠償請求應先以書面向賠償義務機關協議。"),
+        ("行政訴訟法_撤銷訴訟與訴願程序", "行政訴訟法規定，人民不服訴願決定者，得向行政法院提起撤銷訴訟。撤銷訴訟之提起，應於訴願決定書送達後二個月內之法定期間內為之。"),
+        ("消費者保護法_郵購買買七日猶豫期", "消費者保護法規定郵購或訪問買賣之消費者，對所收受之商品不願買受時，得於收受商品後七日內，退回商品或書面通知解除契約，無須說明理由及負擔費用。"),
+        ("公寓大廈管理條例_規約與區分所有", "公寓大廈區分所有權人會議之決議，對於區分所有權人及住戶均有拘束力。規約為管理公寓大廈之共同遵守事項，須報請地方主管機關備查。"),
+        ("家庭暴力防治法_保護令申請與執行", "家庭暴力防治法規定，法院得依被害人申請核發通常保護令、暫時保護令或緊急保護令。違反保護令罪者，處三年以下有期徒刑、拘役或科或併科罰金。"),
+        ("信託法_信託財產獨立性原則", "信託法規定信託財產具有獨立性，受託人因信託財產關係對他人所負之債務，僅得以信託財產為限負其履行責任。信託財產原則上不得強制執行。"),
+        ("公平交易法_限制競爭與聯合行為", "公平交易法旨在維護交易秩序與消費者利益。事業不得為聯合行為或濫用市場優勢地位，亦不得為限制競爭或不正競爭之行為。違反者處以行政罰鍰。"),
+        ("營業秘密法_損害賠償與懲罰性賠償", "營業秘密法規定，故意洩漏或盜用他人營業秘密者，應負損害賠償責任。法院得依侵害情節，酌定三倍以下之懲罰性賠償。侵害營業秘密罪最重可處五年有期徒刑。"),
+        ("金融消費者保護法_金融爭議評議", "金融消費者與金融服務業發生爭議時，得向評議機構申請評議。評議決定在一定額度內對金融服務業具有拘束力，以保護弱勢金融消費者。"),
+        ("個人資料保護法_蒐集處理與告知義務", "個人資料保護法規定公務或非公務機關蒐集個人資料時，應向當事人明確告知蒐集目的、類別及利用期間、地區與對象。違反者負有民刑事及行政責任。"),
+        ("破產法_破產宣告與和解程序", "破產法規定，法院為破產宣告時，應選任破產管理人，並決定債權申報期間。破產人對其財產之處分權即行喪失，應全權移交破產管理人。"),
+        ("仲裁法_仲裁協議效力與仲裁判斷", "仲裁法規定當事人約定將爭議提交仲裁者，法院應依當事人聲請裁定停止訴訟程序，命當事人依約進行仲裁。仲裁判斷與法院確定判決有同一效力。"),
+        ("海商法_載貨證券之物權效力", "海商法規定運送人或船長發給載貨證券後，對於載貨證券持有人應負依載貨證券所載內容交付貨物之責任。載貨證券之交付具物權效力。"),
+        ("涉外民事法律適用法_準據法之選定", "涉外民事法律適用法旨在解決涉外事件之法律衝突。法律行為之準據法，依當事人意思表示所定之法律；無約定者依關係最切地法，如不動產所在地法。"),
+        ("家事事件法_調解程序與非訟事件", "家事事件法規定家事事件除法律另有規定外，於起訴前應經法院調解程序。調解成立者，與確定判決有同一之效力，並能聲請強制執行。")
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("通用法律教材", "本課堂主要介紹臺灣法律實務與救濟程序，涵蓋民刑事實體法與程序法之基本概念。")
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (IOError, OSError, ImportError):
+            if self.fp:
+                try:
+                    self.fp.close()
+import os
+import sys, io
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+import sys
+import time
+import json
+import argparse
+import threading
+import subprocess
+import random
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+from scripts.quota_manager import QuotaManager
+
+def get_mock_legal_transcript(index):
+    topics = [
+        ("民法總則_法律行為之效力", "本課堂主要講解民法總則中有關法律行為之效力。法律行為以意思表示為要素，若意思表示有瑕疵，如詐欺或脅迫，得於知悉後一年內撤銷其意思表示。行為能力制度旨在保護限制行為能力人，限制行為能力人所為之單獨行為，無效。"),
+        ("民法債編_侵權行為責任要件", "今天探討民法第一百八十四條獨立侵權行為責任之成立要件。因故意或過失，不法侵害他人之權利者，負損害賠償責任。消滅時效自請求權人知悉有損害及賠償義務人時起算，二年內不行使而消滅。"),
+        ("民法物權_共有物之處分與管理", "共有物之處分、變更及設定負擔，應得共有人全體之同意。但依土地法第三十四條之一，共有人人數及應有部分合計過半數即可。共有物分割協議須全體同意始生效力。"),
+        ("土地法_土地登記效力與絕對效力", "土地登記規則規定，依本法所為之登記，有絕對效力。第三人信賴登記而取得土地權利者，其權利受法律保護，以維護交易安全。未登記土地所有權處分受限。"),
+        ("土地稅法_地價稅減免與申報要件", "土地稅法規定，自用住宅用地之地價稅按千分之二課徵。其餘非自用住宅用地則按基本稅率課徵，符合一定要件之公有土地得申請免稅。"),
+        ("民事訴訟法_管轄權與合意管轄", "民事訴訟法規定，訴訟由被告住所地之法院管轄。但當事人得以書面合意約定第一審管轄法院，此即為合意管轄之要件與程序。因不動產涉訟者，專屬不動產所在地法院管轄。"),
+        ("行政程序法_行政處分之定義與撤銷", "行政處分係指行政機關就公法上具體事件所為之決定或其他公權力措施，而對外直接發生法律效果之單方行政行為。違法行政處分得由原處分機關或上級機關依法撤銷。"),
+        ("刑法總則_正當防衛與緊急避難", "對於現在不法之侵害，而出於防衛自己或他人權利之行為，不罰，此為正當防衛。因避免自己或他人生命、身體、自由、財產之緊急危難，而出於不得已之行為，不罰，此為緊急避難。"),
+        ("公司法_股東會召集程序與決議", "公司法規定，股東常會之召集，應於二十日前通知各股東；股東臨時會之召集，則應於十日前通知各股東。股東會決議分普通決議與特別決議。"),
+        ("勞動基準法_勞動契約終止與資遣費", "勞動基準法保障勞工權益，規定雇主終止勞動契約時，應依勞工工作年資給予預告期間，並依法給付資遣費。定期契約與不定期契約之認定標準不同。"),
+        ("專利法_發明專利三要件", "專利法規定發明專利必須具備產業利用性、新穎性及進步性。申請專利應向專利專責機關提出申請書、說明書及必要圖式。專利權期限自申請日起算二十年。"),
+        ("著作權法_合理使用與侵權責任", "著作權法為協調社會公共利益，規定在合理範圍內，得合理使用他人已公開發表之著作，並應明示出處及合理引用。擅自重製他人著作者應負侵權賠償責任。"),
+        ("票據法_票據權利消滅時效", "票據法規定執票人對匯票承兌人及本票發票人之權利，自到期日起算，三年間不行使，因時效而消滅。支票權利時效為一年，對前手之追索權為四個月。"),
+        ("保險法_保險利益之存在與認定", "保險法規定要保人對於被保險人之生命或身體，應具有保險利益。無保險利益之保險契約，其契約為無效，以防道德危險。財物保險亦須有保險利益。"),
+        ("強制執行法_查封程序與效力", "強制執行法規定查封之效力。實施查封後，債務人對查封物所為之處分，對於債權人不生效力。查封得由執行法官指派書記官進行動產或不動產之限制處分。"),
+        ("國家賠償法_公務員責任與國賠要件", "國家賠償法規定公務員於執行職務行使公權力時，因故意或過失不法侵害人民自由或權利者，國家應負損害賠償責任。賠償請求應先以書面向賠償義務機關協議。"),
+        ("行政訴訟法_撤銷訴訟與訴願程序", "行政訴訟法規定，人民不服訴願決定者，得向行政法院提起撤銷訴訟。撤銷訴訟之提起，應於訴願決定書送達後二個月內之法定期間內為之。"),
+        ("消費者保護法_郵購買買七日猶豫期", "消費者保護法規定郵購或訪問買賣之消費者，對所收受之商品不願買受時，得於收受商品後七日內，退回商品或書面通知解除契約，無須說明理由及負擔費用。"),
+        ("公寓大廈管理條例_規約與區分所有", "公寓大廈區分所有權人會議之決議，對於區分所有權人及住戶均有拘束力。規約為管理公寓大廈之共同遵守事項，須報請地方主管機關備查。"),
+        ("家庭暴力防治法_保護令申請與執行", "家庭暴力防治法規定，法院得依被害人申請核發通常保護令、暫時保護令或緊急保護令。違反保護令罪者，處三年以下有期徒刑、拘役或科或併科罰金。"),
+        ("信託法_信託財產獨立性原則", "信託法規定信託財產具有獨立性，受託人因信託財產關係對他人所負之債務，僅得以信託財產為限負其履行責任。信託財產原則上不得強制執行。"),
+        ("公平交易法_限制競爭與聯合行為", "公平交易法旨在維護交易秩序與消費者利益。事業不得為聯合行為或濫用市場優勢地位，亦不得為限制競爭或不正競爭之行為。違反者處以行政罰鍰。"),
+        ("營業秘密法_損害賠償與懲罰性賠償", "營業秘密法規定，故意洩漏或盜用他人營業秘密者，應負損害賠償責任。法院得依侵害情節，酌定三倍以下之懲罰性賠償。侵害營業秘密罪最重可處五年有期徒刑。"),
+        ("金融消費者保護法_金融爭議評議", "金融消費者與金融服務業發生爭議時，得向評議機構申請評議。評議決定在一定額度內對金融服務業具有拘束力，以保護弱勢金融消費者。"),
+        ("個人資料保護法_蒐集處理與告知義務", "個人資料保護法規定公務或非公務機關蒐集個人資料時，應向當事人明確告知蒐集目的、類別及利用期間、地區與對象。違反者負有民刑事及行政責任。"),
+        ("破產法_破產宣告與和解程序", "破產法規定，法院為破產宣告時，應選任破產管理人，並決定債權申報期間。破產人對其財產之處分權即行喪失，應全權移交破產管理人。"),
+        ("仲裁法_仲裁協議效力與仲裁判斷", "仲裁法規定當事人約定將爭議提交仲裁者，法院應依當事人聲請裁定停止訴訟程序，命當事人依約進行仲裁。仲裁判斷與法院確定判決有同一效力。"),
+        ("海商法_載貨證券之物權效力", "海商法規定運送人或船長發給載貨證券後，對於載貨證券持有人應負依載貨證券所載內容交付貨物之責任。載貨證券之交付具物權效力。"),
+        ("涉外民事法律適用法_準據法之選定", "涉外民事法律適用法旨在解決涉外事件之法律衝突。法律行為之準據法，依當事人意思表示所定之法律；無約定者依關係最切地法，如不動產所在地法。"),
+        ("家事事件法_調解程序與非訟事件", "家事事件法規定家事事件除法律另有規定外，於起訴前應經法院調解程序。調解成立者，與確定判決有同一之效力，並能聲請強制執行。")
+    ]
+    if 1 <= index <= 30:
+        return topics[index - 1]
+    return ("通用法律教材", "本課堂主要介紹臺灣法律實務與救濟程序，涵蓋民刑事實體法與程序法之基本概念。")
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+

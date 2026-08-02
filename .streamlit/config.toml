@@ -5,8 +5,6 @@ maxUploadSize = 512
 showErrorDetails = true
 
 [theme]
+base = "light"
 primaryColor = "#d97706"
-backgroundColor = "#0b0f19"
-secondaryBackgroundColor = "#111827"
-textColor = "#ffffff"
-font = "sans-serif"
+

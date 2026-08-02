@@ -1,0 +1,54 @@
+[Preflight OK] Port 8501 is LIVE, Streamlit ready.
+[�Ұ�] �𪬹϶��h�� UI �`�׹M������ (Tree-Hierarchical Deep Crawl) ���� 15 �����@��
+[����] ��� 11 �Ӥ������s
+
+[�ؿ�] �i�J���� 1: ����G�@�Ը�
+   �u�w�w ���դl�]�ﶵ: �߮v (�ɮĨ��m�u��)
+   [����] �Ӯ�: 0.26s | RAM: 36.1 MB
+   �u�w�w ���դl�]�ﶵ: �k�x (���[�k�W���)
+   [����] �Ӯ�: 0.17s | RAM: 36.4 MB
+   �u�w�w ���դl�]�ﶵ: �˹�x (�D�ƥǸo�D�B)
+   [����] �Ӯ�: 0.19s | RAM: 36.9 MB
+
+[�ؿ�] �i�J���� 2: �������i
+   �u�w�w ���դl�]�ﶵ: �妸��Ū�զX����
+   [����] �Ӯ�: 0.09s | RAM: 36.9 MB
+   [����] �Ӯ�: 0.09s | RAM: 36.9 MB
+
+[�ؿ�] �i�J���� 3: �q�k�x�ۧھi��
+   [����] �Ӯ�: 1.96s | RAM: 37.0 MB
+
+[�ؿ�] �i�J���� 4: �D�^�Ѫ��_��
+   [WARN] option not found: ?????????
+   [WARN] option not found: ?????
+   [WARN] option not found: ?????
+   [WARN] option not found: ???????
+
+[�ؿ�] �i�J���� 5: �t�λP�ɮĤu��
+   �u�w�w ���դl�]�ﶵ: ���Ƥ@��I�v�l�` (2�~ - ����197)
+   [����] �Ӯ�: 2.96s | RAM: 37.2 MB
+Traceback (most recent call last):
+  File "C:\LocalAI_Workstation\bot_ultimate_real_crawler.py", line 386, in <module>
+    asyncio.run(explore_tree())
+  File "C:\Python312\Lib\asyncio\runners.py", line 195, in run
+   �u�w�w ���դl�]�ﶵ: �@�봶�q�ШD�v (15�~)
+   [����] �Ӯ�: 4.99s | RAM: 37.3 MB
+   �u�w�w ���դl�]�ﶵ: ��F���k�W�ШD�v/�u�� (5�~)
+   [����] �Ӯ�: 4.39s | RAM: 37.4 MB
+   �u�w�w ���դl�]�ﶵ: �Ұ�k14��30�鰣����������
+   [����] �Ӯ�: 3.48s | RAM: 37.8 MB
+   �u�w�w ���դl�]�ﶵ: AES�[�K�ɥX
+   [����] �Ӯ�: 1.29s | RAM: 37.9 MB
+
+[M15 SBFL �Y����O��]
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\LocalAI_Workstation\bot_ultimate_real_crawler.py", line 379, in explore_tree
+    print(f"  {bar} �S�x [{feat}] �Y����v: {rate:.2%} ({crash_counts[feat]}/{total_counts[feat]})")
+UnicodeEncodeError: 'cp950' codec can't encode character '\U0001f7e2' in position 2: illegal multibyte sequence

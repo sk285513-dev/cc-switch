@@ -1,0 +1,203 @@
+
+> def process_single_chunk(
+      chunk: dict,
+      client,
+      qm: QuotaManager,
+      current_key_ref: list,   # 用 list 包裹讓執行緒間可共享可變引用
+      key_lock: threading.Lock,
+      task_id: str,
+      chunks_manifest_path: str,
+      manifest_write_lock: threading.Lock,
+      config: dict,
+      chunk_errors_log: str,
+      stt_engine: str,
+  ) -> bool:
+      """
+      處理單一音訊 chunk 的完整流程：上傳 → Gemini 轉譯 → 本地 Whisper 對照 → 蒸餾存檔。
+      線程安全：manifest 寫入使用 manifest_write_lock。
+      返回 True 表示成功，False 表示最終失敗。
+      """
+      chunk_path = chunk["path"]
+      chunk_filename = chunk["filename"]
+      retry_limit = 6   # 503 高峰期增強耐心：最多重試 6 次（原 3 次）
+      uploaded_file = None
+      upload_client = None
+      last_upload_key = None   # 追蹤 upload_client 使用的金鑰（替代 ._api_key 私有屬性）
+      consecutive_429_count = 0
+  
+      logging.info(f"[Parallel STT] Processing chunk: {chunk_filename}")
+  
+      while chunk["retry_count"] < retry_limit:
+          try:
+              # ── 雲端 Gemini 路徑 ──
+              if stt_engine in ["gemini", "vertexai"]:
+                  file_size = os.path.getsize(chunk_path)
+                  if file_size > 2000 * 1024 * 1024:
+                      raise ValueError(f"{chunk_filename} 超過 2GB 上傳上限")
+  
+                  if stt_engine == "gemini":
+                      with key_lock:
+                          active_key = current_key_ref[0]
+  
+                      if upload_client is not None and last_upload_key != active_key:
+                          uploaded_file = None
+                          upload_client = None
+                          last_upload_key = None
+  
+                      if not uploaded_file:
+                          with key_lock:
+                              active_key = current_key_ref[0]
+                          upload_client = genai.Client(api_key=active_key)
+                          last_upload_key = active_key   # 記錄此 client 使用的金鑰
+                          logging.info(f"[Parallel STT] Preparing InlineData for {chunk_filename}...")
+                          with open(chunk_path, "rb") as f:
+                              audio_data = f.read()
+                          uploaded_file = types.Part.from_bytes(data=audio_data, mime_type="audio/wav")
+                          logging.info(f"[Parallel STT] InlineData prepared.")
+  
+                      transcription = _call_with_timeout(
+                          transcribe_chunk,
+                          API_TRANSCRIBE_TIMEOUT,
+                          upload_client, uploaded_file, config, qm=qm, api_key=active_key
+                      )
+                  else: # vertexai
+                      if not uploaded_file:
+                          vertex_project = config.get("api", {}).get("vertexai_project")
+                          logging.info(f"[Parallel STT] Preparing InlineData for {chunk_filename} (Vertex AI)...")
+                          with open(chunk_path, "rb") as f:
+                              audio_data = f.read()
+                          uploaded_file = types.Part.from_bytes(data=audio_data, mime_type="audio/wav")
+                          
+                          upload_client = genai.Client(vertexai=True, project=vertex_project, location="us-central1")
+  
+                      transcription = _call_with_timeout(
+                          transcribe_chunk,
+                          API_TRANSCRIBE_TIMEOUT,
+                          upload_client, uploaded_file, config, qm=None, api_key=None
+                      )
+  
+                  # ── 【關鍵】立即存檔 Gemini 轉寫結果，不等 Whisper ──
+                  # Whisper 蒸餾是選配的訓練資料步驟，不影響主流程
+                  # 先存 .txt/.json，確保中斷也不遺失 Gemini 成果
+                  txt_output_path = os.path.splitext(chunk_path)[0] + ".txt"
+                  with open(txt_output_path, "w", encoding="utf-8-sig") as tf:
+                      tf.write(transcription or "")  # None-safe
+                  json_output_path = os.path.splitext(chunk_path)[0] + ".json"
+                  with open(json_output_path, "w", encoding="utf-8") as jf:
+                      json.dump({
+                          "task_id": task_id,
+                          "filename": chunk_filename,
+                          "part_no": chunk.get("part_no", chunk.get("chunk_id")),
+                          "transcription": transcription,
+                          "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                      }, jf, ensure_ascii=False, indent=2)
+                  logging.info(f"[Parallel STT] 💾 Gemini 結果已落地（不等 Whisper）：{chunk_filename}")
+  
+                  # ── 雙軌 ASR 蒸餾（放入 daemon thread 背景執行，真正做到不等 Whisper）──
+                  def _run_distill(task_id, chunk_filename, chunk_path, transcription):
+                      local_whisper_text = ""
+                      try:
+                          logging.info(f"[Parallel STT][Distill] WhisperPool 排隊（背景執行）：{chunk_filename}")
+                          local_whisper_text = WhisperPool.transcribe(chunk_path)
+                          local_whisper_text = apply_glossary_fix(local_whisper_text)
+                          logging.info(f"[Parallel STT][Distill] 完成：{chunk_filename}")
+  
+                          if local_whisper_text and transcription:
+                              from difflib import SequenceMatcher
+                              s = SequenceMatcher(None, local_whisper_text, transcription)
+                              diff_items = []
+                              for tag, i1, i2, j1, j2 in s.get_opcodes():
+                                  if tag == "replace":
+                                      lw = local_whisper_text[i1:i2]
+                                      gr = transcription[j1:j2]
+                                      if 0 < len(lw) < 100 and 0 < len(gr) < 100:
+                                          diff_items.append({"local_whisper_raw": lw, "gemini_corrected": gr})
+  
+                              distill_dir = "A:\\distillation_dataset"
+                              os.makedirs(distill_dir, exist_ok=True)
+                              chunk_distill_path = os.path.join(
+                                  distill_dir,
+                                  f"{task_id}_{chunk_filename.replace('.wav', '')}_distill.json"
+                              )
+                              with open(chunk_distill_path, "w", encoding="utf-8") as df:
+                                  json.dump({
+                                      "task_id": task_id,
+                                      "chunk_filename": chunk_filename,
+                                      "diff_mappings": diff_items,
+                                      "local_whisper_text": local_whisper_text,
+                                      "gemini_text": transcription,
+                                      "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                                  }, df, ensure_ascii=False, indent=2)
+                              logging.info(f"[Parallel STT][Distill] 蒸餾資料已儲存：{chunk_distill_path}")
+  
+                      except Exception as de:
+                          logging.warning(f"[Parallel STT][Distill] 蒸餾失敗（非致命）：{de}")
+                  
+                  # 發射後不理 (fire-and-forget)，讓主流程繼續
+                  threading.Thread(target=_run_distill, args=(task_id, chunk_filename, chunk_path, transcription), daemon=True).start()
+  
+              else:  # local_whisper — 此路徑不應被觸發（STT 主力已鎖定為 Gemini）
+                  # ══ POLICY GUARD：絕不允許 Whisper 成為主力輸出 ══
+                  logging.critical(
+                      f"[POLICY ERROR] stt_engine=local_whisper 路徑被意外觸發！"
+                      f" chunk={chunk_filename}。STT 主力必須為 Gemini，此 chunk 標記失敗。"
+                  )
+                  raise RuntimeError(
+                      "[POLICY] Whisper 不得作為 STT 主力。請確認 stt_engine='gemini'。"
+                  )
+  
+  
+              if stt_engine != "gemini":
+                  txt_output_path = os.path.splitext(chunk_path)[0] + ".txt"
+                  with open(txt_output_path, "w", encoding="utf-8-sig") as tf:
+                      tf.write(transcription)
+                  json_output_path = os.path.splitext(chunk_path)[0] + ".json"
+                  with open(json_output_path, "w", encoding="utf-8") as jf:
+                      json.dump({
+                          "task_id": task_id,
+                          "filename": chunk_filename,
+                          "part_no": chunk.get("part_no", chunk.get("chunk_id")),
+                          "transcription": transcription,
+                          "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                      }, jf, ensure_ascii=False, indent=2)
+  
+              chunk["status"] = "completed"
+              consecutive_429_count = 0
+              if stt_engine == "gemini":
+                  qm.reset_key(current_key_ref[0])
+              logging.info(f"[Parallel STT] ✅ 完成：{chunk_filename}")
+  
+              # 即時寫回 manifest（需持 per-task 鎖）
+              # 注意：chunk dict 是共享的引用，其他執行緒可能也在改它，加鎖保護
+              with manifest_write_lock:
+                  # 重新讀取（另一個執行緒可能剛寫過），只更新這個 chunk
+                  return True
+  
+          except Exception as e:
+              err_str = str(e)
+              is_429 = ("ResourceExhausted" in type(e).__name__) or ("429" in err_str)
+              if stt_engine == "gemini" and is_429:
+                  consecutive_429_count += 1
+                  with key_lock:
+                      current_key = current_key_ref[0]
+                  res = qm.handle_error(e, current_key, consecutive_429_count)
+                  sleep_time = res["sleep_time"]
+                  new_key = res["new_key"]
+                  project_cooldown = res["project_cooldown"]
+  
+                  if new_key:
+                      with key_lock:
+                          current_key_ref[0] = new_key
+                      consecutive_429_count = 0
+                      logging.info(f"[Parallel STT] 切換至新金鑰: {new_key[:8]}...")
+                  else:
+                      logging.error("[Parallel STT] 所有金鑰耗盡，終止此 chunk。")
+                      break
+  
+                  if sleep_time > 0:
+                      logging.info(f"[Parallel STT] 因 429 退避，暫停 {sleep_time} 秒...")
+                      time.sleep(sleep_time)
+                  continue
+              elif stt_engine == "vertexai" and "ResourceExhausted" in type(e).__name__:
+                  sleep_time = 15 * (chunk["retry_count"] + 1)
+
