@@ -1,10 +1,2 @@
 [server]
-maxUploadSize = 512
-
-[client]
-showErrorDetails = true
-
-[theme]
-base = "light"
-primaryColor = "#d97706"
-
+fileWatcherType = "none"

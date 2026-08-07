@@ -1,27 +1,30 @@
-if (-Not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "Requesting Administrator privileges to read background processes..."
-    $scriptBlock = {
-        Write-Host "LexMind Stop Script (Elevated)"
-        Write-Host "Killing all Python, Node, and FFmpeg processes to ensure a clean slate..."
-        
-        try { taskkill /F /IM python.exe /T 2>&1 | Out-Null } catch {}
-        try { taskkill /F /IM pythonw.exe /T 2>&1 | Out-Null } catch {}
-        try { taskkill /F /IM node.exe /T 2>&1 | Out-Null } catch {}
-        try { taskkill /F /IM ffmpeg.exe /T 2>&1 | Out-Null } catch {}
-
-        Write-Host "Closing LexMind Terminal Windows..."
-        $processes = Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe'"
-        foreach ($p in $processes) {
-            if ($p.CommandLine -match 'LocalAI_Workstation|scripts_v6' -and $p.ProcessId -ne $PID) {
-                try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {}
-            }
+$callerPID = $PID
+$scriptBlock = {
+    param($OriginalPID)
+    Write-Host "LexMind Stop Script (Elevated)"
+    Write-Host "Killing targeted Python, Node, FFmpeg, and Wscript processes to ensure a clean slate..."
+    
+    $targets = Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='pythonw.exe' OR Name='wscript.exe' OR Name='node.exe' OR Name='ffmpeg.exe'"
+    foreach ($t in $targets) {
+        if ($t.CommandLine -match "LexMind|LocalAI_Workstation|scripts_v6|app_v6") {
+            try { Stop-Process -Id $t.ProcessId -Force -ErrorAction SilentlyContinue } catch {}
         }
-
-        Write-Host "`nSuccessfully cleared all background processes and windows."
-        Write-Host "Done. System completely shut down."
-        Start-Sleep -Seconds 2
     }
-    $encoded = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($scriptBlock.ToString()))
-    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded" -Verb RunAs
-    exit
+
+    Write-Host "Closing LexMind Terminal Windows..."
+    $processes = Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe'"
+    foreach ($p in $processes) {
+        if ($p.CommandLine -match 'LocalAI_Workstation|scripts_v6|logs_v6|app_v6' -and $p.ProcessId -ne $PID -and $p.ProcessId -ne $OriginalPID) {
+            try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {}
+        }
+    }
+    
+    Write-Host "Releasing resource locks..."
+    Remove-Item "A:\manifests_v6\workflow.lock" -Force -ErrorAction SilentlyContinue
+
+    Write-Host "`nSuccessfully cleared all background processes, locks, and windows."
+    Write-Host "Done. System completely shut down."
+    Start-Sleep -Seconds 2
 }
+
+& $scriptBlock $callerPID
