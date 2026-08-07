@@ -1,4 +1,4 @@
-﻿﻿# ============================================================
+﻿# ============================================================
 #  LexMind-Omni  v2.1  (2026-07-21)  ASCII-safe edition
 # ============================================================
 $env:LEXMIND_ENV      = "v6_canary"
@@ -117,10 +117,16 @@ $st = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%.exe'" |
 if ($st) {
     Write-Host "  [SKIP] Streamlit already running  PID=$($st.ProcessId)" -ForegroundColor DarkGray
 } else {
-    & "C:\Python312\pythonw.exe" "$ROOT\Launch_Isolated.py" powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -Command "Clear-Host; Write-Host '=== 正在啟動企業級網頁控制面板 ===' -ForegroundColor Cyan; Set-Location '$ROOT'; streamlit run app_v6.py --server.port 8506 --server.headless true --theme.base='light'"
+    Start-Process powershell `
+        -WindowStyle Normal `
+        -ArgumentList @(
+            "-NoProfile","-NoExit","-ExecutionPolicy","Bypass","-Command",
+            "Clear-Host; Write-Host '=== 正在啟動企業級網頁控制面板 ===' -ForegroundColor Cyan; Set-Location '$ROOT'; streamlit run app_v6.py --server.port 8506 --theme.base=`"light`""
+        ) `
+        -WorkingDirectory $ROOT
     Write-Host "  [OK]   Streamlit starting..." -ForegroundColor Green
     Start-Sleep -Seconds 5
-    # 確保只精準開啟一個瀏覽器分頁
+    # 開啟瀏覽器
     try {
         Start-Process "http://localhost:8506" -ErrorAction SilentlyContinue
     } catch {}
@@ -135,15 +141,14 @@ $sre = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%.exe'" |
 if ($sre) {
     Write-Host "  [SKIP] SRE Watchdog already running  PID=$($sre.ProcessId)" -ForegroundColor DarkGray
 } else {
-    $env:PYTHONUTF8 = '1'
-    $env:PYTHONIOENCODING = 'utf-8'
-    Start-Process "C:\Python312\python.exe" `
-        -ArgumentList "scripts_v6\sre_watchdog.py" `
-        -WorkingDirectory $ROOT `
-        -RedirectStandardOutput "A:\logs\sre_watchdog_stdout.log" `
-        -RedirectStandardError "A:\logs\sre_watchdog_stderr.log" `
-        -WindowStyle Hidden
-    Write-Host "  [OK]   SRE Watchdog started in background" -ForegroundColor Green
+    Start-Process powershell `
+        -WindowStyle Normal `
+        -ArgumentList @(
+            "-NoExit","-ExecutionPolicy","Bypass","-Command",
+            "`$env:LEXMIND_ENV='v6_canary'; `$env:PYTHONUTF8='1'; Set-Location '$ROOT'; python scripts_v6\sre_watchdog.py"
+        ) `
+        -WorkingDirectory $ROOT
+    Write-Host "  [OK]   SRE Watchdog opened" -ForegroundColor Green
 }
 
 # KPI Runner
@@ -153,28 +158,46 @@ if ($kpi) {
     Write-Host "  [SKIP] KPI Monitor already running  PID=$($kpi.ProcessId)" -ForegroundColor DarkGray
 } else {
     Start-Process powershell `
-        -ArgumentList @("-ExecutionPolicy", "Bypass", "-File", "$ROOT\kpi_runner.ps1") `
-        -WorkingDirectory $ROOT `
-        -RedirectStandardOutput "A:\logs\kpi_runner.log" `
-        -RedirectStandardError "A:\logs\kpi_runner_error.log" `
-        -WindowStyle Hidden
-    Write-Host "  [OK]   KPI Monitor started in background" -ForegroundColor Green
+        -WindowStyle Normal `
+        -ArgumentList @("-NoExit","-ExecutionPolicy","Bypass","-File","$ROOT\kpi_runner.ps1") `
+        -WorkingDirectory $ROOT
+    Write-Host "  [OK]   KPI Monitor opened" -ForegroundColor Green
 }
 
-# Progress Dashboard
-Write-Host "  [OK]   Starting Progress Dashboard window..." -ForegroundColor Green
-& "C:\Python312\pythonw.exe" "$ROOT\Launch_Isolated.py" powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -File "$ROOT\dashboard_runner.ps1"
+# Progress Dashboard (統計報表)
+$db = Get-CimInstance Win32_Process -Filter "Name LIKE 'python%.exe'" |
+      Where-Object { $_.CommandLine -match "progress_dashboard" }
+if ($db) {
+    Write-Host "  [SKIP] Progress Dashboard already running  PID=$($db.ProcessId)" -ForegroundColor DarkGray
+} else {
+    Start-Process powershell `
+        -WindowStyle Normal `
+        -ArgumentList @(
+            "-NoExit","-ExecutionPolicy","Bypass","-Command",
+            "`$env:LEXMIND_ENV='v6_canary'; `$env:PYTHONUTF8='1'; `$env:PYTHONIOENCODING='utf-8'; Set-Location '$ROOT'; while (`$true) { try { python scripts_v6\progress_dashboard.py } catch {}; Write-Host '[自動重啟中，5 秒後重新整理...]' -ForegroundColor Yellow; Start-Sleep -Seconds 5 }"
+        ) `
+        -WorkingDirectory $ROOT
+    Write-Host "  [OK]   Progress Dashboard (統計報表) opened" -ForegroundColor Green
+}
 
-# Workflow Log Monitor
-Write-Host "  [OK]   Starting Workflow Log Monitor window..." -ForegroundColor Green
-& "C:\Python312\pythonw.exe" "$ROOT\Launch_Isolated.py" powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -Command "Clear-Host; Write-Host '=== 正在即時監控主工作流進度 (workflow.log) ===' -ForegroundColor Yellow; Get-Content A:\logs\workflow.log -Encoding UTF8 -Wait -Tail 30"
+# Workflow Log Tail
+Write-Host "  [OK]   Workflow Log Monitor opened" -ForegroundColor Green
+Start-Process powershell `
+    -WindowStyle Normal `
+    -ArgumentList @(
+        "-NoExit","-ExecutionPolicy","Bypass","-Command",
+        "Clear-Host; Write-Host '=== 正在即時監控主工作流進度 (workflow.log) ===' -ForegroundColor Yellow; Get-Content ""$env:LEXMIND_LOG_DIR\workflow.log"" -Encoding UTF8 -Wait -Tail 30"
+    ) `
+    -WorkingDirectory $ROOT
 
 # ── Summary ───────────────────────────────────────────────────
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  All done! Check the following:           " -ForegroundColor Cyan
 Write-Host "  1. Streamlit  -> http://localhost:8506   " -ForegroundColor Cyan
-Write-Host "  (Watchdog and KPI Monitor are running in background)" -ForegroundColor Cyan
+Write-Host "  2. SRE Watchdog  (PowerShell window)     " -ForegroundColor Cyan
+Write-Host "  3. KPI Monitor   (PowerShell window)     " -ForegroundColor Cyan
+Write-Host "  4. Dashboard     (PowerShell window)     " -ForegroundColor Cyan
 Write-Host "                                           " -ForegroundColor Cyan
 Write-Host "  Crawler: python bot_ultimate_real_crawler.py" -ForegroundColor DarkYellow
 Write-Host "  Or:      double-click Launch_Crawler_UI.vbs" -ForegroundColor DarkYellow
@@ -182,10 +205,3 @@ Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Window will close in 5 seconds..." -ForegroundColor Gray
 Start-Sleep -Seconds 5
-
-
-
-
-
-
-

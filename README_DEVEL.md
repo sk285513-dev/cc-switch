@@ -88,16 +88,19 @@ Whisper+Gemini     Unsloth 雙卡訓練        法律精校小天才      零 AP
 1. **禁止終端機輸出 Emoji**：Windows 預設 CP950 無法解析 Emoji。print() 或 Write-Host 中包含 Emoji 將導致 UnicodeEncodeError 並使進程卡死。
 2. **純 ASCII 圖示安全化**：終端機提示僅限使用純 ASCII 符號（如 [OK], [WARN], [FAIL]），嚴禁為了美觀添加任何特殊字元。
 3. **強制腳本編碼**：所有寫入的 Python (.py) 與 PowerShell (.ps1) 檔案，必須強制使用 UTF-8 或 UTF-8-BOM 編碼。
-4. **CP950 日誌讀取防護**：讀取 Windows 日誌遇到中文字節 (0xa6) 易噴錯，讀檔時務必加上 rrors="replace" 或 rrors="ignore"。
+4. **CP950 日誌讀取防護**：讀取 Windows 日誌遇到中文字節 (0xa6) 易噴錯，讀檔時務必加上  rrors="replace" 或  rrors="ignore"。
 5. **字典取值 KeyError 防呆**：嚴禁硬抓 JSON 欄位（如 manifest["task_id"]）。必須強制使用安全的 .get() 方法（如 manifest.get("task_id", "unknown")）。
 6. **API 呼叫無聲死鎖防禦**：呼叫 Vertex AI / Gemini 等外部 API 時，絕對不可漏設 	imeout（如 	imeout=120.0），避免 Worker 永久掛起。
-7. **背景重啟 WinError 10106 防護**：為隱藏視窗而使用 pythonw 會導致缺乏標準 I/O 而瞬間崩潰。必須使用正常 python 指令，並重定向 stdout/stderr 至實體日誌。
+7. > [!CAUTION]
+> # 🛑 絕對禁止觸碰的底層禁忌 (V6.1 黃金獨立版)
+> 1. **啟動器架構已定死 (嚴禁使用 pythonw 隱藏視窗)**：目前全系統的一鍵啟動腳本必須比照 V4、V5 時代，維持使用**原版、獨立的 `python.exe` 配合 `Start-Process powershell` 彈出獨立監控視窗**！這是唯一能解決 WinError 10106 Pipe 死鎖的解法。**任何接手 AI 絕對禁止自作聰明發明 `Launch_Isolated.py` 或改用 `pythonw.exe` 試圖把視窗藏到背景！**
+> 2. **BOM 編碼禁區**：所有 `.py` 與 `.ps1` 都已由 Git Pre-commit Hook 強制鎖定 UTF-8 BOM。**不准用任何會剝除 BOM 的文字寫入工具去改寫檔案。**
 8. **KPI 監視器假死盲點**：進程存活不代表運作正常。KPI 邏輯強制規定：「連續 3 輪 (15分鐘) Chunk 產出為 0，即視為故障並強制重啟」。
 
 ### 2. 已修復與待防護的 4 大底層架構地雷
-9. **金鑰輪替的 Race Condition (stt_runner.py)**：發生 429 錯誤時，嚴禁抓取全域最新金鑰來記錯（會誤殺剛換上的新金鑰）。必須強迫使用當下發出請求的局部變數 ctive_key。
-10. **例外退避機制的 5 大死角 (stt_runner.py)**：遇到 API 429/503/Timeout 時，必須確保：(a) 累加 etry_count 防止無窮迴圈。(b) 加上 Sleep 緩衝防連發。(c) 任務徹底死亡時必須推播 ailed 狀態給 UI 避免幽靈進度。
-11. **Windows 重啟腳本的獨佔鎖地雷 (restart_workflow.ps1)**：un_workflow.py 與 watchdog.py 嚴禁共用同一個 Log 檔（會觸發 Sharing Violation）。寫入 JSON 時須採用無 BOM 寫法，避免污染資料庫。
+9. **金鑰輪替的 Race Condition (stt_runner.py)**：發生 429 錯誤時，嚴禁抓取全域最新金鑰來記錯（會誤殺剛換上的新金鑰）。必須強迫使用當下發出請求的局部變數  ctive_key。
+10. **例外退避機制的 5 大死角 (stt_runner.py)**：遇到 API 429/503/Timeout 時，必須確保：(a) 累加 etry_count 防止無窮迴圈。(b) 加上 Sleep 緩衝防連發。(c) 任務徹底死亡時必須推播 ailed 狀態給 UI 避免幽靈進度。
+11. **Windows 重啟腳本的獨佔鎖地雷 (restart_workflow.ps1)**：un_workflow.py 與 watchdog.py 嚴禁共用同一個 Log 檔（會觸發 Sharing Violation）。寫入 JSON 時須採用無 BOM 寫法，避免污染資料庫。
 12. **Traceback 切割與日誌斷行 (sre_watchdog.py)**：逐行讀取日誌會把 Python 例外 (Traceback) 砍斷導致正則匹配失效。必須加入 Buffer 機制，確保完整的 Exception Block 被合併後再發送。
 
 ### 3. 發包商無情淘汰制 (Fire or Hire)
