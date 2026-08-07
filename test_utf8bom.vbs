@@ -1,0 +1,1 @@
+﻿WScript.Echo "HELLO FROM UTF8BOM"

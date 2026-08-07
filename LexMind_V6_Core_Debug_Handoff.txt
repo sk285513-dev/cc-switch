@@ -1,0 +1,199 @@
+# LexMind V6 核心病灶與除錯發包總報告 (Master Handoff Spec)
+
+本規格書由架構發包商 (Gemini) 統整專家與實體驗證結果。所有底層病灶已完全釐清，提供給外部 Coder 代理人作為**唯一且最高**的修改依據。請 Coder 代理人嚴格遵守以下所有規範與鐵律。
+
+---
+
+## 📜 一、 程式碼審核 13 大鐵律 (Ironclad Rules)
+1. **禁止終端機輸出 Emoji**：Windows 預設 CP950 無法解析 Emoji。
+2. **純 ASCII 圖示安全化**：終端機提示僅限使用純 ASCII 符號。
+3. **強制腳本編碼**：所有寫入的 Python (.py) 與 PowerShell (.ps1) 檔案，必須強制使用 `UTF-8-SIG` (UTF-8 with BOM) 編碼。
+4. **CP950 日誌讀取防護**：讀檔時務必加上 `errors="replace"` 或 `errors="ignore"`。
+5. **字典取值 KeyError 防呆**：嚴禁硬抓 JSON 欄位，必須強制使用安全的 `.get()`。
+6. **API 呼叫無聲死鎖防禦**：呼叫 Vertex AI / Gemini 等外部 API 時，絕對不可漏設 `timeout`。
+7. **背景重啟 WinError 10106 防護**：為隱藏視窗而使用 `pythonw.exe` 會導致缺乏標準 I/O 崩潰，必須進行重定向。
+8. **KPI 監視器假死盲點**：連續 3 輪 (15分鐘) Chunk 產出為 0，即視為故障並強制重啟。
+9. **金鑰輪替的 Race Condition**：發生 429 錯誤時，必須強迫使用當下發出請求的局部變數 `active_key`。
+10. **例外退避機制的 5 大死角**：需累加 `retry_count`，加上 Sleep 緩衝，失敗時需推播 failed 狀態。
+11. **寫入 JSON 時的 ASCII 鐵律**：必須設定 `ensure_ascii=True` (即不能設為 False)，避免編碼炸彈。
+12. **Traceback 切割與日誌斷行**：必須加入 Buffer 機制確保完整的 Exception Block 被合併後再發送。
+13. **零幻覺要求**：禁止自造輪子，禁止修改本規格書未提及的程式邏輯，僅進行問題修補。
+14. **嚴禁創造幽靈檔案與改名 (Anti-Ghosting)**：絕對禁止 Coder 自行發明新檔名、建立過渡檔案（如 `xxx_new.py`）、或寫新的包裝腳本。只能「就地修改 (In-Place)」表列的 11 支現有腳本，以防破壞既有的 `import` 依賴鏈。
+15. **絕對路徑限制**：所有腳本的所在位置皆固定於 `C:\LocalAI_Workstation\scripts_v6\`。嚴禁 AI 隨意更改目錄結構或自我腦補不存在的路徑。
+
+---
+
+## 🏗️ 二、 系統核心腳本與依賴關係表 (共 11 支)
+
+| 腳本名稱 | 角色定位 | 核心職責 |
+| :--- | :--- | :--- |
+| `workflow_helper.py` | 底層共用 | 提供共用日誌、路徑解析、設定檔讀取 |
+| `manifest_manager.py` | 底層共用 | I/O 鎖定防護、狀態機 JSON 讀寫 |
+| `quota_manager.py` | 底層共用 | 跨進程 Gemini/Vertex AI 金鑰配額管理 |
+| `auto_ingest_bot.py` | 入口管線 | 掃描教材路徑、建立任務 Manifest |
+| `file_watcher.py` | 背景守護 | 監控 H/J 碟變動，自動推播至管線 |
+| `run_workflow.py` | **總調度中樞** | 全域狀態調度、併發管理、錯誤重試 |
+| `preprocess_media.py` | 工作流 1 | 音訊降噪、提取 WAV、板書擷取 |
+| `chunk_planner.py` | 工作流 2 | 靜音切片 (VAD)、建立 chunks_manifest |
+| `stt_runner.py` | 工作流 3 | 多執行緒呼叫大模型進行語音聽寫 |
+| `merge_transcript.py`| 工作流 4 | 彙整逐字稿，提交給 Pro 模型校閱 |
+| `markdown_formatter.py`| 工作流 5 | 結合板書與文字，渲染最終 .md 講義 |
+
+---
+
+## 🔴 三、 已確認的 11 支腳本精確行號與病灶明細 (全域感染)
+
+以下清單標示了 11 支腳本中需要開刀的**精確行號與錯誤原因**，請 Coder 代理人務必依據此清單逐行修復：
+
+### 1. `run_workflow.py` (總調度)
+* **[L9] 10106 地雷**: `sys.stdout.reconfigure(encoding='utf-8')` 缺乏 `sys.stdout is not None` 檢查。
+* **[L108, L382, L818] ASCII 違規**: 寫入 JSON 時寫死了 `ensure_ascii=False` 與 `encoding="utf-8"`。
+* **[架構缺陷]**: `process_active_tasks` 中的 `as_completed` 缺少 `timeout` 導致線程殭屍化；缺乏 Aging 老化排程機制導致任務飢餓。
+
+### 2. `manifest_manager.py` (狀態鎖管理)
+* **[L66] ASCII 違規**: 違規使用 `ensure_ascii=False` 進行 `json.dump`。
+* **[防毒 I/O 競爭]**: 整個寫檔流程缺乏 `fsync()`，且 `os.replace` 在重試期間未設定合理的 Jitter (抖動) 等待。
+* **[記憶體溢出]**: 全域快取的 `_thread_locks` 字典缺乏資源回收機制 (Garbage Collection)。
+
+### 3. `stt_runner.py` (聽寫引擎)
+* **[L55] 10106 地雷**: 呼叫了 `sys.stdout.reconfigure` 引發背景隱藏視窗崩潰。
+* **[L67] ASCII 違規**: `json.dump` 中使用了 `ensure_ascii=False`。
+* **[架構缺陷]**: 調用大模型的 ThreadPool 缺少 `timeout=600`，可能導致請求永遠卡死。
+
+### 4. `workflow_helper.py` (底層工具)
+* **[L9] 10106 地雷**: 呼叫了 `sys.stdout.reconfigure` 導致底層引用的程式一啟動即崩潰。
+
+### 5. `file_watcher.py` (背景監聽)
+* **[L172-173] ASCII 違規**: 違規呼叫 `ensure_ascii=False`，且沒有呼叫 `fsync()`，斷電時會產生 0-byte 的損毀狀態檔。
+
+### 6. `preprocess_media.py` (媒體前處理)
+* **[L4-7] 10106 地雷**: `sys.stdout.reconfigure` 與 `sys.stderr` 呼叫引發背景崩潰。
+* **[L47, 59, 124, 131, 150, 186, 193, 212] ASCII 違規**: 多達 8 處寫死 `ensure_ascii=False`。
+* **[防毒 I/O 競爭]**: 所有的 JSON 寫入皆無 `fsync()` 保護，非常危險。
+
+### 7. `chunk_planner.py` (切片計畫)
+* **[L4-7] 10106 地雷**: 相同的 `sys.stdout.reconfigure` 崩潰問題。
+* **[L149, 156, 172, 179] ASCII 違規**: 多處使用 `ensure_ascii=False`。缺乏 `fsync()` 保護。
+
+### 8. `merge_transcript.py` (整併腳本)
+* **[L5-11] 10106 地雷**: 相同的 `sys.stdout.reconfigure` 崩潰問題。
+* **[L53-54] 編碼炸彈**: 使用 `encoding="utf-8"` 且 `ensure_ascii=False` 記錄日誌。
+* **[L97-101, L733-739, L757] 防毒 I/O 競爭**: 所有的文字與 JSON 寫出皆無 `fsync()`。
+
+### 9. `markdown_formatter.py` (最終排版)
+* **[L6-9] 10106 地雷**: 相同的 `sys.stdout.reconfigure` 崩潰問題。
+* **[L355, 377] ASCII 違規**: 使用 `json.dumps(..., ensure_ascii=False)`。
+
+### 10. `quota_manager.py` (配額管理)
+* **[L8-14] 10106 地雷**: `sys.stderr.reconfigure` 甚至沒有使用 try/except 包覆，背景執行瞬間暴斃。
+* **[L241-242] ASCII 違規**: 使用 `ensure_ascii=False`，長期下來會污染全域狀態檔。
+
+### 11. `auto_ingest_bot.py` (入列機器人)
+* **[L687-688] 10106 地雷**: 在 `main()` 函式直接呼叫 `sys.stdout.reconfigure`。
+* **[L339-340] ASCII 違規**: `atomic_json_dump` 內使用 `encoding="utf-8"` (無 BOM) 及 `ensure_ascii=False`，且無 `errors="replace"` 導致遇到罕見字元即崩潰。
+
+---
+
+## 🔬 四、 終極除錯與架構死鬥 (7 大專家聯防報告完整版)
+
+以下為 7 位頂尖模型專家的極限除錯與攻擊測試結果。這是一份零信任的系統體檢報告，請將此文件做為後續修復的最深層底層依據。
+
+### 專家 1: Claude Fable 5 (首席軟體工程與架構專家)
+#### 1. 關於防禦子進程逃逸與殭屍進程 (Zombie Processes)
+**診斷結論：不足夠。**
+「`python_v6.exe` 映像更名」與「設定 `$env:LEXMIND_ENV`」在 Windows 底層完全無法阻止子進程逃逸。當父進程崩潰，子進程會變成孤兒殭屍進程，繼續佔用 VRAM 與 Port。
+**OS 級別唯一解法：Windows Job Objects (工作物件)**。必須在啟動新進程時，呼叫 Windows Kernel32 API 將進程綁定至一個 Job Object，並設置 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`。
+
+#### 2. 關於 0x800700E8 崩潰與 Session 0 隔離 (Pipe 斷裂)
+**診斷結論：**
+`0x800700E8` (The pipe is being closed) 的核心原因，在於 PowerShell 把進程拋到背景時，未正確切斷與重新導向標準輸入/輸出。純淨解法是：直接使用 `Start-Process`，搭配 `-WindowStyle Hidden`，同時強制利用 `-RedirectStandardOutput` 與 `-RedirectStandardError` 參數。
+
+### 專家 2: 核心聯防審查報告 (狀態流轉的因果律反轉)
+#### 1. `stt_runner.py`：背景寫入與主執行緒覆寫
+* **背景讀取直接清空**：`manifest_writer_thread` 若剛好被佔用導致讀取異常，其 `except Exception:` 區塊會直接將 chunks 設為 `[]`，然後強制覆寫硬碟，導致進度瞬間歸零。
+* **主程式 stale memory 覆寫**：主執行緒在所有工作完成時，直接把記憶體中過期的 `chunks` 變數再次複寫到硬碟，把原本寫好的時間戳全部抹除。
+
+#### 2. `progress_dashboard.py`：讀取瞬間造成的型別破壞
+遇到無法預期的 Exception 時，立刻中斷重試並強迫當前狀態變為 `[]`，導致 UI 崩潰。
+
+### 專家 3: GPT-5.6 Sol (邏輯與演算法專家)
+#### 1. 致命漏洞 1：管線盲目重派導致自我 DDoS
+`auto_ingest_bot.py` 的過濾器只檢查了任務的終點，完全忽略了任務的進行中狀態 (In-Flight)。必須建立 `get_in_flight_registry()`，以 O(N) 讀取 I/O 建立 Hash Set，隨後以 O(1) 成本進行完美阻擋。
+
+#### 2. 致命漏洞 2：強制優先級導致的排程飢餓 (Starvation)
+`run_workflow.py` 的排序是靜態優先權排程。必須引入「動態老化演算法 (Aging Algorithm)」，讓在佇列中等待越久的任務，其優先級分數自動下降（優先權提升）：
+```python
+def calculate_effective_priority(manifest_path, base_score):
+    try:
+        wait_hours = (time.time() - os.path.getctime(manifest_path)) / 3600.0
+        effective_score = base_score - (wait_hours * 2.0)
+        return max(1.0, effective_score)
+    except Exception:
+        return base_score
+```
+
+### 專家 4: GPT-5.6 Ultra (安全架構與最佳實踐顧問)
+#### 1. 503 雪崩偵測機制的 I/O 阻塞風險
+`run_workflow.py` 讀取日誌的作法 `read_text().splitlines()[-200:]` 會引發 OOM 或是 CPU/IO 阻塞。應改用「從檔案結尾反向讀取 (Tail)」的記憶體安全讀法。
+
+#### 2. ThreadPoolExecutor 中 API Key 死鎖
+外層使用了 `as_completed(futures)` 進行等待，若子線程沒有設定 Timeout，會永遠卡在等待封包。必須加入 `timeout=600`，並實作金鑰強制回收機制：
+```python
+try:
+    for future in as_completed(futures, timeout=600):
+        # ... 處理結果 ...
+except TimeoutError:
+    if qm: qm.force_reclaim_stale_keys(max_age_seconds=600)
+```
+
+### 專家 5: DeepSeek-V4-Pro (系統架構師)
+#### 1. `os.replace` 的原子性與 `PermissionError` 防禦
+在 Windows 高併發下，`os.replace` 極易拋出鎖競爭例外。必須引入帶有抖動 (Jitter) 的指數退避演算法。
+```python
+def atomic_json_dump(data, filepath, max_retries=10, base_delay=0.1):
+    tmp_filepath = str(filepath) + f".tmp.{os.getpid()}.{random.randint(1000,9999)}"
+    with open(tmp_filepath, 'w', encoding='utf-8-sig') as f:
+        json.dump(data, f, ensure_ascii=True, indent=2)
+        f.flush()
+        os.fsync(f.fileno()) # 強制落盤
+    
+    for attempt in range(max_retries):
+        try:
+            os.replace(tmp_filepath, filepath)
+            return True
+        except PermissionError:
+            if attempt == max_retries - 1:
+                try: os.remove(tmp_filepath)
+                except Exception: pass
+                raise
+            time.sleep((base_delay * (2 ** attempt)) + random.uniform(0, 0.05))
+```
+
+#### 2. SQLite WAL 模式與實體隔離
+必須在資料庫連線開啟 WAL (Write-Ahead Logging) 與 Busy Timeout。V5 與 V6 必須強制在目錄級別進行硬分岔（Hard Fork）。
+
+### 專家 6: Qwen 3.7 Max (Adversarial Robustness Expert)
+指出 V5 與 V6 的隔離破綻：
+1. **共用依賴毒化**：只改 `.exe` 名稱，但共用 site-packages 與暫存目錄，是換個名字裸奔。
+2. **鎖文件爭奪**：若有 Hardcode 的鎖文件路徑，會引發 Split-Brain。
+3. **AI 的破壞性覆蓋**：必須落實零信任架構，主 Agent 應攔截 `Stop-Process`，核心共用模組應設為唯讀。
+
+### 專家 7: 首席系統架構師 (Pro Engineering Dispatcher)
+針對 `auto_ingest_bot.py` 單體巨獸的解耦：
+拒絕粗暴刪除原有邏輯，而是加入 `--queue-only` 參數模式。當啟用推播模式時，它只負責產生 Manifest 任務單並塞入 `manifests/` 目錄，不在本機執行 GPU 運算，藉此實現完美的分散式工廠模式。
+
+## 🚨 五、 V3 專家交叉驗證災情報告 (致命架構漏洞)
+
+在前次修正後，經由三大頂尖稽核專家進行極限壓力測試 (Peer Review) 時，發現了足以摧毀系統的三大隱蔽災情。請務必在修改時一併根除：
+
+### 1. 殭屍線程引發的「金鑰腦死與跨線程錯亂」 (併發與死鎖專家)
+* **災情描述**：在 as_completed 外層加上 timeout=600，只會讓「主執行緒」放棄等待，但背景卡死的工作執行緒並沒有被殺死！若此時主執行緒強制呼叫 qm.force_reclaim_stale_keys 徵收金鑰並配發給新線程，當舊的殭屍線程突然甦醒時，會造成兩條線程同時使用同一把獨佔金鑰（引發 429 雪崩）。更嚴重的是，殭屍線程跑完後，會在 finally 區塊將別人正在使用的金鑰強制釋放，導致 QuotaManager 內部帳本徹底錯亂。
+* **致命點**：嚴格禁止在沒有 Thread Lease (租約驗證) 的情況下強制釋放或回收金鑰。金鑰的獲取必須使用 @contextmanager 搭配 Thread ID 驗證。
+
+### 2. Windows 檔案鎖死與「返老還童 (Benjamin Button)」Bug (作業系統與 I/O 專家)
+* **災情描述**：在 Windows 系統中，當呼叫 os.replace 進行 JSON 狀態的原子寫入時，該檔案的「建立時間 (getctime)」會被重置為當下時間！這導致原本的「老化演算法」完全失效。每次任務更新進度，其等待時間就會歸零，不斷「返老還童」，導致舊任務永遠被插隊，直到餓死。
+* **致命點**：絕對不可信任 Windows 檔案系統的時間戳記。必須將 created_at 寫死進 manifest.json 的內文中。此外，若 os.replace 在重試後仍失敗，必須有 finally 區塊清除殘留的 .tmp 垃圾檔，否則硬碟會塞滿。
+
+### 3. 老化分數崩塌 (Priority Collapse) (架構與演算法專家)
+* **災情描述**：目前的 score - (wait_hours * 2.0) 減法公式，在系統遭遇連續多日的大塞車時，會讓所有科目的分數都變成負數，最後全部被 max(1.0) 強制切平為 1.0。這會導致國考核心科目（如憲法、民法）的優先權優勢完全消失，整個佇列退化成無序的隨機處理。
+* **致命點**：必須放棄減法公式，改用「半衰期指數衰減公式 (Asymptotic Decay)」，例如 1.0 + (base_score - 1.0) * math.exp(-0.1 * wait_hours)，確保相對優先順序永遠不會崩塌。

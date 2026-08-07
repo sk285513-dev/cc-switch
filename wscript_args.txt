@@ -1,0 +1,7 @@
+Arg 0: powershell.exe
+Arg 1: -NoProfile
+Arg 2: -NoExit
+Arg 3: -ExecutionPolicy
+Arg 4: Bypass
+Arg 5: -File
+Arg 6: C:\LocalAI_Workstation\kpi_runner.ps1

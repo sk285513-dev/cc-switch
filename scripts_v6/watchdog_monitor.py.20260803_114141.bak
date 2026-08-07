@@ -1,0 +1,149 @@
+import os
+import sys
+import time
+import json
+import glob
+import subprocess
+import datetime
+from pathlib import Path
+
+# ── 設定 ──
+WORKDIR = Path("C:/LocalAI_Workstation")
+LOG_PATH = Path(os.environ.get("LEXMIND_LOG_DIR", "A:/logs")) / "watchdog.log"
+MANIFESTS_DIR = Path(os.environ.get("LEXMIND_MANIFEST_DIR", "A:/manifests_v6"))
+WORKFLOW_LOCK = MANIFESTS_DIR / "workflow.lock"
+CHECK_INTERVAL = 15 * 60   # 15 分鐘
+PIPELINE_INTERVAL = 30     # 30 秒做一次 pipeline tick
+
+os.chdir(WORKDIR)
+sys.path.insert(0, str(WORKDIR / "scripts_v6"))
+
+env = os.environ.copy()
+env["PYTHONIOENCODING"] = "utf-8"
+env["PYTHONUTF8"] = "1"
+env["LEXMIND_ENV"] = "v6_canary"
+env["LEXMIND_MANIFEST_DIR"] = str(MANIFESTS_DIR)
+
+def log(msg: str):
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    line = f"[{ts}] {msg}"
+    print(line, flush=True)
+    try:
+        with open(LOG_PATH, "a", encoding="utf-8-sig") as f:
+            f.write(line + "\n")
+    except Exception:
+        pass
+
+def is_workflow_alive() -> bool:
+    """檢查 run_workflow.py 是否在 python 進程中存活。"""
+    try:
+        import psutil
+        for p in psutil.process_iter(['name', 'cmdline']):
+            try:
+                name = p.info.get('name', '')
+                cmdline = p.info.get('cmdline', [])
+                if name and 'python' in name.lower() and cmdline:
+                    if any('run_workflow' in str(arg) for arg in cmdline):
+                        return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        return False
+    except Exception as e:
+        log(f"[WARN] psutil failed, fallback to WMI: {e}")
+        try:
+            result = subprocess.run(
+                ["powershell", "-c",
+                 "Get-WmiObject Win32_Process -Filter \"Name='python.exe' OR Name='pythonw.exe'\" | "
+                 "Where-Object {$_.CommandLine -match 'run_workflow'} | "
+                 "Measure-Object | Select-Object -ExpandProperty Count"],
+                capture_output=True, text=True, timeout=10, encoding="utf-8-sig", errors="ignore"
+            )
+            count = int(result.stdout.strip() or "0")
+            if count > 0:
+                return True
+        except Exception:
+            pass
+        return WORKFLOW_LOCK.exists()
+
+def restart_workflow():
+    """重啟 run_workflow.py。"""
+    log("[Watchdog] run_workflow.py 未偵測到！嘗試重啟...")
+    try:
+        WORKFLOW_LOCK.unlink(missing_ok=True)
+    except Exception:
+        pass
+    Path("A:/logs").mkdir(parents=True, exist_ok=True)
+    
+    _wf_stdout = open("A:/logs/run_workflow_stdout.log", "a", encoding="utf-8-sig")
+    _wf_stderr = open("A:/logs/run_workflow_stderr.log", "a", encoding="utf-8-sig")
+    proc = subprocess.Popen(
+        [sys.executable, str(WORKDIR / "scripts_v6" / "run_workflow.py")],
+        env=env, cwd=str(WORKDIR),
+        stdout=_wf_stdout, stderr=_wf_stderr,
+        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
+    )
+    log(f"[Watchdog] run_workflow.py 重啟完成 (pid={proc.pid})")
+
+def run_auto_verify():
+    """執行 auto_verify.py 並摘錄結果。"""
+    try:
+        result = subprocess.run(
+            [sys.executable, str(WORKDIR / "scripts_v6" / "auto_verify.py")],
+            capture_output=True, text=True, timeout=120, encoding="utf-8-sig", errors="ignore",
+            env=env, cwd=str(WORKDIR)
+        )
+        if result.stdout:
+            lines = result.stdout.splitlines()
+            for line in lines:
+                if any(kw in line for kw in ["驗收結論", "偵測到", "PASS", "FAIL", "ERROR"]):
+                    log("[AutoVerify] " + line.strip())
+    except Exception as e:
+        log(f"[Watchdog] auto_verify 執行失敗: {e}")
+
+    if spawned:
+        log(f"[PipelineTick] Total spawned: {spawned}")
+
+def main():
+    log("=" * 60)
+    log("[Watchdog] LexMind-Omni 持久性監測程序啟動 (V6 Sandbox)")
+    log("[Watchdog] 監測間隔: 15 分鐘（auto_verify + workflow 健康檢查）")
+    log("[Watchdog] Pipeline tick 間隔: 30 秒")
+    log(f"[Watchdog] Manifest Dir: {MANIFESTS_DIR}")
+    log("=" * 60)
+
+    last_verify = 0
+
+    while True:
+        now = time.time()
+
+
+        if now - last_verify >= CHECK_INTERVAL:
+            log("[Watchdog] === 15 分鐘定期檢查 ===")
+            if not is_workflow_alive():
+                restart_workflow()
+            else:
+                log("[Watchdog] run_workflow.py 存活 ✅")
+
+            run_auto_verify()
+
+            try:
+                completed = sum(
+                    1 for mf in MANIFESTS_DIR.glob("task_*.json")
+                    if "_chunks" not in mf.name
+                    and json.load(open(mf, encoding="utf-8-sig")).get("status") == "completed"
+                )
+                log(f"[Watchdog] 已完成任務: {completed}")
+            except Exception:
+                pass
+
+            last_verify = now
+
+        time.sleep(PIPELINE_INTERVAL)
+
+if __name__ == "__main__":
+    import io
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8-sig', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8-sig', errors='replace')
+    main()

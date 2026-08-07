@@ -1,0 +1,3770 @@
+﻿请不要只给建议，也不要只给 diff。请直接审查并修复我的 LexMind V6 工作流代码，最后输出“可直接覆盖原文件”的完整代码。
+
+我会按顺序上传这些完整原始文件：
+1. run_workflow.py
+2. workflow_helper.py
+3. manifest_manager.py
+4. stt_runner.py
+5. merge_transcript.py
+6. markdown_formatter.py
+7. config.yaml
+
+【你的工作目标】
+修复工作流的并发调度、配置读取、manifest 状态写入竞争、失败恢复与 retry 行为；必须保持现有模块接口和文件名可用，不能为了重构而破坏现有 PowerShell 启动器、watchdog、数据库、chunks 或 manifest 格式。
+
+【已确认的系统事实】
+- run_workflow.py 负责扫描、调度 preprocess、chunk planner、STT、merge、formatter。
+- stt_runner.py 负责按 chunk 并发执行 STT，并写 task 的 chunks manifest。
+- merge_transcript.py 负责合并转录，必要时有 raw fallback / degraded 模式。
+- manifest_manager.py 已经有 ManifestManager、文件锁、线程锁、atomic replace、Windows PermissionError retry。
+- workflow_helper.py 负责 load_config、get_resolved_paths、ensure_dirs、日志、API key 状态。
+- manifest 主状态流应为：
+  queued → chunked → transcribed → merged → completed
+- 每个 manifest 还有 steps，例如：
+  preprocess / chunk_planner / stt / merge / formatter
+- 系统可能使用 Gemini AI Studio 或 Vertex AI。
+- Windows 环境；必须考虑文件被 Defender、索引服务或其他 Python process 短暂占用的情况。
+- 不能输出任何密钥、token、service-account JSON 内容或敏感环境变量。
+
+【必须检查并修复的项目】
+
+1) 配置读取必须统一
+- 所有 stt_engine、merge_engine、vertex_ai_project、vertex_ai_location、credential 等设置，必须统一从同一个配置层读取。
+- 目前疑似有的文件使用 config.get("settings", {}).get(...)，另一些却直接 config.get(...)。
+- 请以现有 config.yaml 的真实结构为准，建立安全兼容读取方式。
+- 不要因为读取层级不一致，误把 Vertex AI 当成 Gemini，或错误初始化 QuotaManager。
+
+2) Manifest 写入必须消除竞争条件
+- 所有 task manifest 的“读取 → 修改 → 写入”必须经由 ManifestManager 或 update_manifest 完成。
+- 不允许 run_workflow.py、stt_runner.py、merge_transcript.py 对同一个 task manifest 使用无锁的：
+  open(...) → json.load(...) → 修改 → atomic_json_dump(...)
+- 必须避免以下覆盖问题：
+  - STT 刚把任务恢复为 status="chunked"、steps["stt"]="pending"，workflow 又把旧内存中的 manifest 写成 failed；
+  - merge 写入 merged 状态时，被 workflow 用旧数据覆盖；
+  - formatter 完成时覆盖 merge 的 paths 或 degraded 信息。
+- chunks manifest 如果会被多个线程或进程修改，也要使用同等安全的锁和原子写入策略。
+
+3) 调度必须严格分相位，不能混用并发额度
+- queued 任务只能进入 preprocess/chunk planner 调度，使用 PREPROCESS_CONCURRENCY。
+- chunked 任务才进入 STT/merge/formatter 调度，使用 STT_CONCURRENCY 或 adaptive concurrency。
+- 在同一轮 batch 中，不允许 queued 任务因为 chunked 任务存在或因为进入 STT 时段，就跟着使用 STT 高并发一起执行。
+- 每轮调度只选择一种任务类别：
+  a. 若有 chunked，优先只处理 chunked；
+  b. 否则处理 queued；
+  c. 已 completed / failed / needs_review 的任务不能重新进入 active batch，除非代码已有明确且安全的恢复机制。
+- 保留现有优先级排序逻辑，但移除或替代任何硬编码 task ID 黑名单。若确有暂停任务需求，应使用 manifest 状态，例如 hold 或 needs_review，或清楚的配置项，不能静默跳过某一个固定任务 ID。
+
+4) 失败、retry 与状态恢复
+- STT 任一 chunk 最终失败时，任务必须可靠回到：
+  status="chunked"
+  steps["stt"]="pending"
+  且失败 chunk 可安全重试。
+- workflow 的异常处理在写 failed 前，必须重新在锁内读取当前 manifest：
+  - 如果当前状态已经是 chunked，且 stt 是 pending，则不得覆盖为 failed；
+  - 如果 merge 已写成 merged 或 formatter 已写成 completed，也不得用旧异常覆盖；
+  - 记录 error 时不能删除现有 paths、steps、degraded_reason、merge_mode、needs_review 等字段。
+- merge 的 Vertex timeout / raw fallback 行为必须保留：
+  - raw fallback 成功时，应安全写入 steps["merge"]="completed"、status="merged"、输出 paths；
+  - 保留 degraded_reason、merge_mode、retry_count、needs_review；
+  - 不得让 workflow 再把已降级但可继续 formatter 的任务打回 failed。
+- 对 429、503、UNAVAILABLE、deadline exceeded 保留合理的 backoff/retry；不要制造无限循环或 busy loop。
+
+5) API key 与 Vertex 行为
+- Gemini 模式：保留 key pool / QuotaManager 的排他 key 语义，确保 acquire 后必定 finally release。
+- Vertex AI 模式：不得错误申请 Gemini key；应使用 ADC / service account 的既有逻辑。
+- 如果 STT 与 merge 都是 Vertex AI，调度器不得因为默认值或错误配置而错误启用 QuotaManager。
+- 不要打印完整 key、token 或 credential path；日志只能显示脱敏信息。
+
+6) 保持兼容
+- 保留现有公开函数名和调用约定，尤其是：
+  run_stt(task_id, exclusive_key=None)
+  merge_workflow(task_id)
+  format_markdown(task_id)
+  preprocess(task_id)
+  plan_chunks(task_id)
+  process_active_tasks(...)
+  run_loop(...)
+- 保留 CLI：
+  --one-shot
+  --chunking-only
+- 保留 SingleInstanceLock 或提供等价的跨平台单实例保护。
+- 不要引入新的第三方依赖，除非现有 requirements 明确已有。
+- 不要把系统改成 async，也不要重写整个架构；请做最小但完整的可靠性修复。
+
+【输出格式，必须严格遵守】
+第一部分：用不超过 20 条要点列出你实际发现的问题与修复理由。
+
+第二部分：按文件分别输出完整可覆盖代码，格式必须如下：
+
+===== FILE: run_workflow.py =====
+`python
+完整文件内容
+`
+
+===== FILE: workflow_helper.py =====
+`python
+完整文件内容
+`
+
+依此类推。
+
+第三部分：给出 Windows PowerShell 验证命令，必须包括：
+1. Python 语法检查；
+2. one-shot chunking-only 测试；
+3. one-shot 完整流程测试；
+4. workflow.log 和 chunkerrors.log 的 tail 命令；
+5. 检查 manifest 状态与 steps 的命令；
+6. 检查是否有多个 workflow Python 进程的命令。
+
+以下是所有完整文件的原始内容：
+
+===== FILE: run_workflow.py =====
+`python
+# [CRITICAL CROSS-FILE DEPENDENCY WARNING]
+# Upstream: LexMind_V6_沙盒驗證版.ps1
+# Downstream: stt_runner.py, etc.
+# Shared State: Database, Chunks
+
+import os
+import sys, io
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+import sys
+import time
+import json
+import argparse
+import threading
+import subprocess
+import random
+import faulthandler
+from pathlib import Path
+from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# 故障快照：啟用 faulthandler（Python 原生）以備用
+faulthandler.enable()
+
+# 共用監控工具
+_mu_dir = os.path.dirname(os.path.abspath(__file__))
+try:
+    import importlib.util as _ilu
+    _spec = _ilu.spec_from_file_location("monitoring_utils", os.path.join(_mu_dir, "monitoring_utils.py"))
+    _mu = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_mu)
+    dump_stack_snapshot = _mu.dump_stack_snapshot
+except Exception:
+    def dump_stack_snapshot(**kwargs):
+        pass  # fallback: no-op if monitoring_utils not available
+
+ENTERPRISE_MODE = os.environ.get("LEXMIND_ENTERPRISE", "0") == "1"
+
+
+# ══════════════════════════════════════════════════════════════════
+# ★ GCP PROJECT BOOTSTRAP — 必須在所有 Vertex / STT / QuotaManager
+#   初始化之前執行，確保 google.auth.default() 能解析到正確 project。
+# ══════════════════════════════════════════════════════════════════
+def _bootstrap_gcp_project() -> None:
+    """
+    從 config.yaml 的 api.vertexai_project 讀取 GCP project ID，
+    並在 GOOGLE_CLOUD_PROJECT / GCLOUD_PROJECT 尚未設定時自動注入。
+    這樣整個 process（run_workflow、worker thread、google.auth）
+    都能看到同一個 project，消除 'No project ID could be determined' 警告。
+    """
+    # 如果兩個環境變數都已設定，不做任何事
+    if os.environ.get("GOOGLE_CLOUD_PROJECT") and os.environ.get("GCLOUD_PROJECT"):
+        return
+
+    # config.yaml 以絕對路徑定位（與 quota_manager.py 同源）
+    _workspace_root = Path(__file__).resolve().parent.parent   # C:\LocalAI_Workstation\
+    config_path = _workspace_root / "config.yaml"
+    if not config_path.exists():
+        # 備援：scripts_v6 的父目錄就是 workspace root，嘗試當前腳本同層
+        config_path = Path(__file__).resolve().parent / "config.yaml"
+
+    vertexai_project: str | None = None
+    if config_path.exists():
+        try:
+            import yaml as _yaml
+            with open(config_path, "r", encoding="utf-8-sig") as _f:
+                _cfg = _yaml.safe_load(_f)
+            vertexai_project = (_cfg or {}).get("api", {}).get("vertexai_project")
+        except Exception as _e:
+            # 啟動期讀取失敗不應中止程序，只記錄到 stderr
+            print(f"[BOOTSTRAP] WARNING: 讀取 config.yaml 失敗: {_e}", file=sys.stderr)
+
+    if not vertexai_project:
+        return  # config.yaml 無此欄位，讓 google.auth 自行處理
+
+    if not os.environ.get("GOOGLE_CLOUD_PROJECT"):
+        os.environ["GOOGLE_CLOUD_PROJECT"] = vertexai_project
+        print(f"[BOOTSTRAP] GOOGLE_CLOUD_PROJECT = {vertexai_project!r} (from config.yaml)", file=sys.stderr)
+
+    if not os.environ.get("GCLOUD_PROJECT"):
+        os.environ["GCLOUD_PROJECT"] = vertexai_project
+        print(f"[BOOTSTRAP] GCLOUD_PROJECT = {vertexai_project!r} (from config.yaml)", file=sys.stderr)
+
+# 立即執行 —— 必須在所有其他 import 之前
+_bootstrap_gcp_project()
+# ══════════════════════════════════════════════════════════════════
+
+# 將 scripts 目錄加入 PATH
+script_dir = Path(__file__).parent.resolve()
+if str(script_dir) not in sys.path:
+    sys.path.append(str(script_dir))
+
+from file_watcher import scan_new_files
+from preprocess_media import preprocess
+from chunk_planner import plan_chunks
+from stt_runner import run_stt
+from merge_transcript import merge_workflow
+from markdown_formatter import format_markdown
+from workflow_helper import ensure_dirs, log_workflow, log_error
+from scripts_v6.quota_manager import QuotaManager
+
+# [Block D] 狀態收斂與效能優化 (原子寫入)
+def atomic_json_dump(data, filepath):
+    tmp_path = str(filepath) + f".{os.getpid()}.{threading.get_ident()}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    max_retries = 30
+    for i in range(max_retries):
+        try:
+            os.replace(tmp_path, filepath)
+            break
+        except PermissionError:
+            if i == max_retries - 1:
+                import logging
+                logging.error(f"嚴重 I/O 錯誤：等待 {max_retries} 次後仍無法覆寫 {filepath}")
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+                raise
+            import random
+            sleep_time = (0.1 * (1.2 ** i)) + random.uniform(0.01, 0.05)
+            time.sleep(min(sleep_time, 2.0))
+
+
+
+class SingleInstanceLock:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.fp = None
+
+    def acquire(self):
+        try:
+            self.fp = open(self.lock_file, 'a+')
+            self.fp.seek(0)
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (IOError, OSError, ImportError):
+            if self.fp:
+                try:
+                    self.fp.close()
+                except Exception:
+                    pass
+            return False
+
+    def release(self):
+        if self.fp:
+            try:
+                self.fp.seek(0)
+                if sys.platform == 'win32':
+                    import msvcrt
+                    msvcrt.locking(self.fp.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(self.fp.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
+            try:
+                self.fp.close()
+            except Exception:
+                pass
+            try:
+                os.remove(self.lock_file)
+            except Exception:
+                pass
+
+def get_legal_priority_score(source_name: str) -> int:
+    """
+    國考科目優先級評分（數字越小 = 越優先處理）
+
+    排序邏輯（依台灣律師高考 / 地政士高考 / 司法特考核心科目）：
+      0   → mock 測試任務
+      10  → 憲法（根本大法）
+      20  → 民法（最重要主科）
+      25  → 刑法
+      30  → 行政法（含行政程序法、國家賠償）
+      40  → 程序法：民訴、刑訴、行訴、強執、家事
+      50  → 土地法規：土地法、土地登記、地籍、地政
+      60  → 商事法核心：公司法、票據法、保險法
+      70  → 勞動、海商、仲裁等次要商事
+      80  → 特別法：智財、消保、公平交易、個資等
+      90  → 地政專業科目：不動產估價、都市計畫
+      95  → 稅法、稅捐稽徵（非主科）
+      98  → 證交法、金融法規（非主科）
+      100 → 其他未分類
+    """
+    name = source_name.lower()
+
+    # (移除了 mock 優先級邏輯)
+
+    # 10. 憲法（根本大法）
+    if any(kw in name for kw in ["憲法", "憲政"]):
+        return 10
+
+    # 20. 民法（最重要主科）
+    if "民法" in name:
+        return 20
+
+    # 25. 刑法
+    if "刑法" in name:
+        return 25
+
+    # 30. 行政法（含行政程序法、國家賠償）
+    if any(kw in name for kw in ["行政法", "行政程序", "國家賠償", "國賠"]):
+        return 30
+
+    # 40. 程序法
+    if any(kw in name for kw in [
+        "民事訴訟", "民訴", "刑事訴訟", "刑訴",
+        "行政訴訟", "強制執行", "強執", "家事事件", "程序法"
+    ]):
+        return 40
+
+    # 50. 土地法規核心（地政士高考主科）
+    if any(kw in name for kw in [
+        "土地法", "土地登記", "土登", "地籍測量", "地籍",
+        "土地法規", "地政法規"
+    ]):
+        return 50
+
+    # 60. 商事法核心（公司法 / 票據 / 保險 / 海商 / 證交法 / 稅法 同級）
+    if any(kw in name for kw in [
+        "公司法", "票據", "保險法", "海商",
+        "證交法", "證券交易", "金融法", "銀行法", "期貨",
+        "稅法", "稅捽", "稅務", "所得稅",
+    ]):
+        return 60
+
+    # 70. 其他商事 / 勞動
+    if any(kw in name for kw in ["勞動基準", "勞基", "勞動法", "仲裁", "信託法"]):
+        return 70
+
+    # 80. 特別法
+    if any(kw in name for kw in [
+        "專利", "著作權", "商標", "消費者保護", "消保",
+        "公平交易", "營業秘密", "個人資料", "個資",
+        "破產", "公寓大廈", "家庭暴力", "家暴"
+    ]):
+        return 80
+
+    # 90. 地政輔助專業科目
+    if any(kw in name for kw in ["不動產估價", "不動產評價", "都市計畫", "測量法"]):
+        return 90
+
+    # 100. 其他未分類
+    return 100
+
+
+
+# ════════════════════════════════════════════════════════════
+# 沙盒實測結論（2026-07-10）：
+#   上行速度: 277.37 Mbps（Speedtest.net 官測）
+#   下行速度: 182.88 Mbps  Ping: 6ms
+#   每個 chunk: 22 MB
+#
+# Phase A - Preprocess (FFmpeg 音訊提取)：CPU 密集
+#   5 workers → CPU 93%（邊界，沙盒實測）
+#   3 workers → CPU 56%（安全）
+#
+# Phase B - STT (Gemini Files API upload + generate)：I/O 密集
+#   15 workers × 3 chunks = 45 同時上傳
+#   每路: 277/45 = 6.16 Mbps → 上傳 29s << API 75s（網路完全不是瓶頸）
+#   RPM/key = 4.8（安全閾值 10 RPM）
+#   瓶頸：API 配額（59 keys × 1500 RPD ÷ 30 calls = 2,950 tasks/day）
+#   552 堂預計完成時間：4.5 小時
+# ════════════════════════════════════════════════════════════
+# ── 並發數設定（實測邊界值，非理論值）────────────────────────────────
+# CPU 密集（FFmpeg Preprocess）：實測 3 workers ≈ 56% CPU，安全上限
+PREPROCESS_CONCURRENCY   = 3
+# STT 並發上下限：依實測監控統計調整
+# 實測資料：並發=10 + 清除死 key 後 → 23.5/hr，並發=28 → 0/hr（全 503）
+STT_CONCURRENCY_MIN      = 4    # 最低保底
+STT_CONCURRENCY_MAX      = 6    # 避免顯示卡過熱藍白當機下修上限
+STT_CONCURRENCY_DEFAULT  = 6    # 無 KPI 資料時預設值下修
+# KPI 目標（completed/hr）
+KPI_TARGET               = 40
+
+# ── 503 雪崩狀態追蹤（模組層級全域，不需持久化）────────────────────────────
+# _avalanche_floor = None  表示目前無雪崩
+# _avalanche_floor = N     表示目前強制壓低並發到 N，等待恢復
+_avalanche_floor: "int | None" = None
+_avalanche_last_503_ts: float = 0.0   # 最近一次 503 的 epoch timestamp
+
+
+def detect_503_avalanche_floor() -> "int | None":
+    """
+    讀取 chunk_errors.log 過去 3 分鐘的 503 錯誤數量。
+    若 503 頻率超過閾值，回傳「資料驅動的安全地板並發數」；否則回傳 None。
+
+    安全地板計算邏輯（實測資料驅動）：
+      - 從 kpi_state.json 讀取「上一個成功輪次的並發數」
+      - 地板 = max(上次成功並發 // 2, STT_CONCURRENCY_MIN)
+      - 若無歷史資料，地板 = STT_CONCURRENCY_MIN
+
+    觸發閾值：3 分鐘內出現 >= 5 個 503 錯誤
+    （依據 AGENTS.md 實測：並發=10 → 23.5/hr，並發=28 → 0/hr 雪崩）
+    """
+    import re, time as _time
+    from pathlib import Path
+    import json
+
+    error_log = Path("A:/logs/chunk_errors.log")
+    if not error_log.exists():
+        return None
+
+    cutoff = _dt.now(_tz.utc).replace(tzinfo=None) + _td(hours=8) - _td(minutes=3)
+    count_503 = 0
+    try:
+        lines = error_log.read_text(encoding="utf-8", errors="replace").splitlines()[-200:]
+        for line in lines:
+            if "503" not in line and "UNAVAILABLE" not in line:
+                continue
+            m = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", line)
+            if m:
+                try:
+                    ts = _dt.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
+                    if ts >= cutoff:
+                        count_503 += 1
+                except Exception:
+                    pass
+    except Exception:
+        return None
+
+    AVALANCHE_THRESHOLD = 5  # 3 分鐘 >= 5 個 503 才觸發
+    if count_503 < AVALANCHE_THRESHOLD:
+        return None  # 正常，無雪崩
+
+    # 讀取上一個成功輪次的並發數（從 kpi_state）
+    kpi_state_path = "A:/logs/kpi_state.json"
+    last_good = STT_CONCURRENCY_DEFAULT
+    try:
+        if Path(kpi_state_path).exists():
+            s = json.loads(Path(kpi_state_path).read_text(encoding="utf-8-sig"))
+            v = int(s.get("stt_concurrency", STT_CONCURRENCY_DEFAULT))
+            if v > 0:
+                last_good = v
+    except Exception:
+        pass
+
+    # 安全地板 = 上次並發的一半，但不低於 STT_CONCURRENCY_MIN
+    floor = max(last_good // 2, STT_CONCURRENCY_MIN)
+    log_workflow(
+        f"[503-Avalanche] 偵測到 {count_503} 個 503（3min 內），"
+        f"上次並發={last_good} → 安全地板={floor}（實測資料驅動）"
+    )
+    return floor
+
+
+def compute_adaptive_concurrency() -> int:
+    """
+    依最近 KPI 歷史動態決定 STT 並發數。
+    規則（實測資料驅動，非時間硬編碼）：
+      - KPI >= target*1.5 (60/hr)：並發充足，保持目前值
+      - KPI >= target (40/hr)：剛好達標，小幅加大備用
+      - KPI >= target*0.5 (20/hr)：差一點，加大 +4
+      - KPI >= target*0.25 (10/hr)：明顯不足，加大 +8
+      - KPI <  target*0.25 (<10/hr) 或 全 0：大幅拉升至上限
+      - KPI 資料不足 < 3 筆：用預設值
+    """
+    global _avalanche_floor, _avalanche_last_503_ts
+    import json, os, re, time as _time
+    from datetime import datetime, timedelta
+    from pathlib import Path
+
+    kpi_state_path = "A:/logs/kpi_state.json"
+
+    # ── Step 0: 503 雪崩優先偵測（30 秒內立刻反應，最高優先）────────────────
+    avalanche_floor = detect_503_avalanche_floor()
+    if avalanche_floor is not None:
+        # 進入雪崩模式：強制壓低並發，記錄時間戳
+        _avalanche_floor = avalanche_floor
+        _avalanche_last_503_ts = _time.time()
+        try:
+            s = json.loads(Path(kpi_state_path).read_text(encoding="utf-8-sig")) if Path(kpi_state_path).exists() else {}
+            s["stt_concurrency"] = _avalanche_floor
+            s["avalanche_mode"] = True
+            Path(kpi_state_path).write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+        log_workflow(f"[503-Avalanche] 強制並發={_avalanche_floor}（安全地板，等待 API 恢復）")
+        return _avalanche_floor
+    elif _avalanche_floor is not None:
+        # 雪崩已緩解：緩慢恢復（每輪 +1，最多到 STT_CONCURRENCY_MAX）
+        elapsed = _time.time() - _avalanche_last_503_ts
+        if elapsed > 300:  # 5 分鐘無新 503 → 完全清除雪崩狀態
+            log_workflow("[503-Avalanche] 5 分鐘無新 503，解除雪崩模式，恢復正常自適應")
+            _avalanche_floor = None
+        else:
+            recovered = min(_avalanche_floor + 1, STT_CONCURRENCY_MAX)
+            _avalanche_floor = recovered
+            log_workflow(f"[503-Avalanche] 緩解中（{elapsed:.0f}s），並發緩慢恢復={recovered}")
+            return recovered
+
+    # ── Step 1: 正常 KPI 歷史回饋自適應（無雪崩時走此路）────────────────────
+    kpi_vals = []
+
+    # 1. 讀 kpi_state.json（最新一筆）
+    if os.path.exists(kpi_state_path):
+        try:
+            s = json.load(open(kpi_state_path, encoding="utf-8-sig"))
+            v = s.get("kpi_b1", None)
+            if v is not None:
+                kpi_vals.append(float(v))
+        except Exception:
+            pass
+
+    # 2. 讀 kpi_monitor.log 最近 30 分鐘的 KPI-B1 樣本
+    kpi_log_path = "A:/logs/kpi_monitor.log"
+    if os.path.exists(kpi_log_path):
+        try:
+            cutoff = _dt.now(_tz.utc) - _td(minutes=30)
+            for l in open(kpi_log_path, encoding="utf-8", errors="replace").readlines()[-120:]:
+                m = re.search(r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\].*KPI-B1: ([\d.]+)", l)
+                if m:
+                    ts = _dt.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
+                    if ts > cutoff:
+                        kpi_vals.append(float(m.group(2)))
+        except Exception:
+            pass
+
+    # 3. 樣本不足：用預設值
+    if len(kpi_vals) < 3:
+        return STT_CONCURRENCY_DEFAULT
+
+    # 4. 取近期平均（排除極端離群）
+    kpi_vals.sort()
+    trimmed = kpi_vals[len(kpi_vals)//5 : -len(kpi_vals)//5 or None] or kpi_vals
+    recent_kpi = sum(trimmed) / len(trimmed)
+
+    # 5. 讀目前正在使用的並發數（上一輪設定值，存在 kpi_state）
+    try:
+        s = json.load(open(kpi_state_path, encoding="utf-8-sig"))
+        current = int(s.get("stt_concurrency", STT_CONCURRENCY_DEFAULT))
+    except Exception:
+        current = STT_CONCURRENCY_DEFAULT
+
+    # 6. KPI 回饋規則（含「並發過高反而更差」偵測）
+    if recent_kpi >= KPI_TARGET * 1.5:
+        new = max(current - 2, STT_CONCURRENCY_MIN)   # 有餘裕，可略降節省資源
+        reason = f"KPI {recent_kpi:.1f} ≥ 60，充裕，略降並發"
+    elif recent_kpi >= KPI_TARGET:
+        new = current                                   # 剛好達標，不動
+        reason = f"KPI {recent_kpi:.1f} ≥ 40，達標，維持 {current}"
+    elif recent_kpi >= KPI_TARGET * 0.5:
+        new = min(current + 2, STT_CONCURRENCY_MAX)    # 差一點，小幅加 2
+        reason = f"KPI {recent_kpi:.1f} 20~40，不足，+2"
+    elif recent_kpi > 0:
+        # KPI 低但不是 0：適度增加
+        new = min(current + 2, STT_CONCURRENCY_MAX)
+        reason = f"KPI {recent_kpi:.1f} 0~20，明顯不足，+2"
+    else:
+        # KPI = 0：「可能是並發過高造成雪崩」vs「並發不夠」
+        # 若目前並發已高（≥12），先降並發（解除 thundering herd）
+        # 若目前並發低（<12），再嘗試增加
+        if current >= 12:
+            new = max(current - 4, STT_CONCURRENCY_MIN)
+            reason = f"KPI=0 且並發={current}≥12，疑似 API 雪崩，降並發 -4"
+        else:
+            new = min(current + 2, STT_CONCURRENCY_MAX)
+            reason = f"KPI=0 且並發={current}<12，適度增加 +2"
+
+    # 7. 回寫並發數到 kpi_state 供下一輪讀取
+    try:
+        s = json.load(open(kpi_state_path, encoding="utf-8-sig")) if os.path.exists(kpi_state_path) else {}
+        s["stt_concurrency"] = new
+        atomic_json_dump(s, kpi_state_path)
+    except Exception:
+        pass
+
+    import logging
+    logging.info(f"[AdaptiveConcurrency] {reason} → 並發={new}（樣本={len(kpi_vals)}, 近期KPI均值={recent_kpi:.1f}）")
+    return new
+
+
+TASK_CONCURRENCY = STT_CONCURRENCY_DEFAULT  # 初始值，會被 compute_adaptive_concurrency() 覆蓋
+
+
+
+def run_single_task_safe(manifest: dict, manifest_path: Path, exclusive_key: str, qm: QuotaManager, chunking_only: bool) -> bool:
+    """
+    包裝單一任務的完整流程，供 ThreadPoolExecutor 並列呼叫。
+    ★ Fix ❷：exclusive_key 可為 None，此時在 Worker 啟動時才向 qm 按需取得，
+              確保 key 不被預先鎖死在等待佇列中。
+    返回 True 表示任務成功。
+    """
+    # ── 避免多個 Worker 在同一毫秒打向 API，給予 1~4 秒隨機緩衝 ──
+    time.sleep(random.uniform(1.0, 4.0))
+    paths = ensure_dirs()
+    task_id = manifest.get("task_id", "unknown_task")
+    key_acquired_here = False
+
+    # ★ 按需取得 key（若呼叫方沒有預先分配）
+    if not chunking_only and exclusive_key is None and qm is not None:
+        try:
+            exclusive_key = qm.acquire_key_exclusive()
+            key_acquired_here = True
+            if exclusive_key == "__VERTEX_AUTH__":
+                # Vertex 模式：哨兵不是真實 key，下游改走 ADC 路徑
+                log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始（Vertex AI 模式）")
+                exclusive_key = None   # 傳 None 給 _run_task_steps，讓它走 vertexai=True
+            else:
+                log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始，按需取得金鑰: {exclusive_key[:8]}...")
+        except RuntimeError:
+            log_error(f"[Parallel Dispatcher] Task {task_id} 無可用金鑰，跳過本輪。")
+            return False
+    elif exclusive_key == "__VERTEX_AUTH__":
+        log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始（Vertex AI 模式，傳入哨兵）")
+        exclusive_key = None
+    elif exclusive_key:
+        log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始，使用傳入金鑰: {exclusive_key[:8]}...")
+    else:
+        log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始（chunking-only 模式）")
+
+    # ── 接入點 1: run_single_task_safe 入口 ───────────────────────────────
+    _task_start_time = time.time()
+    source_name = manifest.get("source_name", "unknown")
+    chunk_count = manifest.get("chunk_count", 0)
+    try:
+        return _run_task_steps(manifest, manifest_path, paths, exclusive_key, chunking_only)
+    except Exception as e:
+        _elapsed = time.time() - _task_start_time
+        # 堂疊快照（接入點 1）
+        dump_stack_snapshot(
+            task_id=task_id,
+            source_name=source_name,
+            stage="run_single_task_safe",
+            chunk_count=chunk_count,
+            elapsed_seconds=_elapsed,
+        )
+        log_error(f"[Parallel Dispatcher] Task {task_id} 發生異常：{e}")
+        try:
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                current_manifest = json.load(f)
+            current_manifest["status"] = "failed"
+            current_manifest["error"] = str(e)
+            atomic_json_dump(current_manifest, manifest_path)
+        except Exception:
+            pass
+        return False
+    finally:
+        # ★ 只有本函式自己取的 key 才在這裡釋放
+        if key_acquired_here and qm and exclusive_key:
+            qm.release_key(exclusive_key)
+
+def process_active_tasks(chunking_only=False):
+    paths = ensure_dirs()
+    manifests_dir = paths["manifests_dir"]
+    
+    # 尋找所有非 chunks 且未完成/未失敗的任務清單
+    manifest_paths = Path(manifests_dir).glob("*.json")
+    active_tasks = []
+    
+    for p in manifest_paths:
+        if not p.name.startswith("task_") or p.name.endswith("_chunks.json"):
+            continue
+        try:
+            with open(p, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+                status = data.get("status")
+                # 在 chunking_only 模式下，如果 chunk_planner 已經 completed，我們跳過此任務
+                if chunking_only and data.get("steps", {}).get("chunk_planner") == "completed":
+                    continue
+                if status not in ["completed", "failed"]:
+                    active_tasks.append((p, data))
+        except Exception:
+            pass
+            
+    # 依照「先程序後實體、國考主要科目優先、再來分科」的法學專業排序佇列
+    active_tasks.sort(key=lambda x: (
+        get_legal_priority_score(x[1].get("source_name", "")),
+        x[1].get("task_id", "")
+    ))
+    
+    # 暫時鎖定僅執行第一堂課已測試完畢，註解此行以解鎖所有課程排程
+    # active_tasks = [t for t in active_tasks if t[1].get("task_id") == "task_20260706_201825_00_3231"]
+            
+    if not active_tasks:
+        return
+
+    log_workflow(f"Workflow Engine: Found {len(active_tasks)} active tasks to process.")
+
+    # ── 建立全局共享的 QuotaManager 實例 ──
+    from workflow_helper import load_config
+    sys_config = load_config()
+    stt_engine = sys_config.get("stt_engine", "gemini")
+    merge_engine = sys_config.get("merge_engine", "gemini")
+
+    if stt_engine == "vertexai" and merge_engine == "vertexai":
+        log_workflow("[INFO] 系統走企業高速公路，跳過 QuotaManager 私家金鑰盤查")
+        qm = None
+    else:
+        try:
+            qm = QuotaManager()
+        except Exception as qm_err:
+            log_error(f"QuotaManager 初始化失敗，回退至單線程模式：{qm_err}")
+            qm = None
+
+    # ── 雙階段自適應並發數選擇 ──
+    # Phase A (NOW）16:00): queued > chunked → 用 PREPROCESS_CONCURRENCY=3
+    # Phase B (16:00+):      強制 STT_CONCURRENCY=15，並把 chunked 任務排到最前面
+    # 《重要》必須用台灣時間 UTC+8，不能用 datetime.now()（這是 UTC）
+    _tw_now = _dt.now(_tz.utc).replace(tzinfo=None) + _td(hours=8)
+    _now_hour = _tw_now.hour
+    _is_stt_phase = True if ENTERPRISE_MODE else (_now_hour >= 16 or _now_hour < 8)
+
+    queued_count  = sum(1 for _, d in active_tasks if d.get("status") == "queued")
+    chunked_count = sum(1 for _, d in active_tasks if d.get("status") == "chunked")
+
+    if _is_stt_phase or chunked_count > 0:
+        # ── KPI 回饋自動調節（取代時間硬編碼）──
+        effective_concurrency = compute_adaptive_concurrency()
+        chunked_tasks = [(p, d) for p, d in active_tasks if d.get("status") == "chunked"]
+        other_tasks   = [(p, d) for p, d in active_tasks if d.get("status") != "chunked"]
+        active_tasks  = chunked_tasks + other_tasks
+        log_workflow(f"[Dispatcher] ✅ STT Phase B ({chunked_count} chunked + {queued_count} queued) 並發={effective_concurrency}（KPI自適應）")
+    elif queued_count > chunked_count:
+        # Phase A: queued 任務排首，確保 preprocess 真正執行
+        effective_concurrency = PREPROCESS_CONCURRENCY
+        queued_tasks = [(p, d) for p, d in active_tasks if d.get("status") == "queued"]
+        other_tasks  = [(p, d) for p, d in active_tasks if d.get("status") != "queued"]
+        active_tasks = queued_tasks + other_tasks
+        log_workflow(f"[Dispatcher] Preprocess Phase A ({queued_count} queued 優先 + {chunked_count} chunked) → 並發={effective_concurrency}（CPU 安全）")
+    else:
+        effective_concurrency = STT_CONCURRENCY_DEFAULT
+        log_workflow(f"[Dispatcher] 佇列以 STT 為主 ({chunked_count} chunked vs {queued_count} queued) → 並發={effective_concurrency}（網路最佳）")
+
+    batch = active_tasks[:effective_concurrency * 8]
+    log_workflow(f"[Parallel Dispatcher] 本輪提交 {len(batch)}/{len(active_tasks)} 個任務（並發數 {effective_concurrency}）")
+
+
+    with ThreadPoolExecutor(max_workers=effective_concurrency) as executor:
+        futures = {}
+        for i, (manifest_path, manifest) in enumerate(batch):
+            fut = executor.submit(
+                run_single_task_safe,
+                manifest,
+                manifest_path,
+                None,   # ★ 不預傳 key，Worker 自行按需取得
+                qm,
+                chunking_only,
+            )
+            futures[fut] = manifest.get("task_id", "unknown_task")
+
+        for future in as_completed(futures):
+            task_id = futures[future]
+            try:
+                success = future.result()
+                status = "success" if success else "failed"
+                log_workflow(f"[Parallel Dispatcher] Task {task_id} 完成，狀態：{status}")
+            except Exception as e:
+                log_error(f"[Parallel Dispatcher] Task {task_id} Future 異常：{e}")
+
+    # 若本輪還有剩餘任務，交由 run_loop 下一輪迭代處理（不遞迴，避免爆棧）
+    remaining = len(active_tasks) - len(batch)
+    if remaining > 0:
+        log_workflow(f"[Parallel Dispatcher] 本輪完成，剩餘 {remaining} 個任務等待下一輪。")
+
+
+
+
+def _run_task_steps(manifest: dict, manifest_path: Path, paths: dict, exclusive_key: str, chunking_only: bool) -> bool:
+    """
+    執行單一任務的工作流步驟。
+    全程同步執行 stt→merge→formatter。
+    exclusive_key: 多工模式下此 Task 獨佔的 API 金鑰，傳遞給 run_stt()。
+    返回 True 表示任務成功完成。
+    """
+    task_id = manifest.get("task_id", "unknown")
+    source_name = manifest.get("source_name")
+    steps = manifest.get("steps")
+    
+    if not source_name:
+        log_error(f"Workflow Engine: task {task_id} missing source_name, mark for review")
+        manifest["status"] = "needs_review"
+        atomic_json_dump(manifest, manifest_path)
+        return False
+        
+    if steps is None:
+        log_error(f"Workflow Engine: task {task_id} missing steps, mark for review")
+        manifest["status"] = "needs_review"
+        atomic_json_dump(manifest, manifest_path)
+        return False
+
+    # ★ 相容變山：舊格式 manifest 用 video_path，新格式用 source_path
+    if "source_path" not in manifest and "video_path" in manifest:
+        manifest["source_path"] = manifest.get("video_path", "")
+        try:
+            atomic_json_dump(manifest, manifest_path)
+        except Exception:
+            pass
+
+    # ── 真實任務步驟 ──
+    try:
+        # 步驟二：Preprocess
+        if manifest["steps"].get("preprocess") == "pending":
+            success = preprocess(task_id)
+            if not success:
+                raise RuntimeError("Preprocess step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        # 步驟三：Chunk Planner
+        if manifest["steps"].get("chunk_planner") == "pending":
+            success = plan_chunks(task_id)
+            if not success:
+                raise RuntimeError("Chunk planning step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        if chunking_only:
+            log_workflow(f"Workflow Engine: Task {task_id} chunking done. Stopping (--chunking-only mode).")
+            return True
+
+        # ── 任務計時（用於接入點 2/3/4 的 elapsed_seconds）────────────────────
+        _steps_start = time.time()
+        _source = manifest.get("source_name", "unknown")
+        _chunks = manifest.get("chunk_count", 0)
+
+        # 步驟四：STT（傳入排他金鑰供並列模式使用）
+        if manifest["steps"].get("stt") == "pending":
+            _stt_start = time.time()
+            success = run_stt(task_id, exclusive_key=exclusive_key)
+            if not success:
+                # ── 接入點 2: STT 失敗堂疊快照 ───────────────────────
+                dump_stack_snapshot(
+                    task_id=task_id,
+                    source_name=_source,
+                    stage="stt",
+                    chunk_count=_chunks,
+                    elapsed_seconds=time.time() - _stt_start,
+                )
+                raise RuntimeError("STT transcription step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        # 步驟五：Merge
+        if manifest["steps"].get("merge") == "pending":
+            _merge_start = time.time()
+            success = merge_workflow(task_id)
+            if not success:
+                # ── 接入點 3: merge_map / reduce 失敗堂疊快照 ─────────────
+                dump_stack_snapshot(
+                    task_id=task_id,
+                    source_name=_source,
+                    stage="merge_map_reduce",
+                    chunk_count=_chunks,
+                    elapsed_seconds=time.time() - _merge_start,
+                )
+                raise RuntimeError("Merge step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        # 步驟六：Formatter
+        if manifest["steps"].get("formatter", "pending") == "pending":
+            success = format_markdown(task_id)
+            if not success:
+                raise RuntimeError("Formatter step failed")
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                manifest = json.load(f)
+
+        # 任務完成
+        manifest["status"] = "completed"
+        atomic_json_dump(manifest, manifest_path)
+        log_workflow(f"Workflow Engine: Task {task_id} completed successfully!")
+
+        return True
+
+    except Exception as e:
+        _total_elapsed = time.time() - _steps_start
+        # ── 接入點 4: Vertex / 外部 API 呼叫層經常是此遊例的根源─────────────
+        dump_stack_snapshot(
+            task_id=task_id,
+            source_name=_source,
+            stage="vertex_or_external_api",
+            chunk_count=_chunks,
+            elapsed_seconds=_total_elapsed,
+        )
+        log_error(f"Workflow Engine: Critical error in task {task_id}: {e}")
+        try:
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                current_manifest = json.load(f)
+            # ★ 保護：若 stt_runner 已將任務重置為 chunked（等待重試），不要覆寫為 failed
+            if current_manifest.get("status") != "chunked":
+                current_manifest["status"] = "failed"
+                current_manifest["error"] = str(e)
+                atomic_json_dump(current_manifest, manifest_path)
+            else:
+                log_workflow(f"Workflow Engine: Task {task_id} already reset to chunked by stt_runner, skipping failed overwrite.")
+        except Exception as write_err:
+            log_error(f"Failed to mark task as failed: {write_err}")
+        return False
+
+
+def run_loop(chunking_only=False):
+    log_workflow("臺灣法律教材長影音切片處理工作流監控服務已啟動！" + (" [僅切片模式]" if chunking_only else ""))
+    ensure_dirs()
+
+    while True:
+        try:
+            # 1. 掃描新檔案
+            scan_new_files()
+            # 2. 執行活動中任務（STT 完成後 Worker 立即釋放，merge/fmt 由 Daemon 接手）
+            process_active_tasks(chunking_only)
+        except RuntimeError as e:
+            # 金鑰池全滅（所有 key 都 429）→ 等冷卻期結束
+            if "exhausted" in str(e).lower() or "湿" in str(e) or "all api keys" in str(e).lower():
+                log_workflow(f"[Quota Cooldown] 金鑰池耗盡，進入 600 秒冷卻睡眠... ({e})")
+                time.sleep(600)
+                # 重置 key pool state
+                try:
+                    import json as _json
+                    _qstate = Path("config/quota_state.json")
+                    _qstate.write_text(_json.dumps({"exhausted_keys": []}, ensure_ascii=False), encoding="utf-8")
+                    log_workflow("[Quota Cooldown] 金鑰池已重置，繼續排程。")
+                except Exception:
+                    pass
+            else:
+                log_error(f"Error in main workflow loop: {e}")
+        except Exception as e:
+            import traceback
+            log_error(f"Error in main workflow loop: {e}\n{traceback.format_exc()}")
+
+        time.sleep(10)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--one-shot", action="store_true", help="Run once and exit instead of loop")
+    parser.add_argument("--chunking-only", action="store_true", help="Only run local chunking steps (preprocess, chunk planner)")
+    args = parser.parse_args()
+    
+    paths = ensure_dirs()
+    lock_file = os.path.join(paths["manifests_dir"], "workflow.lock")
+    lock = SingleInstanceLock(lock_file)
+    
+    if not lock.acquire():
+        print(f"[Workflow Lock] Another instance of run_workflow is already running (locked on {lock_file}). Exiting.")
+        sys.exit(0)
+        
+    try:
+        if args.one_shot:
+            log_workflow("Workflow Engine: Running in one-shot mode." + (" [僅切片模式]" if args.chunking_only else ""))
+            scan_new_files()
+            process_active_tasks(args.chunking_only)
+        else:
+            run_loop(args.chunking_only)
+    finally:
+        lock.release()
+
+if __name__ == "__main__":
+    main()
+
+`
+
+===== FILE: workflow_helper.py =====
+`python
+import os
+import sys, io
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+import yaml
+from pathlib import Path
+
+def load_config():
+    # Load config.yaml from workspace root
+    script_dir = Path(__file__).parent.resolve()
+    workspace_root = script_dir.parent
+    config_path = workspace_root / "config.yaml"
+    
+    if not config_path.exists():
+        config_path = script_dir / "config.yaml"
+        
+    if not config_path.exists():
+        # Fallback to current working directory
+        config_path = Path("config.yaml").resolve()
+        
+    if not config_path.exists():
+        # Create a default dict if config file is not found
+        return {
+            "paths": {
+                "project_root": "D:\\LegalAI_Project",
+                "raw_data_dir": "raw_data",
+                "processed_md_dir": "processed_md",
+                "manifests_dir": "manifests",
+                "chunks_dir": "chunks",
+                "logs_dir": "logs"
+            },
+            "api": {
+                "gemini_api_key": "AUTO_LOAD_FROM_ENV",
+                "gemini_model_low_cost": "gemini-3.5-flash",   # 首選：實測最高品質
+                "gemini_model_high_accuracy": "gemini-flash-latest", # 無 Pro 配額，用 flash-latest 代替
+            },
+            "settings": {
+                "low_cost_mode": True,
+                "chunk_limit_audio_sec": 1200,
+                "chunk_limit_video_sec": 360,
+                "overlap_sec": 30,
+                "silence_detect_duration": 1.5,
+                "silence_detect_noise_db": -35,
+                "stt_max_retries": 3
+            }
+        }
+        
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    return config
+
+def get_resolved_paths():
+    config = load_config()
+    paths = config.get("paths", {})
+    root = paths.get("project_root", "D:\\LegalAI_Project")
+    
+    # If D:\ drive does not exist, fallback to C:\LegalAI_Project
+    if root.startswith("D:\\") and not os.path.exists("D:\\"):
+        root = root.replace("D:\\", "C:\\")
+        
+    resolved = {"project_root": root}
+    v6_env = os.environ.get("LEXMIND_ENV", "v5_prod")
+    suffix = "_v6" if v6_env == "v6_canary" else ""
+
+    resolved = {"project_root": root}
+    for key in ["raw_data_dir", "processed_md_dir", "manifests_dir", "chunks_dir", "logs_dir"]:
+        sub_dir = paths.get(key, "")
+        base_path = os.path.join(root, sub_dir)
+        resolved[key] = base_path + suffix if suffix else base_path
+        
+    return resolved
+
+def ensure_dirs():
+    paths = get_resolved_paths()
+    for key, path in paths.items():
+        if key == "project_root":
+            continue
+        os.makedirs(path, exist_ok=True)
+    return paths
+
+def get_all_keys():
+    import json
+    config = load_config()
+    keys = []
+    
+    # 1. 讀取 config.yaml 中的金鑰列表
+    api_section = config.get("api", {})
+    if "gemini_api_keys" in api_section and isinstance(api_section["gemini_api_keys"], list):
+        for k in api_section["gemini_api_keys"]:
+            if k and isinstance(k, str):
+                keys.append(k.strip())
+                
+    # 2. 讀取 config.yaml 中的單一金鑰
+    single_key = api_section.get("gemini_api_key")
+    if single_key and single_key != "AUTO_LOAD_FROM_ENV" and single_key not in keys: [REDACTED]
+        keys.append(single_key.strip())
+        
+    # 3. 讀取 .env
+    script_dir = Path(__file__).parent.resolve()
+    workspace_root = script_dir.parent
+    env_path = workspace_root / ".env"
+    if env_path.exists():
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line_str = line.strip()
+                if line_str.startswith("GEMINI_API_KEYS="):
+                    val = line_str.split("=", 1)[1].strip()
+                    for k in val.split(","):
+                        k_clean = k.strip()
+                        if k_clean and k_clean not in keys: [REDACTED]
+                            keys.append(k_clean)
+                elif line_str.startswith("GEMINI_API_KEY="):
+                    val = line_str.split("=", 1)[1].strip()
+                    if val and val not in keys: [REDACTED]
+                        keys.append(val)
+                        
+    # 4. 讀取環境變數
+    env_keys_str = os.environ.get("GEMINI_API_KEYS")
+    if env_keys_str:
+        for k in env_keys_str.split(","):
+            k_clean = k.strip()
+            if k_clean and k_clean not in keys: [REDACTED]
+                keys.append(k_clean)
+    env_single = os.environ.get("GEMINI_API_KEY")
+    if env_single and env_single not in keys: [REDACTED]
+        keys.append(env_single)
+        
+    return [k for k in keys if k]
+
+def get_gemini_key():
+    import json
+    import time
+    keys = get_all_keys()
+    if not keys: [REDACTED]
+        return ""
+    if len(keys) == 1:
+        return keys[0]
+        
+    resolved_paths = get_resolved_paths()
+    state_file = os.path.join(resolved_paths["manifests_dir"], "api_keys_state.json")
+    
+    state = {}
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            pass
+            
+    # Read config/quota_state.json to sync status
+    quota_exhausted = []
+    quota_state_file = "config/quota_state.json"
+    try:
+        if os.path.exists(quota_state_file):
+            with open(quota_state_file, "r", encoding="utf-8") as f:
+                quota_state = json.load(f)
+            quota_exhausted = quota_state.get("exhausted_keys", [])
+    except Exception:
+        pass
+
+    # 尋找第一個未標記為耗盡，或者已冷卻完畢（超過 10 分鐘）的金鑰
+    active_keys = []
+    current_time = time.time()
+    quota_state_changed = False
+    for k in keys: [REDACTED]
+        k_state = state.get(k, {})
+        status = k_state.get("status")
+        exhausted_at = k_state.get("exhausted_at", 0)
+        
+        # 10 分鐘自動解禁
+        if status == "exhausted" and (current_time - exhausted_at > 600):
+            status = "active"
+            if k in quota_exhausted:
+                quota_exhausted.remove(k)
+                quota_state_changed = True
+            
+        if status != "exhausted" and k not in quota_exhausted:
+            active_keys.append(k)
+            
+    if quota_state_changed:
+        try:
+            with open(quota_state_file, "w", encoding="utf-8") as f:
+                json.dump({"exhausted_keys": quota_exhausted}, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    if not active_keys: [REDACTED]
+        # 如果全部金鑰都耗盡了，安全起見自動重設狀態檔案，重新循環嘗試
+        log_workflow("[Key Pool] 金鑰池內所有金鑰皆已標記為耗盡。正在重設狀態重新循環...", level="warning")
+        reset_exhausted_keys()
+        return keys[0]
+        
+    # 實作 Round-Robin 輪詢：尋找 last_used_key，並挑選它的下一個金鑰
+    last_key = state.get("last_used_key")
+    next_index = 0
+    if last_key in active_keys: [REDACTED]
+        try:
+            next_index = (active_keys.index(last_key) + 1) % len(active_keys)
+        except ValueError:
+            next_index = 0
+        
+    selected_key = active_keys[next_index]
+    
+    # 記錄最後使用的金鑰
+    state["last_used_key"] = selected_key
+    try:
+        with open(state_file, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+        
+    return selected_key
+
+def mark_key_exhausted(key):
+    if not key:
+        return
+    import json
+    import time
+    resolved_paths = get_resolved_paths()
+    state_file = os.path.join(resolved_paths["manifests_dir"], "api_keys_state.json")
+    
+    state = {}
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except Exception:
+            pass
+            
+    state[key] = {
+        "status": "exhausted",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "exhausted_at": time.time()
+    }
+    
+    try:
+        with open(state_file, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+        log_workflow(f"[Key Pool] 成功標記 API Key {key[:8]}...{key[-4:]} 為「暫時耗盡（進入10分鐘冷卻）」。", level="info")
+    except Exception as e:
+        print(f"Error saving key pool state: {e}")
+
+    # 同步標記到 config/quota_state.json
+    try:
+        quota_state_file = "config/quota_state.json"
+        quota_exhausted = []
+        if os.path.exists(quota_state_file):
+            with open(quota_state_file, "r", encoding="utf-8") as f:
+                quota_state = json.load(f)
+            quota_exhausted = quota_state.get("exhausted_keys", [])
+        if key not in quota_exhausted:
+            quota_exhausted.append(key)
+            with open(quota_state_file, "w", encoding="utf-8") as f:
+                json.dump({"exhausted_keys": quota_exhausted}, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+def reset_exhausted_keys():
+    resolved_paths = get_resolved_paths()
+    state_file = os.path.join(resolved_paths["manifests_dir"], "api_keys_state.json")
+    if os.path.exists(state_file):
+        try:
+            os.remove(state_file)
+            log_workflow("[Key Pool] 成功重置金鑰池中所有金鑰之狀態。", level="info")
+        except Exception as e:
+            print(f"Error resetting key pool state: {e}")
+
+    try:
+        quota_state_file = "config/quota_state.json"
+        if os.path.exists(quota_state_file):
+            with open(quota_state_file, "w", encoding="utf-8") as f:
+                json.dump({"exhausted_keys": []}, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+def log_workflow(message, level="info"):
+    paths = ensure_dirs()
+    log_file = os.path.join(paths["logs_dir"], "workflow.log")
+    import time
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    log_line = f"[{timestamp}] [{level.upper()}] {message}\n"
+    print(log_line.strip())
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(log_line)
+
+def log_error(message):
+    paths = ensure_dirs()
+    log_file = os.path.join(paths["logs_dir"], "chunk_errors.log")
+    import time
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    log_line = f"[{timestamp}] [ERROR] {message}\n"
+    print(log_line.strip())
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(log_line)
+    
+    # Also log to main workflow log
+    log_workflow(message, level="error")
+
+def get_ffmpeg_path():
+    import shutil
+    p = shutil.which("ffmpeg")
+    if p:
+        return p
+    winget_paths = [
+        r"C:\Users\temp\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.2-full_build\bin\ffmpeg.exe",
+        r"C:\Program Files (x85)\iMyFone\iMyFone D-Back\ffmpeg.exe",
+        r"C:\Program Files (x86)\iMyFone\iMyFone D-Back\ffmpeg.exe"
+    ]
+    for wp in winget_paths:
+        if os.path.exists(wp):
+            return wp
+    return "ffmpeg"
+
+def get_ffprobe_path():
+    import shutil
+    p = shutil.which("ffprobe")
+    if p:
+        return p
+    winget_paths = [
+        r"C:\Users\temp\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.2-full_build\bin\ffprobe.exe"
+    ]
+    for wp in winget_paths:
+        if os.path.exists(wp):
+            return wp
+    return "ffprobe"
+
+
+`
+
+===== FILE: manifest_manager.py =====
+`python
+import json
+import json
+import os
+import threading
+import time
+from pathlib import Path
+from filelock import FileLock, Timeout
+
+_thread_locks = {}
+_thread_locks_lock = threading.Lock()
+
+def get_thread_lock(path_str):
+    # Normalize path to ensure all variations point to the same lock
+    norm_path = os.path.normpath(os.path.abspath(path_str))
+    with _thread_locks_lock:
+        if norm_path not in _thread_locks:
+            _thread_locks[norm_path] = threading.Lock()
+        return _thread_locks[norm_path]
+
+class ManifestManager:
+    """
+    A unified manager for reading and writing task manifest JSON files.
+    Uses filelock to prevent race conditions across multiple processes.
+    Uses threading.Lock to prevent race conditions across threads in the same process.
+    Uses atomic replace to prevent file corruption during writes, with retries for Windows AV locks.
+    """
+    def __init__(self, manifest_path: str | Path, timeout: int = 30):
+        self.manifest_path = Path(manifest_path)
+        self.lock_path = self.manifest_path.with_suffix('.json.lock')
+        self.timeout = timeout
+        
+        self.file_lock = FileLock(str(self.lock_path), timeout=self.timeout)
+        self.thread_lock = get_thread_lock(str(self.manifest_path))
+
+    def __enter__(self):
+        self.thread_lock.acquire()
+        try:
+            self.file_lock.acquire()
+        except Exception:
+            self.thread_lock.release()
+            raise
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            self.file_lock.release()
+        finally:
+            self.thread_lock.release()
+        
+    def read(self) -> dict:
+        if not self.manifest_path.exists():
+            return {}
+        try:
+            with open(self.manifest_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[ManifestManager] Warning: failed to read {self.manifest_path}: {e}")
+            return {}
+            
+    def write(self, data: dict):
+        pid = os.getpid()
+        tid = threading.get_ident()
+        tmp_path = self.manifest_path.with_suffix(f'.json.tmp.{pid}.{tid}')
+        
+        with open(tmp_path, "w", encoding="utf-8-sig") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+            
+        # Retry loop for Windows (Antivirus or search indexer might briefly hold the file)
+        retries = 20
+        for i in range(retries):
+            try:
+                os.replace(tmp_path, self.manifest_path)
+                break
+            except PermissionError as e:
+                if i == retries - 1:
+                    print(f"[ManifestManager] Fatal: Could not replace file after {retries} retries: {e}")
+                    raise
+                time.sleep(0.05)
+
+def update_manifest(manifest_path: str | Path, update_fn) -> bool:
+    try:
+        with ManifestManager(manifest_path) as mm:
+            data = mm.read()
+            if not data:
+                return False
+            update_fn(data)
+            mm.write(data)
+            return True
+    except Timeout:
+        print(f"[ManifestManager] Error: Timeout waiting for lock on {manifest_path}")
+        return False
+
+`
+
+===== FILE: stt_runner.py =====
+`python
+# [CRITICAL CROSS-FILE DEPENDENCY WARNING]
+# Upstream: run_workflow.py
+# Downstream: quota_manager.py, Gemini API
+# Shared State: Chunks, API Keys, Transcripts
+
+import sqlite3
+import os
+import sys, io
+import json
+import logging
+import time
+import base64
+import yaml
+import datetime
+import subprocess
+import re
+import threading
+import queue
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+from quota_manager import QuotaManager
+from whisper_pool import WhisperPool
+from model_router import get_router
+
+# ==========================================
+# [EXPERT FIX] 動態讀取環境變數，落實 I/O 與 Port 隔離
+# ==========================================
+V6_ENV = os.environ.get("LEXMIND_ENV", "v5_prod")
+PORT = int(os.environ.get("LEXMIND_PORT", 8080))  # 實際應用 Port
+
+if V6_ENV == "v6_canary":
+    DB_PATH = "A:/logs/jobs_v6.db"
+    MANIFESTS_DIR = "A:/manifests_v6/"
+else:
+    DB_PATH = "A:/logs/jobs.db"
+    MANIFESTS_DIR = "A:/manifests/"
+
+os.makedirs(MANIFESTS_DIR, exist_ok=True)
+
+
+# ==========================================
+# [EXPERT FIX] SQLite 高併發優化：強制啟用 WAL 模式與拉長 Timeout
+# ==========================================
+def get_db_connection(db_path):
+    conn = sqlite3.connect(db_path, timeout=30.0)
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    return conn
+
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+error_log_lock = threading.Lock()
+
+def atomic_json_dump(data, filepath):
+    tmp_path = f"{filepath}.{os.getpid()}.{threading.get_ident()}.tmp"
+    import json
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    max_retries = 30
+    for i in range(max_retries):
+        try:
+            os.replace(tmp_path, filepath)
+            break
+        except PermissionError:
+            if i == max_retries - 1:
+                logging.error(f"嚴重 I/O 錯誤：等待 {max_retries} 次後仍無法覆寫 {filepath}")
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+                raise
+            import random
+            sleep_time = (0.1 * (1.2 ** i)) + random.uniform(0.01, 0.05)
+            time.sleep(min(sleep_time, 2.0))
+
+# [Block A / G] 狀態寫入收斂區塊
+def manifest_writer_thread(chunks_manifest_path, manifest_update_queue):
+    """背景單一寫入者：批次合併 processing / retrying / failed / completed 狀態到 chunks manifest"""
+    logging.info("[ManifestWriter] Background writer started.")
+
+    while True:
+        updates = []
+        stop_seen = False
+
+        try:
+            item = manifest_update_queue.get(timeout=2.0)
+            if item == "STOP":
+                manifest_update_queue.task_done()
+                break
+            updates.append(item)
+
+            while not manifest_update_queue.empty():
+                try:
+                    val = manifest_update_queue.get_nowait()
+                    if val == "STOP":
+                        stop_seen = True
+                    else:
+                        updates.append(val)
+                except queue.Empty:
+                    break
+
+            if not updates:
+                if stop_seen:
+                    manifest_update_queue.task_done()
+                    break
+                continue
+
+            if os.path.exists(chunks_manifest_path):
+                with open(chunks_manifest_path, "r", encoding="utf-8-sig") as f:
+                    try:
+                        current_chunks = json.load(f)
+                    except Exception:
+                        current_chunks = []
+            else:
+                current_chunks = []
+
+            index = {}
+            for c in current_chunks:
+                if isinstance(c, dict) and c.get("filename"):
+                    index[c["filename"]] = c
+
+            updated = False
+            for u in updates:
+                if not isinstance(u, dict):
+                    continue
+
+                filename = u.get("filename")
+                status = u.get("status")
+                if not filename or not status:
+                    continue
+
+                existing = index.get(filename, {"filename": filename})
+                existing["status"] = status
+
+                if "started_at" in u:
+                    existing["started_at"] = u["started_at"]
+                if "updated_at" in u:
+                    existing["updated_at"] = u["updated_at"]
+                if "failed_at" in u:
+                    existing["failed_at"] = u["failed_at"]
+                if "retry_count" in u:
+                    existing["retry_count"] = u["retry_count"]
+                if "last_error" in u:
+                    existing["last_error"] = u["last_error"]
+
+                index[filename] = existing
+                updated = True
+
+            if updated:
+                atomic_json_dump(list(index.values()), chunks_manifest_path)
+
+            for _ in updates:
+                manifest_update_queue.task_done()
+
+            if stop_seen:
+                manifest_update_queue.task_done()
+                break
+
+        except queue.Empty:
+            continue
+        except Exception as e:
+            logging.error(f"[ManifestWriter] Failed to write manifest batch: {e}")
+
+# [Block B / G] 蒸餾並發限制收斂區塊
+def distill_worker_thread(worker_id, distill_task_queue):
+    """背景蒸餾工作緒：限制最多只有 N 個子進程同時跑 Whisper"""
+    logging.info(f"[DistillWorker-{worker_id}] Background distill worker started.")
+    while True:
+        task = distill_task_queue.get()
+        if task == "STOP":
+            break
+            
+        try:
+            chunk_filename = task["filename"]
+            chunk_path = task["chunk_path"]
+            txt_output_path = task["txt_path"]
+            task_id = task["task_id"]
+            
+            logging.info(f"[DistillWorker-{worker_id}] Processing distill task: {chunk_filename}")
+            
+            # 直接在同一個進程內呼叫，共享 WhisperPool Semaphore，避免多進程 CUDA OOM/Deadlock
+            with open(txt_output_path, "r", encoding="utf-8-sig") as f:
+                transcription = f.read()
+            run_distill_process(task_id, chunk_filename, chunk_path, transcription)
+            
+            logging.info(f"[DistillWorker-{worker_id}] Completed distill task: {chunk_filename}")
+        except Exception as e:
+            logging.error(f"[DistillWorker-{worker_id}] Distill task failed: {e}")
+        finally:
+            distill_task_queue.task_done()
+
+def apply_glossary_fix(text):
+    glossary = {
+        "common_errors": {
+            "假芳": "甲方", "假方": "甲方",
+            "倚芳": "乙方", "倚方": "乙方", "以方": "乙方",
+            "炳芳": "丙方", "丙芳": "丙方", "炳方": "丙方",
+            "丁芳": "丁方",
+            "形式訴訟法": "刑事訴訟法",
+            "形式訴訟":   "刑事訴訟",
+            "形式法院":   "刑事法院",
+            "形式被告":   "刑事被告",
+            "形式案件":   "刑事案件",
+            "形事訴訟":   "刑事訴訟",
+            "形法": "刑法", "形訴": "刑訴",
+            "投地登記": "土地登記", "投地法": "土地法",
+            "地政治": "地政士", "遞贈式": "地政士",
+            "消滅實效": "消滅時效", "消滅士效": "消滅時效",
+            "格論": "各論",
+            "割了一個": "隔了一個", "割了好幾": "隔了好幾",
+            "抵銷法": "抵押法", "行政府": "行政府",
+        }
+    }
+    fixed_text = text
+    for wrong, right in glossary.get("common_errors", {}).items():
+        fixed_text = re.sub(wrong, right, fixed_text)
+    return fixed_text
+
+def run_distill_process(task_id, chunk_filename, chunk_path, transcription):
+    local_whisper_text = ""
+    try:
+        logging.info(f"[Parallel STT][Distill] WhisperPool 排隊（獨立進程）：{chunk_filename}")
+        local_whisper_text = WhisperPool.transcribe(chunk_path)
+        local_whisper_text = apply_glossary_fix(local_whisper_text)
+        logging.info(f"[Parallel STT][Distill] 完成：{chunk_filename}")
+
+        if local_whisper_text and transcription:
+            from difflib import SequenceMatcher
+            s = SequenceMatcher(None, local_whisper_text, transcription)
+            diff_items = []
+            for tag, i1, i2, j1, j2 in s.get_opcodes():
+                if tag == "replace":
+                    lw = local_whisper_text[i1:i2]
+                    gr = transcription[j1:j2]
+                    if 0 < len(lw) < 100 and 0 < len(gr) < 100:
+                        diff_items.append({"local_whisper_raw": lw, "gemini_corrected": gr})
+
+            distill_dir = "A:\\distillation_dataset"
+            os.makedirs(distill_dir, exist_ok=True)
+            chunk_distill_path = os.path.join(
+                distill_dir,
+                f"{task_id}_{chunk_filename.replace('.wav', '')}_distill.json"
+            )
+            atomic_json_dump({
+                "task_id": task_id,
+                "chunk_filename": chunk_filename,
+                "diff_mappings": diff_items,
+                "local_whisper_text": local_whisper_text,
+                "gemini_text": transcription,
+                "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+            }, chunk_distill_path)
+            logging.info(f"[Parallel STT][Distill] 蒸餾資料已儲存：{chunk_distill_path}")
+
+    except Exception as de:
+        logging.warning(f"[Parallel STT][Distill] 蒸餾失敗（非致命）：{de}")
+
+
+CHUNK_CONCURRENCY = 3
+API_UPLOAD_TIMEOUT      = 90
+API_TRANSCRIBE_TIMEOUT  = 150
+
+def _call_with_timeout(func, timeout_sec, *args, **kwargs):
+    import threading
+    result_box = [None]
+    error_box  = [None]
+    done_evt   = threading.Event()
+
+    def _target():
+        try:
+            result_box[0] = func(*args, **kwargs)
+        except Exception as _e:
+            error_box[0]  = _e
+        finally:
+            done_evt.set()
+
+    t = threading.Thread(target=_target, daemon=True)
+    t.start()
+    fired = done_evt.wait(timeout_sec)
+    if not fired:
+        raise TimeoutError(f"{func.__name__} 逾時 {timeout_sec}s，放棄此呼叫")
+    if error_box[0]:
+        raise error_box[0]
+    return result_box[0]
+
+# [Block C / G] 狀態機防護收斂區塊
+def process_single_chunk(
+    chunk: dict, client, qm: QuotaManager, current_key_ref: list, key_lock: threading.Lock,
+    task_id: str, chunks_manifest_path: str, config: dict, chunk_errors_log: str, stt_engine: str,
+    manifest_update_queue: queue.Queue, distill_task_queue: queue.Queue
+) -> bool:
+    chunk_path = chunk["path"]
+    chunk_filename = chunk["filename"]
+    retry_limit = 6
+    uploaded_file = None
+    upload_client = None
+    last_upload_key = None
+    consecutive_429_count = 0
+    processing_sent = False
+
+    logging.info(f"[Parallel STT] Processing chunk: {chunk_filename}")
+
+    def queue_processing_once():
+        nonlocal processing_sent
+        if not processing_sent:
+            now_ts = time.time()
+            manifest_update_queue.put({
+                "filename": chunk_filename,
+                "status": "processing",
+                "started_at": now_ts,
+                "updated_at": now_ts,
+                "retry_count": chunk.get("retry_count", 0),
+                "last_error": None,
+            })
+            processing_sent = True
+
+    def queue_retrying(error_obj):
+        now_ts = time.time()
+        manifest_update_queue.put({
+            "filename": chunk_filename,
+            "status": "retrying",
+            "updated_at": now_ts,
+            "retry_count": chunk.get("retry_count", 0),
+            "last_error": str(error_obj),
+        })
+
+    def queue_failed(error_obj):
+        now_ts = time.time()
+        manifest_update_queue.put({
+            "filename": chunk_filename,
+            "status": "failed",
+            "updated_at": now_ts,
+            "failed_at": now_ts,
+            "retry_count": chunk.get("retry_count", 0),
+            "last_error": str(error_obj),
+        })
+
+    def queue_completed():
+        now_ts = time.time()
+        manifest_update_queue.put({
+            "filename": chunk_filename,
+            "status": "completed",
+            "updated_at": now_ts,
+            "retry_count": chunk.get("retry_count", 0),
+            "last_error": None,
+        })
+
+    while chunk["retry_count"] < retry_limit:
+        try:
+            queue_processing_once()
+
+            if stt_engine in ["gemini", "vertexai"]:
+                file_size = os.path.getsize(chunk_path)
+                if file_size > 2000 * 1024 * 1024:
+                    raise ValueError(f"{chunk_filename} 超過 2GB 上傳上限")
+
+                if stt_engine == "gemini":
+                    with key_lock:
+                        active_key = current_key_ref[0]
+                    if upload_client is not None and last_upload_key != active_key:
+                        uploaded_file = None
+                        upload_client = None
+                        last_upload_key = None
+                    if not uploaded_file:
+                        with key_lock:
+                            active_key = current_key_ref[0]
+                        upload_client = genai.Client(api_key=active_key)
+                        last_upload_key = active_key
+                        with open(chunk_path, "rb") as f:
+                            audio_data = f.read()
+                        uploaded_file = types.Part.from_bytes(data=audio_data, mime_type="audio/wav")
+                    transcription = _call_with_timeout(
+                        transcribe_chunk, API_TRANSCRIBE_TIMEOUT,
+                        upload_client, uploaded_file, config, qm=qm, api_key=active_key
+                    )
+                else: # vertexai
+                    if not uploaded_file:
+                        vertex_project = config.get("api", {}).get("vertexai_project")
+                        with open(chunk_path, "rb") as f:
+                            audio_data = f.read()
+                        uploaded_file = types.Part.from_bytes(data=audio_data, mime_type="audio/wav")
+                        upload_client = genai.Client(vertexai=True, project=vertex_project, location="us-central1")
+                    transcription = _call_with_timeout(
+                        transcribe_chunk, API_TRANSCRIBE_TIMEOUT,
+                        upload_client, uploaded_file, config, qm=None, api_key=None
+                    )
+
+                txt_output_path = os.path.splitext(chunk_path)[0] + ".txt"
+                with open(txt_output_path, "w", encoding="utf-8-sig") as tf:
+                    tf.write(transcription or "")
+                json_output_path = os.path.splitext(chunk_path)[0] + ".json"
+                atomic_json_dump({
+                    "task_id": task_id, "filename": chunk_filename, "part_no": chunk.get("part_no", chunk.get("chunk_id")),
+                    "transcription": transcription, "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                }, json_output_path)
+                
+                distill_task_queue.put({
+                    "filename": chunk_filename,
+                    "chunk_path": chunk_path,
+                    "txt_path": txt_output_path,
+                    "task_id": task_id
+                })
+
+            chunk["status"] = "completed"
+            consecutive_429_count = 0
+            if stt_engine == "gemini":
+                qm.reset_key(current_key_ref[0])
+            logging.info(f"[Parallel STT] [OK] 完成：{chunk_filename}")
+            queue_completed()
+            return True
+
+        except Exception as e:
+            err_str = str(e)
+            is_429 = ("ResourceExhausted" in type(e).__name__) or ("429" in err_str)
+            if stt_engine == "gemini" and is_429:
+                consecutive_429_count += 1
+                chunk["retry_count"] += 1
+                queue_retrying(e)
+                with key_lock:
+                    current_key = current_key_ref[0]
+                res = qm.handle_error(e, current_key, consecutive_429_count)
+                sleep_time = res["sleep_time"]
+                new_key = res["new_key"]
+
+                if new_key:
+                    with key_lock:
+                        current_key_ref[0] = new_key
+                    consecutive_429_count = 0
+                else:
+                    queue_failed(e)
+                    break
+
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                continue
+            elif stt_engine == "vertexai" and "ResourceExhausted" in type(e).__name__:
+                chunk["retry_count"] += 1
+                queue_retrying(e)
+                time.sleep(15 * (chunk["retry_count"]))
+                continue
+
+            if "503" in err_str or "UNAVAILABLE" in err_str or "Server disconnected" in err_str:
+                backoff_times = [5, 10, 15, 30, 30, 30]
+                wait_503 = backoff_times[min(chunk["retry_count"], len(backoff_times)-1)]
+                chunk["retry_count"] += 1
+                with error_log_lock:
+                    with open(chunk_errors_log, "a", encoding="utf-8") as ef:
+                        ef.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} [{task_id}][{chunk_filename}]: {e}\n")
+                if chunk["retry_count"] < retry_limit:
+                    queue_retrying(e)
+                if chunk["retry_count"] == 3:
+                    with key_lock:
+                        current_key = current_key_ref[0]
+                    try:
+                        res = qm.handle_error(Exception("503"), current_key, 0)
+                        new_key = res.get("new_key")
+                        if new_key and new_key != current_key:
+                            with key_lock:
+                                current_key_ref[0] = new_key
+                            uploaded_file = None
+                    except Exception:
+                        pass
+                if chunk["retry_count"] < 3:
+                    time.sleep(wait_503)
+                    continue
+            else:
+                chunk["retry_count"] += 1
+                import traceback
+                tb_str = traceback.format_exc().replace('\n', ' | ')
+                with error_log_lock:
+                    with open(chunk_errors_log, "a", encoding="utf-8") as ef:
+                        ef.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} [{task_id}][{chunk_filename}] (Other Error): ExceptionClass={type(e).__name__}, RetryCount={chunk['retry_count']}, Error={e}, Traceback={tb_str}\n")
+                if chunk["retry_count"] < retry_limit:
+                    queue_retrying(e)
+
+    if chunk["status"] != "completed":
+        chunk["status"] = "failed"
+        queue_failed(f"chunk failed after retries: {chunk_filename}")
+        return False
+    return True
+
+ALLOWED_MODELS = [
+    "gemini-3.5-flash", "gemini-flash-latest", "gemini-3-flash-preview", 
+    "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-flash-lite-latest",
+]
+
+def transcribe_chunk(client, uploaded_file, config, qm=None, api_key=None) -> str:
+    router = get_router()
+    model = router.acquire()
+    prompt = """你是一位專業的台灣法律課程與講座的逐字稿整理助理。
+請將提供的音檔進行精確的繁體中文語音轉錄，並遵守以下規定：
+【重要：完整性與精確性要求】
+此檔案為極為關鍵的法律教學教材，是後續所有 AI 專案與智能庫的智慧基礎。請務必做到「一字不漏、完全轉錄」！
+嚴禁 any 摘要、縮寫、省略、或簡化發言的行為。請完整保留講師的所有口語說明、舉例與課堂細節。
+1. 輸出格式一律為繁體中文（台灣習慣用詞）。
+2. 保留台灣法律專業術語。
+3. 完整保留所有提到的法律法條名稱與條號。
+4. 保留釋字字號與法院判決字號之標準格式。
+5. 聽不清楚或不確定之處不可憑空預測，一律以 [待確認] 標記。
+6. 【絕對強制指令】：你必須在每一句話、或至少每隔 2 到 3 個語意斷點的前方，強制插入當前的時間戳記（例如 [01:23]、[05:45]）。
+7. 當辨識到章節、科目、主題、結論或堂數切換時，請自動插入適當的 Markdown 標題（#、##、###）。
+8. 若辨識到「爭點」、「重點整理」等關鍵語音字樣，請自動加粗重點標記（如：**【爭點】**）。
+9. 請過濾口語贅字（嗯、啊、那個、然後、就是說），使文字流暢。
+"""
+    if qm is not None and api_key is not None:
+        try:
+            qm.throttle_key(api_key)
+        except Exception:
+            pass
+    try:
+        from google.genai import types as genai_types
+        safety_settings = [
+            genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=genai_types.HarmBlockThreshold.BLOCK_ONLY_HIGH),
+            genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=genai_types.HarmBlockThreshold.BLOCK_ONLY_HIGH),
+            genai_types.SafetySetting(category=genai_types.HarmCategory.[REDACTED], threshold=genai_types.HarmBlockThreshold.BLOCK_ONLY_HIGH),
+            genai_types.SafetySetting(category=genai_types.HarmCategory.[REDACTED], threshold=genai_types.HarmBlockThreshold.BLOCK_ONLY_HIGH),
+        ]
+        response = client.models.generate_content(
+            model=model,
+            contents=[uploaded_file, prompt],
+            config=genai_types.GenerateContentConfig(safety_settings=safety_settings, temperature=0.3)
+        )
+        router.report_success(model)
+        text = response.text
+        if not text or not text.strip():
+            candidates = response.candidates or []
+            finish = str(getattr(candidates[0], 'finish_reason', 'UNKNOWN')) if candidates else 'NO_CANDIDATES'
+            if 'SAFETY' in finish:
+                raise ValueError(f"Safety filter triggered (finish_reason={finish})，換模型重試")
+            raise ValueError(f"API 回傳空白內容 (finish_reason={finish})，觸發 retry")
+        return text
+    except Exception as e:
+        router.report_error(model, e)
+        raise
+
+def run_stt(task_id: str, exclusive_key: str = None):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    from workflow_helper import load_config, get_resolved_paths
+    config = load_config()
+    paths = get_resolved_paths()
+        
+    manifests_dir = paths['manifests_dir']
+    workflow_log = os.path.join(paths['logs_dir'], "workflow.log")
+    chunk_errors_log = os.path.join(paths['logs_dir'], "chunk_errors.log")
+    
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(workflow_log, encoding='utf-8')])
+    os.makedirs(os.path.dirname(chunk_errors_log), exist_ok=True)
+    
+    manifest_path = os.path.join(manifests_dir, f"{task_id}.json")
+    if not os.path.exists(manifest_path):
+        return
+    with open(manifest_path, 'r', encoding='utf-8-sig') as f:
+        manifest = json.load(f)
+
+    chunks_manifest_path = os.path.join(manifests_dir, f"{task_id}_chunks.json")
+    if not os.path.exists(chunks_manifest_path):
+        return
+    with open(chunks_manifest_path, 'r', encoding='utf-8-sig') as f:
+        chunks = json.load(f)
+        
+    if not chunks:
+        return
+        
+    stt_engine = config.get("settings", {}).get("stt_engine", "gemini")
+    qm = None
+    current_key = None
+    client = None
+    key_lock = threading.Lock()
+
+    if stt_engine == "gemini":
+        qm = QuotaManager()
+        if exclusive_key:
+            current_key = exclusive_key
+        else:
+            current_key = qm.acquire_key_exclusive()
+        client = genai.Client(api_key=current_key)
+
+    current_key_ref = [current_key]
+    pending_chunks = [c for c in chunks if c["status"] != "completed"]
+
+    manifest_update_queue = queue.Queue()
+    distill_task_queue = queue.Queue()
+
+    # 啟動背景寫入器 (解決 Bug 1: I/O 阻塞)
+    writer_thread = threading.Thread(target=manifest_writer_thread, args=(chunks_manifest_path, manifest_update_queue), daemon=True)
+    writer_thread.start()
+
+    # 啟動背景蒸餾工作池 (解決 Bug 2: 限制最多 2 個進程，防 OOM)
+    distill_workers = []
+    for i in range(6):
+        t = threading.Thread(target=distill_worker_thread, args=(i, distill_task_queue), daemon=True)
+        t.start()
+        distill_workers.append(t)
+
+    all_succeeded = True
+    with ThreadPoolExecutor(max_workers=CHUNK_CONCURRENCY) as executor:
+        futures = {
+            executor.submit(process_single_chunk, chunk, client, qm, current_key_ref, key_lock, task_id, chunks_manifest_path, config, chunk_errors_log, stt_engine, manifest_update_queue, distill_task_queue): chunk
+            for chunk in pending_chunks
+        }
+        for future in as_completed(futures):
+            chunk = futures[future]
+            try:
+                if not future.result():
+                    all_succeeded = False
+            except Exception as exc:
+                chunk["status"] = "failed"
+                all_succeeded = False
+
+    # 先等寫入佇列清空，再發 STOP，避免最後一批狀態遺失
+    manifest_update_queue.join()
+    manifest_update_queue.put("STOP")
+
+    for _ in range(6):
+        distill_task_queue.put("STOP")
+        
+    writer_thread.join()
+    for t in distill_workers:
+        t.join()
+        
+    if all_succeeded:
+        manifest["status"] = "transcribed"
+        manifest["steps"]["stt"] = "completed"
+        atomic_json_dump(manifest, manifest_path)
+        atomic_json_dump(chunks, chunks_manifest_path)
+    else:
+        for c in chunks:
+            if c["status"] == "failed":
+                c["status"] = "pending"
+                c["retry_count"] = 0
+        manifest["status"] = "chunked"
+        manifest["steps"]["stt"] = "pending"
+        atomic_json_dump(manifest, manifest_path)
+        atomic_json_dump(chunks, chunks_manifest_path)
+
+    return all_succeeded
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("task_id", type=str, nargs='?', default=None)
+    parser.add_argument("--distill", action="store_true")
+    parser.add_argument("--chunk_filename", type=str)
+    parser.add_argument("--chunk_path", type=str)
+    parser.add_argument("--txt_path", type=str)
+    args, unknown = parser.parse_known_args()
+    
+    if args.distill:
+        with open(args.txt_path, "r", encoding="utf-8-sig") as f:
+            transcription = f.read()
+        run_distill_process(args.task_id, args.chunk_filename, args.chunk_path, transcription)
+    elif args.task_id:
+        run_stt(args.task_id)
+    else:
+        print("Usage: python stt_runner.py {task_id}")
+        sys.exit(1)
+
+`
+
+===== FILE: merge_transcript.py =====
+`python
+import os
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8-sig', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8-sig', errors='replace')
+except Exception:
+    pass
+import argparse
+from manifest_manager import ManifestManager, update_manifest
+import difflib
+import requests
+import re
+from workflow_helper import ensure_dirs, load_config, log_workflow, log_error
+from llm_gateway import call_llm_with_resilience
+
+# ==========================================
+# 【機制二十六】混合架構：Whisper 本地兜底與 Gemini 雲端提效
+# 目的：雙軌並行及銜接精校，將分片進行上下文比對與拼接校正。
+# ==========================================
+try:
+    from quota_manager import QuotaManager
+except ImportError:
+    from quota_manager import QuotaManager
+
+import json
+import time
+from pathlib import Path
+
+def log_degraded_event(task, reason, merge_mode, extra=None):
+    """
+    寫入降級事件日誌，不使用 emoji，只用 ASCII。
+    """
+    try:
+        log_path = Path(r"A:\logs_v6\merge_degraded.log")
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        payload = {
+            "event": "[DEGRADED]",
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "task_id": task.get("task_id", "unknown_task"),
+            "source_name": task.get("source_name", ""),
+            "reason": reason,
+            "merge_mode": merge_mode,
+            "retry_count": int(task.get("retry_count", 0)),
+            "needs_review": bool(task.get("needs_review", False)),
+            "extra": extra or {}
+        }
+
+        with log_path.open("a", encoding="utf-8", errors="replace") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+def mark_task_degraded(task, reason="merge_timeout", merge_mode="raw_fallback"):
+    """
+    在當前任務的資料結構上標記降級資訊。
+    """
+    current_retry = int(task.get("retry_count", 0)) + 1
+    task["degraded_reason"] = reason
+    task["merge_mode"] = merge_mode
+    task["retry_count"] = current_retry
+    if current_retry >= 2:
+        task["needs_review"] = True
+    return task
+
+
+def apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file):
+    """
+    執行 raw_fallback：
+    - 標記 degraded_reason / merge_mode / retry_count / needs_review
+    - 寫入 [DEGRADED] 日誌
+    - 直接用原始 chunks 合併輸出
+    - 保存輸出與 manifest
+    """
+    manifest = mark_task_degraded(manifest, reason="merge_timeout", merge_mode="raw_fallback")
+
+    log_degraded_event(
+        manifest,
+        reason="merge_timeout",
+        merge_mode="raw_fallback",
+        extra={"chunk_count": len(raw_chunks)}
+    )
+
+    merged_text = "\n".join(raw_chunks)
+    merged_text = apply_glossary_fix(merged_text)
+
+    out_full_path = os.path.join(task_chunks_dir, "merged_full_transcript.txt")
+    out_cleaned_path = os.path.join(task_chunks_dir, "merged_cleaned_transcript.txt")
+    out_summary_path = os.path.join(task_chunks_dir, "merged_summary.txt")
+
+    try:
+        with open(out_full_path, "w", encoding="utf-8-sig") as wf:
+            wf.write(merged_text)
+        with open(out_cleaned_path, "w", encoding="utf-8-sig") as wf:
+            wf.write(merged_text)
+        with open(out_summary_path, "w", encoding="utf-8-sig") as wf:
+            wf.write("### 📖 全局章節大綱 (因超時降級為 raw_fallback，無摘要)\n")
+        manifest.setdefault("steps", {})
+        manifest["steps"]["merge"] = "completed"
+        manifest["status"] = "merged"
+        manifest.setdefault("paths", {})
+        manifest["paths"].update({
+            "merged_full_transcript": out_full_path,
+            "merged_cleaned_transcript": out_cleaned_path,
+            "merged_summary": out_summary_path
+        })
+        
+        from manifest_manager import ManifestManager
+        with ManifestManager(manifest_file) as mm:
+            mm.write(manifest)
+    except Exception as e:
+        log_error(f"Merge Agent: raw_fallback save failed: {e}")
+
+    return merged_text
+
+PROMPT_GAP_REFINE = """你是一個法學專業的文字編輯，請幫我將以下法律教材「分片銜接處」的上下文進行語意精校與拼接修剪：
+1. 修正同音錯字（如將「投地」修正為「土地」）。
+2. 修復銜接點左右的語意中斷與重複字句，使兩端句子流暢、自然地拼合在一起。
+3. 嚴格保留所有實質法律內容，不要加入任何引言、解釋或額外說明。
+4. 輸出修飾後的流暢銜接段落即可。
+
+待精校銜接處內容：
+{text}"""
+
+PROMPT_CLEAN = """# Role
+你是一位具備頂尖法律、商業與各領域專業素養的「首席字幕精校專家」與「語音辨識修復大師」。你擁有極強的語境推理能力，能看穿語音辨識系統（Speech-to-Text）的所有盲點。
+
+# Goal
+你的任務是接收一段充滿辨識錯誤、語意不通順、或因發音相近而產生「空耳誤判」的原始逐字稿（可能是 .srt 或帶有 [00:00] 時間標籤）。請在「完全不變動時間戳記」的前提下，將其精修為一份專業、流暢、術語精準且符合閱讀邏輯的「完整精校版檔案」。
+
+# Strict Rules (核心修訂原則)
+1. **格式與時間軸絕對恆定**：請嚴格保持原始編號與時間戳記格式。時間軸數字絕對不能有任何變動，亦不能合併或刪除字幕編號區塊。
+2. **修正語音辨識錯誤（空耳）**：語音辨識系統常因音近而誤判專業術語。請根據「領域背景」與「前後文邏輯」，將語意不通的文字修正為正確的專業詞彙、法條、或學者姓名。
+3. **口語贅詞流暢化**：在不影響時間軸對齊的前提下，適度刪除或精簡語音中無意義的贅字（如：「好」、「那」、「這個這個」、「然後」、「對」），提高字幕的可讀性。
+4. **修復系統死當/鬼打牆區段**：若逐字稿中出現因系統錯誤而導致的連續重複字句（例如同一句話連續卡住重複十幾次），請「不要照抄」。你必須展現高超的邏輯推理能力，依據前後文的脈絡，將該受損區段重構為通順、合理的專業內容，並補回對應的時間軸內。
+5. **絕對禁止截斷與摘要**：我需要的是「完整的逐字稿精校」，你必須將我提供給你的所有字幕編號從頭到尾完整處理並輸出。絕對不能在中途寫出「（以下省略）」、「（其餘相同）」或只提供摘要。
+
+# Context & Reference (本次任務背景資訊)
+* 內容領域/主題：台灣法律實務、國家考試司法官與律師相關教材
+* 關鍵專有名詞參考：常見台灣法律口述同音錯字（如：「投地登記」->「土地登記」、「主登」->「土登」、「醫生師」->「地政士」、「優購權」->「優先購買權」、「消滅實效」->「消滅時效」）
+* 法條與字號格式標準化：如「民法第197條」、「釋字第474號解釋」。必須依課程主題劃分 Markdown 標題階層（#、##），在關鍵段落加上重點粗體（如：**【爭點】**）。
+
+# Input Data
+以下是需要你精修的原始逐字稿：
+---
+{text}
+---
+
+# Output Format
+請直接輸出精校後的字幕代碼區塊，不要有任何引言或解釋。
+"""
+
+PROMPT_SUMMARY = """你是一個臺灣法律專家，請分析以下教材逐字稿，提煉出結構化的「章節化大綱與爭點摘要」以利未來的 RAG 檢索：
+1. 【核心爭點與法律概念】：列出本段教材講授或辯論的核心爭議點。
+2. 【推理路徑與法理】：列出主要的論證邏輯與推理過程。
+3. 【結論與實務見解】：列出結論，並整理文中涉及的所有重要法規條文（如民法第184條）、釋字、最高法院判決字號。（請利用 Google Search 能力核實法條為現行最新版）
+4. 【章節大綱】：依據邏輯結構或時間軸，以 Markdown 的標題與條列式大綱呈現。
+5. 【地理與空間資訊解析 (Maps Grounding)】：若本節涉及土地法規之實體地段（如特定市地重劃區、區段徵收案、建案或特定地標），請務必調用 Google Search 查詢該地段的實際背景，並簡要描述其空間關係與現狀。若無相關則填無。
+6. 【Gemini 智能考前測驗】：請根據教材內容，以台灣國家考試（律師、司法官、地政士）的命題標準，自動生成 3~5 題混合題型（包含選擇題與實例/申論題）的「考前衝刺測驗題」，並附上精簡的解答與解析。請使用 `## 📝 Gemini 智能考前測驗` 作為此段落的標題。
+7. 【影片關鍵時刻導航 (Key Moments)】：請針對長影片提煉「微章節 (細顆粒度)」的導航目錄。只要遇到主題切換、實例題開始、或重要圖表/板書解說，就標註一個時間點或段落錨點（約 15~20 個）。若文本中缺乏精確時間碼，請依段落比例或順序標示。請使用 `## ⏱️ 影片關鍵時刻導航 (Key Moments)` 作為此段落的標題，並將其放在摘要區塊的最上方。
+
+逐字稿內容：
+{text}"""
+
+def merge_overlap_char(text1, text2):
+    chars1 = list(text1)
+    chars2 = list(text2)
+    
+    if not chars1: return text2
+    if not chars2: return text1
+    
+    # 擷取 text1 的尾端與 text2 的前端進行匹配 (各取最多 400 個字)
+    suffix_len = min(400, len(chars1))
+    suffix = chars1[-suffix_len:]
+    
+    prefix_len = min(400, len(chars2))
+    prefix = chars2[:prefix_len]
+    
+    matcher = difflib.SequenceMatcher(None, suffix, prefix)
+    match = matcher.find_longest_match(0, suffix_len, 0, prefix_len)
+    
+    # 若有超過 12 個連續字元匹配成功，則在此處拼接
+    if match.size >= 12:
+        cut_idx1 = len(chars1) - suffix_len + match.a
+        part1 = "".join(chars1[:cut_idx1])
+        part2 = "".join(chars2[match.b:])
+        return part1 + part2
+    else:
+        # 找不到重疊匹配時，退回直接拼接
+        return text1 + "\n\n" + text2
+
+def apply_glossary_fix(text):
+    glossary = {
+        "common_errors": {
+            "投地登記": "土地登記",
+            "投地": "土地",
+            "主登": "土登",
+            "課論": "各論",
+            "各輪": "各論",
+            "醫生師": "地政士",
+            "地政師": "地政士",
+            "臨底": "身特",
+            "病到徒法": "併到土法",
+            "病徒法": "併土法",
+            "共耳": "共有人",
+            "少數共耳": "少數共有人",
+            "優購權": "優先購買權",
+            "又過去": "優先購買權",
+            "優購": "優先購買",
+            "假芳": "甲方", "假方": "甲方",
+            "倚芳": "乙方", "倚方": "乙方", "以方": "乙方",
+            "炳芳": "丙方", "丙芳": "丙方", "炳方": "丙方",
+            "丁芳": "丁方", "形法": "刑法", "形訴": "刑訴",
+            "英文考試的": "應考的", "英文考試": "應考",
+            "英文的考課": "應考的考科", "英文考課": "應考考科",
+            "一部分是公子的": "一部分是公職的", "一部分是公子": "一部分是公職",
+            "英文無法": "英文文法", "迷法": "民法",
+            "永殿券": "永佃權", "榮譽券": "農育權",
+            "踏向權力": "他項權利", "直入券": "之物權",
+            "一習慣": "依習慣", "考課": "考科"
+        }
+    }
+    fixed_text = text
+    for wrong, right in glossary.get("common_errors", {}).items():
+        fixed_text = re.sub(wrong, right, fixed_text)
+    return fixed_text
+
+LAST_CALL_TIMES = {}
+
+def call_gemini_api(prompt, model_name, api_key, qm, use_search_grounding=False, timeout=120.0):
+    """
+    統一包裝器：透過 ModelRouter Agent 調用 Gemini，若為 Vertex AI 則直走企業通道。
+    model_name 參數保留以相容舊介面，實際模型由 Router 决定。
+    """
+    import requests
+    import time
+    from workflow_helper import load_config
+    config = load_config()
+    # 獨立判斷 Merge 引擎，預設走 AI Studio (gemini) 以避免誤觸企業通道
+    merge_engine = config.get("settings", {}).get("merge_engine", "gemini")
+
+    from model_router import get_router
+    router = get_router()
+
+    if merge_engine == "vertexai":
+        import os
+        from google import genai
+        from google.genai import types
+        v_project = config.get("settings", {}).get("vertexai_project")
+        v_loc = config.get("settings", {}).get("vertexai_location", "us-central1")
+        v_cred_path = config.get("settings", {}).get("vertexai_credentials_path", "")
+        if v_cred_path:
+            full_cred_path = os.path.normpath(os.path.join(config.get("paths", {}).get("project_root", "C:\\LocalAI_Workstation"), v_cred_path))
+            os.environ["[REDACTED]"] = full_cred_path
+        
+        # Vertex AI client (第 172 行)
+        client = genai.Client(
+            vertexai=True,
+            project=v_project,
+            location=v_loc,
+            http_options={"timeout": timeout}
+        )
+        # 強制使用高品質 Pro 模型 (Vertex AI 企業通道專用，執行最終精校)
+        v_model = config.get("api", {}).get("gemini_model_high_accuracy", "gemini-2.5-flash")
+
+        tool_objs = [{"google_search": {}}] if use_search_grounding else None
+
+        last_err = None
+        timeout_like_errors = 0
+
+        # [DIAGNOSTIC] 診斷不洩密日誌
+        print(f"[DIAGNOSTIC] merge_engine={merge_engine}, auth_mode=vertex, model={v_model}, project={v_project}, location={v_loc}")
+
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=v_model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.3,
+                        tools=tool_objs
+                    )
+                )
+                if not response.text:
+                    raise ValueError("API returned empty text")
+
+                router.report_success(v_model)
+                return response.text
+
+            except Exception as e:
+                router.report_error(v_model, e)
+                err_str = str(e).lower()
+                last_err = e
+
+                # 統一判斷 timeout 類錯誤，不在這裡做 raw_fallback，只標記類型給外層判斷
+                is_timeout = (
+                    "timed out" in err_str
+                    or "timeout" in err_str
+                    or "read operation" in err_str
+                    or "deadline exceeded" in err_str
+                    or "504" in err_str
+                )
+                if is_timeout:
+                    timeout_like_errors += 1
+
+                if "429" in err_str or "quota" in err_str:
+                    print(f"[WARN] Vertex AI quota limit hit, backing off 30s... (attempt {attempt+1}/3)")
+                    time.sleep(30)
+                else:
+                    print(f"[WARN] Vertex AI error: {e}, backing off 5s...")
+                    time.sleep(5)
+
+        # 3 次皆失敗：統一區分 timeout 類錯誤與其他錯誤
+        err_msg = str(last_err).lower() if last_err else ""
+        if (
+            timeout_like_errors >= 1
+            or "timed out" in err_msg
+            or "timeout" in err_msg
+            or "read operation" in err_msg
+            or "deadline exceeded" in err_msg
+            or "504" in err_msg
+        ):
+            # 統一讓外層判定為 VERTEX_TIMEOUT
+            raise RuntimeError(f"VERTEX_TIMEOUT: {last_err}")
+
+        raise RuntimeError(f"VERTEX_FAILED: {last_err or 'unknown error'}")
+
+    # ---------------- 原有 Gemini AI Studio 邏輯 ----------------
+
+    def _do_call(current_model: str) -> str:
+        nonlocal api_key
+        last_err = None
+        # RPM 限速
+        now = time.time()
+        last_time = LAST_CALL_TIMES.get(current_model, 0)
+        required_interval = 30.0 if "pro" in current_model else 5.0
+        elapsed = now - last_time
+        if elapsed < required_interval:
+            wait_time = required_interval - elapsed
+            print(f"[Rate Limiter] Sleeping {wait_time:.1f} seconds to respect rate limit for {current_model}...")
+            time.sleep(wait_time)
+            
+        LAST_CALL_TIMES[current_model] = time.time()
+
+        # 對於每個模型，嘗試最多 3 次一般性錯誤，並在 429 時採用 QuotaManager 進行 Jitter 退避重試
+        nonlocal qm
+        if qm is None:
+            try:
+                from quota_manager import QuotaManager
+                qm = QuotaManager()
+            except ImportError:
+                pass
+
+        attempt = 0
+        consecutive_429 = 0
+        last_err = None
+        
+        while True:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}]
+            }
+            if use_search_grounding:
+                payload["tools"] = [{"googleSearch": {}}]
+            
+            # 使用 QuotaManager 進行 RPM 節流防禦 (5s / 6RPM)
+            if qm:
+                qm.throttle_key(api_key)
+                
+            try:
+                # [DIAGNOSTIC] 診斷不洩密日誌
+                import hashlib
+                key_preview = hashlib.sha256(api_key.encode("utf-8")).hexdigest()[:6] if api_key else "None"
+                print(f"[DIAGNOSTIC] merge_engine={merge_engine}, auth_mode=aistudio, model={current_model}, key_sha256_prefix={key_preview}")
+                
+                response = requests.post(url, json=payload, timeout=timeout)
+                # [DIAGNOSTIC] HTTP Status 紀錄
+                print(f"[DIAGNOSTIC] HTTP Status: {response.status_code}")
+                if response.status_code == 200:
+                    res_data = response.json()
+                    try:
+                        return res_data["candidates"][0]["content"]["parts"][0]["text"]
+                    except (KeyError, IndexError):
+                        raise RuntimeError("Invalid Gemini API response format")
+                elif response.status_code == 429:
+                    raise Exception(f"429 Too Many Requests: {response.text}")
+                elif response.status_code == 401:
+                    raise Exception(f"401 Unauthorized: {response.text}")
+                else:
+                    raise RuntimeError(f"HTTP {response.status_code}: {response.text}")
+            except Exception as e:
+                err_str = str(e)
+                # 檢查連線或呼叫異常是否是因為金鑰額度限制
+                if qm and ("429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower() or "401" in err_str):
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                        consecutive_429 += 1
+                        
+                    res = qm.handle_error(e, api_key, consecutive_429, exclusive=True)
+                    
+                    if res["project_cooldown"]:
+                        consecutive_429 = 0
+                        
+                    if res["sleep_time"] > 0:
+                        print(f"[Gemini API Retry] {api_key[:8]}... 觸發 Jitter 避退，睡眠 {res['sleep_time']:.1f} 秒...")
+                        time.sleep(res["sleep_time"])
+                        
+                    if res["new_key"] and res["new_key"] != api_key:
+                        api_key = res["new_key"]
+                        consecutive_429 = 0
+                        print(f"已更換為新金鑰: {api_key[:8]}...{api_key[-4:]}")
+                        
+                    # 額度限制異常不增加一般性錯誤 attempt 計數，繼續重試
+                    continue 
+                
+                print(f"[Gemini API] Error calling model {current_model}: {e}")
+                router.report_error(current_model, e)
+                last_err = e
+                attempt += 1
+                if attempt >= 3:
+                    raise last_err or RuntimeError(f"All attempts for {current_model} failed")
+                time.sleep(5)
+        
+    # 根據需求，直接呼叫或輪替
+    res = _do_call(model_name)
+    router.report_success(model_name)
+    return res
+
+def merge_workflow(task_id):
+    paths = ensure_dirs()
+    manifests_dir = paths["manifests_dir"]
+    chunks_dir = paths["chunks_dir"]
+    task_chunks_dir = os.path.join(chunks_dir, task_id)
+
+    manifest_file = os.path.join(manifests_dir, f"{task_id}.json")
+    chunks_manifest_file = os.path.join(manifests_dir, f"{task_id}_chunks.json")
+
+    if not os.path.exists(manifest_file) or not os.path.exists(chunks_manifest_file):
+        log_error(f"Manifest or chunks manifest missing for {task_id}")
+        return False
+
+    with ManifestManager(manifest_file) as mm:
+        manifest = mm.read() or {}
+    with ManifestManager(chunks_manifest_file) as mm:
+        chunks = mm.read() or []
+
+    qm = QuotaManager()
+    api_key = None
+    raw_chunks = []
+
+    try:
+        try:
+            api_key = qm.acquire_key_exclusive()
+        except Exception as e:
+            log_error(f"Merge Agent: 無法取得排他性 API 金鑰 ({e})，任務將保留，稍後重試。")
+            return False
+
+        log_workflow(f"Merge Agent: Reading and concatenating {len(chunks)} chunks...")
+
+        total_chunks = len(chunks)
+
+        if total_chunks == 0:
+            log_error("Merge Agent: [GUARD] No chunk data found, reset task to chunked for STT retry")
+            manifest["status"] = "chunked"
+            manifest.setdefault("steps", {})
+            manifest["steps"]["stt"] = "pending"
+            manifest["steps"].pop("merge", None)
+            manifest["steps"].pop("formatter", None)
+            with ManifestManager(manifest_file) as mm:
+                mm.write(manifest)
+            return False
+
+        done_txt = 0
+        for chk in chunks:
+            chk_path = chk.get("path", "")
+            if not chk_path:
+                continue
+            stem = Path(chk_path).stem
+            chk_txt = os.path.join(task_chunks_dir, f"{stem}.txt")
+            if os.path.exists(chk_txt):
+                done_txt += 1
+
+        completion_rate = done_txt / total_chunks if total_chunks > 0 else 0.0
+
+        if completion_rate < 0.85:
+            log_error(
+                f"Merge Agent: [GUARD] STT 完成率不足！"
+                f"{done_txt}/{total_chunks} = {completion_rate*100:.0f}% < 85%，"
+                f"拒絕合併，重置任務為 chunked 等待重跑 STT"
+            )
+            manifest["status"] = "chunked"
+            manifest.setdefault("steps", {})
+            manifest["steps"]["stt"] = "pending"
+            manifest["steps"].pop("merge", None)
+            manifest["steps"].pop("formatter", None)
+            with ManifestManager(manifest_file) as mm:
+                mm.write(manifest)
+            return False
+
+        log_workflow(
+            f"Merge Agent: STT 完成率 {done_txt}/{total_chunks} = {completion_rate*100:.0f}% >= 85%，開始合併"
+        )
+
+        import time as _time
+        map_timeout_count = 0
+        map_start_ts = _time.time()
+
+        merged_full_text = ""
+        merged_cleaned_text = ""
+
+        for chunk in chunks:
+            chunk_path = chunk.get("path", "")
+            if not chunk_path:
+                continue
+            stem = Path(chunk_path).stem
+            chunk_txt_file = os.path.join(task_chunks_dir, f"{stem}.txt")
+            if os.path.exists(chunk_txt_file):
+                with open(chunk_txt_file, "r", encoding="utf-8-sig", errors="replace") as rf:
+                    raw_text = rf.read().strip()
+                    raw_chunks.append(raw_text)
+
+        non_empty_raw_chunks = [c for c in raw_chunks if c and c.strip()]
+        if not non_empty_raw_chunks:
+            log_error("Merge Agent: [GUARD] raw_chunks are empty after TXT loading, reset task to chunked")
+            manifest["status"] = "chunked"
+            manifest.setdefault("steps", {})
+            manifest["steps"]["stt"] = "pending"
+            manifest["steps"].pop("merge", None)
+            manifest["steps"].pop("formatter", None)
+            with ManifestManager(manifest_file) as mm:
+                mm.write(manifest)
+            return False
+
+        raw_chunks = non_empty_raw_chunks
+        merged_full_text = "\n".join(raw_chunks)
+
+        for idx, chunk_content in enumerate(raw_chunks):
+            cleaned_chunk = chunk_content
+            log_workflow(
+                f"[DEBUG] Map start: task_id={task_id}, "
+                f"idx={idx+1}/{len(raw_chunks)}, "
+                f"chunk_id=part_{idx+1:03d}"
+            )
+
+            log_workflow(f"Merge Agent: 正在執行切片 {idx+1}/{len(raw_chunks)} 的去冗餘與排版 (Map)...")
+            try:
+                from model_router import get_router as _get_router
+                current_model = _get_router().acquire()
+                log_workflow(
+                    f"[DEBUG] Map model_acquired: task_id={task_id}, "
+                    f"chunk_id=part_{idx+1:03d}, model={current_model}"
+                )
+
+                result = call_llm_with_resilience(
+                    stage="map",
+                    task_id=task_id,
+                    chunk_id=f"part_{idx+1:03d}",
+                    prompt=PROMPT_CLEAN.format(text=chunk_content),
+                    model_name=current_model,
+                    api_key=api_key,
+                    qm=qm,
+                    timeout=120.0,
+                    use_search_grounding=False,
+                )
+
+                log_workflow(
+                    f"[DEBUG] Map result: task_id={task_id}, chunk_id=part_{idx+1:03d}, "
+                    f"ok={result.ok}, code={result.error_code}, provider={result.provider}"
+                )
+
+                if result.ok and result.text:
+                    cleaned_chunk = result.text
+                    log_workflow(
+                        f"[DEBUG] Map cleaned_used: task_id={task_id}, "
+                        f"chunk_id=part_{idx+1:03d}"
+                    )
+                else:
+                    log_error(
+                        f"Merge Agent: 切片 {idx+1} 去冗餘失敗: "
+                        f"{result.error_code}: {result.error_message}. fallback to raw chunk."
+                    )
+                    if result.error_code in {"VERTEX_TIMEOUT", "AISTUDIO_TIMEOUT", "PROVIDER_TIMEOUT"}:
+                        map_timeout_count += 1
+                    cleaned_chunk = chunk_content
+                    log_workflow(
+                        f"[DEBUG] Map raw_fallback_used: task_id={task_id}, "
+                        f"chunk_id=part_{idx+1:03d}, code={result.error_code}"
+                    )
+
+            except Exception as ce:
+                err_str = str(ce).lower()
+                log_error(f"Merge Agent: 切片 {idx+1} 去冗餘失敗: {ce}. fallback to raw chunk.")
+                if (
+                    "vertex_timeout" in err_str
+                    or "timed out" in err_str
+                    or "timeout" in err_str
+                    or "read operation" in err_str
+                    or "deadline exceeded" in err_str
+                    or "504" in err_str
+                ):
+                    map_timeout_count += 1
+                cleaned_chunk = chunk_content
+                log_workflow(
+                    f"[DEBUG] Map exception_fallback_used: task_id={task_id}, "
+                    f"chunk_id=part_{idx+1:03d}"
+                )
+
+            total_elapsed = _time.time() - map_start_ts
+            if map_timeout_count >= 3 or total_elapsed >= 600:
+                log_error(
+                    f"Merge Agent: 觸發全局 raw_fallback, "
+                    f"map_timeout_count={map_timeout_count}, total_elapsed={round(total_elapsed, 3)}"
+                )
+                apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file)
+                return True
+
+            if not merged_cleaned_text:
+                merged_cleaned_text = cleaned_chunk
+            else:
+                chars1 = list(merged_cleaned_text)
+                chars2 = list(cleaned_chunk)
+
+                suffix_len = min(400, len(chars1))
+                suffix = chars1[-suffix_len:]
+                prefix_len = min(400, len(chars2))
+                prefix = chars2[:prefix_len]
+
+                matcher = difflib.SequenceMatcher(None, suffix, prefix)
+                match = matcher.find_longest_match(0, suffix_len, 0, prefix_len)
+
+                if match.size >= 12:
+                    cut_idx1 = len(chars1) - suffix_len + match.a
+                    part1 = "".join(chars1[:cut_idx1])
+                    part2 = "".join(chars2[match.b:])
+
+                    gap_left = part1[-400:] if len(part1) >= 400 else part1
+                    gap_right = part2[:400] if len(part2) >= 400 else part2
+                    raw_gap = gap_left + " [銜接點] " + gap_right
+
+                    log_workflow(
+                        f"[DEBUG] Reduce start: task_id={task_id}, "
+                        f"idx={idx}/{len(raw_chunks)-1}, gap_id=gap_{idx:03d}"
+                    )
+                    log_workflow(f"Merge Agent: 正在執行縫隙 {idx}/{len(raw_chunks)-1} 邊界平滑化 (Reduce)...")
+                    try:
+                        from model_router import get_router as _get_router
+                        current_model = _get_router().acquire()
+                        log_workflow(
+                            f"[DEBUG] Reduce model_acquired: task_id={task_id}, "
+                            f"gap_id=gap_{idx:03d}, model={current_model}"
+                        )
+
+                        result = call_llm_with_resilience(
+                            stage="reduce",
+                            task_id=task_id,
+                            chunk_id=f"gap_{idx:03d}",
+                            prompt=PROMPT_GAP_REFINE.format(text=raw_gap),
+                            model_name=current_model,
+                            api_key=api_key,
+                            qm=qm,
+                            timeout=120.0,
+                            use_search_grounding=False,
+                        )
+
+                        log_workflow(
+                            f"[DEBUG] Reduce result: task_id={task_id}, gap_id=gap_{idx:03d}, "
+                            f"ok={result.ok}, code={result.error_code}, provider={result.provider}"
+                        )
+
+                        if result.ok and result.text:
+                            refined_gap = result.text.replace("[銜接點]", "").strip()
+                            part1_base = part1[:-len(gap_left)] if len(part1) >= len(gap_left) else ""
+                            part2_base = part2[len(gap_right):] if len(part2) >= len(gap_right) else ""
+                            merged_cleaned_text = part1_base + refined_gap + part2_base
+                            log_workflow(
+                                f"[DEBUG] Reduce refined_merge_used: task_id={task_id}, "
+                                f"gap_id=gap_{idx:03d}"
+                            )
+                        else:
+                            log_error(
+                                f"Merge Agent: 邊界縫隙 {idx} 精校失敗: "
+                                f"{result.error_code}: {result.error_message}. fallback to direct merge."
+                            )
+                            if result.error_code in {"VERTEX_TIMEOUT", "AISTUDIO_TIMEOUT", "PROVIDER_TIMEOUT"}:
+                                map_timeout_count += 1
+                            merged_cleaned_text = part1 + part2
+                            log_workflow(
+                                f"[DEBUG] Reduce direct_merge_fallback_used: task_id={task_id}, "
+                                f"gap_id=gap_{idx:03d}, code={result.error_code}"
+                            )
+
+                    except Exception as ge:
+                        err_str = str(ge).lower()
+                        log_error(f"Merge Agent: 邊界縫隙 {idx} 精校失敗: {ge}. fallback to direct merge.")
+                        if (
+                            "vertex_timeout" in err_str
+                            or "timed out" in err_str
+                            or "timeout" in err_str
+                            or "read operation" in err_str
+                            or "deadline exceeded" in err_str
+                            or "504" in err_str
+                        ):
+                            map_timeout_count += 1
+                        merged_cleaned_text = part1 + part2
+                        log_workflow(
+                            f"[DEBUG] Reduce direct_merge_exception_used: task_id={task_id}, "
+                            f"gap_id=gap_{idx:03d}"
+                        )
+                else:
+                    merged_cleaned_text = merged_cleaned_text + "\n" + cleaned_chunk
+
+            total_elapsed = _time.time() - map_start_ts
+            if map_timeout_count >= 3 or total_elapsed >= 600:
+                log_error(
+                    f"Merge Agent: Reduce/Map 累積超時，觸發全局 raw_fallback, "
+                    f"map_timeout_count={map_timeout_count}, total_elapsed={round(total_elapsed, 3)}"
+                )
+                apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file)
+                return True
+
+        if not merged_cleaned_text or not merged_cleaned_text.strip():
+            log_error("Merge Agent: merged_cleaned_text is empty, switching to raw_fallback")
+            apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file)
+            return True
+
+        merged_full_text = apply_glossary_fix(merged_full_text)
+        merged_cleaned_text = apply_glossary_fix(merged_cleaned_text)
+
+        out_full_path = os.path.join(task_chunks_dir, "merged_full_transcript.txt")
+        with open(out_full_path, "w", encoding="utf-8-sig", errors="replace") as wf:
+            wf.write(merged_full_text)
+
+        out_cleaned_path = os.path.join(task_chunks_dir, "merged_cleaned_transcript.txt")
+        with open(out_cleaned_path, "w", encoding="utf-8-sig", errors="replace") as wf:
+            wf.write(merged_cleaned_text)
+
+        safe_cleaned_text = merged_cleaned_text[:1000000]
+        try:
+            from model_router import get_router as _get_router
+            current_model = _get_router().acquire()
+            summary_text = call_gemini_api(
+                PROMPT_SUMMARY.format(text=safe_cleaned_text),
+                current_model,
+                api_key,
+                qm,
+                use_search_grounding=True,
+                timeout=120.0
+            )
+        except Exception as e:
+            log_error(f"Merge Agent: Global summary failed: {e}. Fallback to template.")
+            summary_text = "### 📖 全局章節大綱 (摘要生成遇限失敗)\n"
+
+        out_summary_path = os.path.join(task_chunks_dir, "merged_summary.txt")
+        with open(out_summary_path, "w", encoding="utf-8-sig", errors="replace") as wf:
+            wf.write(summary_text)
+
+        manifest.setdefault("steps", {})
+        manifest["steps"]["merge"] = "completed"
+        manifest["status"] = "merged"
+        manifest.setdefault("paths", {})
+        manifest["paths"].update({
+            "merged_full_transcript": out_full_path,
+            "merged_cleaned_transcript": out_cleaned_path,
+            "merged_summary": out_summary_path
+        })
+
+        with ManifestManager(manifest_file) as mm:
+            mm.write(manifest)
+
+        log_workflow(f"Merge Agent: Completed merge workflow for {task_id}")
+        return True
+
+    except Exception as e:
+        log_error(f"Merge Agent: Unexpected error: {e}")
+        try:
+            if raw_chunks:
+                log_error("Merge Agent: Unexpected error occurred, switching to emergency raw_fallback.")
+                apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file)
+                return True
+        except Exception as fallback_err:
+            log_error(f"Merge Agent: emergency raw_fallback also failed: {fallback_err}")
+
+        manifest.setdefault("steps", {})
+        manifest["steps"]["merge"] = "failed"
+        manifest["status"] = "chunked"
+        try:
+            with ManifestManager(manifest_file) as mm:
+                mm.write(manifest)
+        except Exception as write_err:
+            log_error(f"Merge Agent: failed to persist failed manifest state: {write_err}")
+
+        return False
+
+    finally:
+        try:
+            if api_key:
+                qm.release_key(api_key)
+        except Exception as release_err:
+            log_error(f"Merge Agent: release_key failed: {release_err}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--task-id", required=True, help="Task ID to process")
+    args = parser.parse_args()
+    merge_workflow(args.task_id)
+`
+
+===== FILE: markdown_formatter.py =====
+`python
+import json
+import os
+import sys, io
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8-sig', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8-sig', errors='replace')
+import sys
+import argparse
+import json
+from manifest_manager import ManifestManager, update_manifest
+import re
+import time
+from pathlib import Path
+from workflow_helper import ensure_dirs, load_config, log_workflow, log_error
+try:
+    from quota_manager import QuotaManager
+except ImportError:
+    try:
+        from scripts_v6.quota_manager import QuotaManager
+    except ImportError:
+        QuotaManager = None
+
+def generate_cover_image(subject, source_stem, output_dir, api_key=None):
+    import urllib.request, urllib.parse, os, json
+    
+    prompt = f"A minimalist corporate style illustration representing {subject} law, clean and bright, geometric lines, flat design, 8k resolution, highly detailed"
+    if api_key:
+        consecutive_429 = 0
+        qm = QuotaManager() if QuotaManager else None
+        for attempt in range(5):
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                payload = {
+                    "contents": [{"parts": [{"text": f"Generate a highly detailed, 1-sentence English image prompt for a legal textbook cover about '{subject}'. The style must be 'Minimalist corporate style, clean bright, geometric lines'. Do not include any other text."}]}]
+                }
+                req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
+                if qm: qm.throttle_key(api_key)
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    res_data = json.loads(response.read().decode("utf-8"))
+                    prompt = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                break # Success
+            except Exception as e:
+                err_str = str(e)
+                if qm and ("429" in err_str or "quota" in err_str.lower() or "401" in err_str):
+                    if "429" in err_str: consecutive_429 += 1
+                    res = qm.handle_error(e, api_key, consecutive_429)
+                    if res["project_cooldown"]: consecutive_429 = 0
+                    if res["sleep_time"] > 0: time.sleep(res["sleep_time"])
+                    if res["new_key"]:
+                        api_key = res["new_key"]
+                        consecutive_429 = 0
+                    continue
+                print(f"Failed to generate prompt with Gemini: {e}")
+                break
+            
+    safe_prompt = urllib.parse.quote(prompt)
+    image_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?width=1920&height=1080&nologo=true"
+    out_path = os.path.join(output_dir, f"{source_stem}_cover.jpg")
+    try:
+        req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response, open(out_path, 'wb') as out_file:
+            out_file.write(response.read())
+        return f"{source_stem}_cover.jpg"
+    except Exception as e:
+        print(f"Failed to download image: {e}")
+        return None
+
+def generate_concept_video(summary_text, source_stem, output_dir, api_key=None):
+    import urllib.request, urllib.parse, os, json
+    
+    complex_keywords = ["侵權", "分割", "抵押", "無權占有", "連帶保證", "不當得利"]
+    found_concepts = [kw for kw in complex_keywords if kw in summary_text]
+    
+    if not found_concepts:
+        return None, None
+        
+    concept = found_concepts[0]
+    prompt = f"A 2D whiteboard animation storyboard explaining the legal concept of '{concept}', clean sketch style, simple diagrams with arrows, 4k resolution"
+    
+    if api_key:
+        consecutive_429 = 0
+        qm = QuotaManager() if QuotaManager else None
+        for attempt in range(5):
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                payload = {
+                    "contents": [{"parts": [{"text": f"Generate a highly detailed, 1-sentence English image prompt for a 2D whiteboard animation storyboard explaining the legal concept of '{concept}'. The style must be 'Whiteboard animation, clean sketch, simple diagrams with arrows'. Do not include any other text."}]}]
+                }
+                req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
+                if qm: qm.throttle_key(api_key)
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    res_data = json.loads(response.read().decode("utf-8"))
+                    prompt = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                break # Success
+            except Exception as e:
+                err_str = str(e)
+                if qm and ("429" in err_str or "quota" in err_str.lower() or "401" in err_str):
+                    if "429" in err_str: consecutive_429 += 1
+                    res = qm.handle_error(e, api_key, consecutive_429)
+                    if res["project_cooldown"]: consecutive_429 = 0
+                    if res["sleep_time"] > 0: time.sleep(res["sleep_time"])
+                    if res["new_key"]:
+                        api_key = res["new_key"]
+                        consecutive_429 = 0
+                    continue
+                print(f"Failed to generate video prompt with Gemini: {e}")
+                break
+            
+    safe_prompt = urllib.parse.quote(prompt)
+    media_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?width=1280&height=720&nologo=true"
+    out_path = os.path.join(output_dir, f"{source_stem}_concept_video_fallback.jpg")
+    try:
+        urllib.request.urlretrieve(media_url, out_path)
+        return f"{source_stem}_concept_video_fallback.jpg", concept
+    except Exception as e:
+        print(f"Failed to download concept storyboard: {e}")
+        return None, None
+
+def interleave_blackboard_notes(transcript_text, clean_video_name, obsidian_dir):
+    import glob
+    pattern = os.path.join(obsidian_dir, f"校對_影音板書_{clean_video_name}_*.md")
+    note_files = glob.glob(pattern)
+    
+    notes = []
+    for f_path in note_files:
+        filename = os.path.basename(f_path)
+        parts = filename[:-3].split("_")
+        if len(parts) >= 3:
+            try:
+                h = int(parts[-3])
+                m = int(parts[-2])
+                s = int(parts[-1])
+                sec = h * 3600 + m * 60 + s
+                
+                with open(f_path, "r", encoding="utf-8-sig") as f:
+                    content = f.read()
+                
+                ts_str = f"{h:02d}_{m:02d}_{s:02d}"
+                board_img = f"board_{clean_video_name}_{ts_str}.png"
+                
+                analysis_match = re.search(r"## 🧠 AI 智慧理解與知識庫演化註記\n(.*?)\n\n## 📊 可編輯之 Mermaid", content, re.DOTALL)
+                analysis = analysis_match.group(1).strip() if analysis_match else ""
+                
+                mermaid_match = re.search(r"```mermaid\n(.*?)\n```", content, re.DOTALL)
+                mermaid = mermaid_match.group(1).strip() if mermaid_match else ""
+                
+                notes.append({
+                    "sec": sec,
+                    "hms": f"{h:02d}:{m:02d}:{s:02d}",
+                    "image": board_img,
+                    "analysis": analysis,
+                    "mermaid": mermaid
+                })
+            except Exception as e:
+                print(f"Error parsing note file {filename}: {e}")
+                
+    notes.sort(key=lambda x: x["sec"])
+    if not notes:
+        return transcript_text
+        
+    lines = transcript_text.split("\n")
+    output_lines = []
+    inserted_indices = set()
+    
+    for line in lines:
+        ts_match = re.search(r"\[(?:(\d{1,2}):)?(\d{2}):(\d{2})\]", line)
+        if ts_match:
+            hr = int(ts_match.group(1)) if ts_match.group(1) else 0
+            mn = int(ts_match.group(2))
+            sc = int(ts_match.group(3))
+            line_sec = hr * 3600 + mn * 60 + sc
+            
+            for idx, note in enumerate(notes):
+                if idx not in inserted_indices and note["sec"] <= line_sec:
+                    note_md = f"\n---\n📸 **【影片板書截圖 - 時間點 {note['hms']}】**\n![板書](../Obsidian_Vault/04_教材圖表校對/images/{note['image']})\n\n🧠 **【板書 AI 解讀與知識庫演化註記】**\n{note['analysis']}\n\n📊 **【板書 Mermaid 關係邏輯圖】**\n```mermaid\n{note['mermaid']}\n```\n---\n"
+                    output_lines.append(note_md)
+                    inserted_indices.add(idx)
+                    
+        output_lines.append(line)
+        
+    for idx, note in enumerate(notes):
+        if idx not in inserted_indices:
+            note_md = f"\n---\n📸 **【影片板書截圖 - 時間點 {note['hms']}】**\n![板書](../Obsidian_Vault/04_教材圖表校對/images/{note['image']})\n\n🧠 **【板書 AI 解讀與知識庫演化註記】**\n{note['analysis']}\n\n📊 **【板書 Mermaid 關係邏輯圖】**\n```mermaid\n{note['mermaid']}\n```\n---\n"
+            output_lines.append(note_md)
+            inserted_indices.add(idx)
+            
+    return "\n".join(output_lines)
+
+def speculate_legal_subject(text):
+    # 用分數權重猜測法律學科
+    scores = {
+        "民法": 0,
+        "刑法": 0,
+        "憲法": 0,
+        "行政法": 0,
+        "民事訴訟法": 0,
+        "刑事訴訟法": 0
+    }
+    
+    # 關鍵字對照表
+    keywords = {
+        "民法": ["民法", "契約", "意思表示", "不當得利", "無因管理", "侵權行為", "損害賠償", "物權", "債權", "抵押權", "繼承", "親屬", "消滅時效"],
+        "刑法": ["刑法", "殺人", "傷害", "竊盜", "搶奪", "強盜", "詐欺", "背信", "故意", "過失", "阻卻違法", "正當防衛", "緊急避難", "有期徒刑"],
+        "憲法": ["憲法", "基本權", "言論自由", "生存權", "平等權", "釋字", "大法官", "憲法法庭", "違憲", "合憲", "權力分立"],
+        "行政法": ["行政法", "行政程序法", "行政處分", "訴願", "行政訴訟", "國家賠償", "行政罰", "公務員", "行政裁量"],
+        "民事訴訟法": ["民事訴訟", "民訴", "起訴", "管轄", "訴訟標的", "訴之聲明", "當事人", "既判力", "執行力", "假扣押", "保全程序"],
+        "刑事訴訟法": ["刑事訴訟", "刑訴", "羈押", "搜索", "扣押", "逮捕", "告訴", "不起訴", "公訴", "自訴", "自白", "傳聞法則", "證據能力"]
+    }
+    
+    for subject, words in keywords.items():
+        for word in words:
+            matches = len(re.findall(re.escape(word), text))
+            if matches > 0:
+                scores[subject] += matches * (5 if word == subject else 1)
+                
+    best_subject = max(scores, key=scores.get)
+    if scores[best_subject] == 0:
+        return "通用/未分類"
+    return best_subject
+
+def extract_legal_indices(text):
+    articles = set(re.findall(r"([一-龥]*法第[一二三四五六七八九十百千\d]+條(?:之[一二三四五六七八九十\d]+)?)", text))
+    interpretations = set(re.findall(r"(釋字第[一二三四五六七八九十百千\d]+號)", text))
+    case_pattern = r"(最高法院\s*\d+\s*年度?\s*[一-龥]+\s*字\s*第\s*\d+\s*號(?:\s*民事|\s*刑事)?判決)"
+    cases = set(re.findall(case_pattern, text))
+    
+    return sorted(list(articles)), sorted(list(interpretations)), sorted(list(cases))
+
+def parse_timestamp_to_seconds(m_match):
+    hr = int(m_match.group(1)) if m_match.group(1) else 0
+    mn = int(m_match.group(2))
+    sc = int(m_match.group(3))
+    return hr * 3600 + mn * 60 + sc
+
+def [REDACTED](text, chunk_start_time):
+    pattern = r"\[(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\]"
+    matches = list(re.finditer(pattern, text))
+    
+    segments = []
+    if not matches:
+        return [{"start": chunk_start_time, "end": chunk_start_time + 90.0, "text": text}]
+        
+    for i in range(len(matches)):
+        m = matches[i]
+        start_sec = parse_timestamp_to_seconds(m) + chunk_start_time
+        
+        start_idx = m.end()
+        end_idx = matches[i+1].start() if i + 1 < len(matches) else len(text)
+        seg_text = text[start_idx:end_idx].strip()
+        
+        # 清除段落中的 Markdown 標頭標記
+        seg_text = re.sub(r"^#+\s+", "", seg_text)
+        seg_text = re.sub(r"\s+", " ", seg_text)
+        
+        if seg_text:
+            segments.append({
+                "start": start_sec,
+                "text": seg_text
+            })
+            
+    for i in range(len(segments) - 1):
+        segments[i]["end"] = segments[i+1]["start"]
+    if segments:
+        segments[-1]["end"] = segments[-1]["start"] + 10.0
+        
+    return segments
+
+def format_srt_time(seconds):
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    s = int(seconds % 60)
+    ms = int((seconds - int(seconds)) * 1000)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+def format_vtt_time(seconds):
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    s = int(seconds % 60)
+    ms = int((seconds - int(seconds)) * 1000)
+    return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
+
+def save_distillation_pair(task_id, source_name, spec_subject, full_text, cleaned_text, chunks_data):
+    """
+    蒸餾資料採集器：比對 Whisper 原始輸出與 Gemini 精校結果，
+    產生帶 CoT 推理鏈的訓練對，存入 A:\\distillation_data\\ 供 QLoRA 微調。
+    """
+    import difflib, json, os, time
+    distill_dir = "A:\\distillation_data"
+    os.makedirs(distill_dir, exist_ok=True)
+    out_path = os.path.join(distill_dir, "legal_distillation_pairs.jsonl")
+
+    # --- 產生差異分析 CoT ---
+    FILLERS = ["那個", "然後", "就是說", "就是", "嗯", "啊", "喔", "對對對", "好好", "那麼"]
+    LEGAL_CORRECTIONS = [
+        # 高危同音（長字串優先）
+        ("形式訴訟法", "刑事訴訟法"), ("形式訴訟", "刑事訴訟"),
+        ("形式法院",   "刑事法院"),   ("形式被告", "刑事被告"),
+        ("形事訴訟",   "刑事訴訟"),   ("形法",     "刑法"),
+        # 土地
+        ("投地登記", "土地登記"), ("投地法", "土地法"),
+        ("地政治",   "地政士"),   ("遞贈式", "地政士"),
+        # 時效
+        ("消滅實效", "消滅時效"), ("消滅士效", "消滅時效"),
+        # 其他
+        ("格論", "各論"), ("割了一個", "隔了一個"),
+    ]
+
+    def build_cot(raw, corrected):
+        notes = []
+        # 1. 偵測法律術語同音錯字
+        for wrong, right in LEGAL_CORRECTIONS:
+            if wrong in raw and right in corrected:
+                notes.append(f"法律術語校正: '{wrong}' -> '{right}'")
+        # 2. 偵測口語贅字過濾
+        removed = [fw for fw in FILLERS if fw in raw and fw not in corrected]
+        if removed:
+            notes.append("口語贅字過濾: " + ", ".join(removed))
+        # 3. 字數差異統計
+        delta = len(raw) - len(corrected)
+        if delta > 0:
+            notes.append(f"精簡字數: -{delta} 字")
+        # 4. Diff 取樣（最多 3 個差異片段）
+        matcher = difflib.SequenceMatcher(None, raw[:3000], corrected[:3000])
+        diff_samples = []
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag in ("replace", "delete") and len(diff_samples) < 3:
+                diff_samples.append(f"[{tag}] '{raw[i1:i2][:40]}' -> '{corrected[j1:j2][:40]}'")
+        if diff_samples:
+            notes.append("差異樣本: " + " | ".join(diff_samples))
+        return "\n".join(notes) if notes else "無顯著差異"
+
+    # --- 按 Chunk 切分，產生細粒度訓練對 ---
+    pairs_written = 0
+    try:
+        chunk_list = chunks_data if isinstance(chunks_data, list) else chunks_data.get("chunks", [])
+        raw_parts = full_text.split("\n\n") if full_text else []
+        clean_parts = cleaned_text.split("\n\n") if cleaned_text else []
+
+        # 全文訓練對（粗粒度）
+        cot = build_cot(full_text[:8000], cleaned_text[:8000])
+        pair = {
+            "task_id":     task_id,
+            "source":      source_name,
+            "subject":     spec_subject,
+            "timestamp":   time.strftime("%Y-%m-%d %H:%M:%S"),
+            "granularity": "full",
+            "input":       full_text[:6000],
+            "output":      cleaned_text[:6000],
+            "cot":         cot,
+        }
+        with open(out_path, "a", encoding="utf-8-sig") as f:
+            f.write(json.dumps(pair, ensure_ascii=False) + "\n")
+        pairs_written += 1
+
+        # 每 Chunk 一個訓練對（細粒度，品質更高）
+        for idx, chunk in enumerate(chunk_list):
+            raw_chunk = chunk.get("transcript", "") or (raw_parts[idx] if idx < len(raw_parts) else "")
+            clean_chunk = chunk.get("cleaned", "") or (clean_parts[idx] if idx < len(clean_parts) else "")
+            if not raw_chunk or not clean_chunk or raw_chunk == clean_chunk:
+                continue
+            cot_chunk = build_cot(raw_chunk, clean_chunk)
+            pair_chunk = {
+                "task_id":     task_id,
+                "source":      source_name,
+                "subject":     spec_subject,
+                "timestamp":   time.strftime("%Y-%m-%d %H:%M:%S"),
+                "granularity": f"chunk_{idx+1}",
+                "chunk_index": idx + 1,
+                "input":       raw_chunk[:4000],
+                "output":      clean_chunk[:4000],
+                "cot":         cot_chunk,
+            }
+            with open(out_path, "a", encoding="utf-8-sig") as f:
+                f.write(json.dumps(pair_chunk, ensure_ascii=False) + "\n")
+            pairs_written += 1
+
+        log_workflow(f"Markdown Formatter: [Distill] {pairs_written} training pairs saved -> {out_path}")
+    except Exception as de:
+        log_error(f"Markdown Formatter: [Distill] Failed to save distillation pairs: {de}")
+
+def format_markdown(task_id):
+    paths = ensure_dirs()
+    manifests_dir = paths["manifests_dir"]
+    processed_md_dir = paths["processed_md_dir"]
+    chunks_dir = paths["chunks_dir"]
+    task_chunks_dir = os.path.join(chunks_dir, task_id)
+    
+    manifest_file = os.path.join(manifests_dir, f"{task_id}.json")
+    chunks_manifest_file = os.path.join(manifests_dir, f"{task_id}_chunks.json")
+    
+    if not os.path.exists(manifest_file) or not os.path.exists(chunks_manifest_file):
+        log_error(f"Manifest or chunks manifest missing for {task_id}")
+        return False
+        
+    with ManifestManager(manifest_file) as mm:
+            manifest = mm.read()
+    with ManifestManager(chunks_manifest_file) as mm:
+            chunks = mm.read()
+        
+    media_info = manifest.get("media_info", {})
+    source_name = manifest["source_name"]
+    source_stem = Path(source_name).stem
+    
+    full_txt_path = os.path.join(task_chunks_dir, "merged_full_transcript.txt")
+    cleaned_txt_path = os.path.join(task_chunks_dir, "merged_cleaned_transcript.txt")
+    summary_path = os.path.join(task_chunks_dir, "merged_summary.txt")
+    
+    if not os.path.exists(full_txt_path):
+        log_error(f"Merged transcript missing at {full_txt_path}")
+        return False
+        
+    with open(full_txt_path, "r", encoding="utf-8-sig") as f:
+        full_text = f.read()
+        
+    cleaned_text = ""
+    if os.path.exists(cleaned_txt_path):
+        with open(cleaned_txt_path, "r", encoding="utf-8-sig") as f:
+            cleaned_text = f.read()
+            
+    summary_text = ""
+    if os.path.exists(summary_path):
+        with open(summary_path, "r", encoding="utf-8-sig") as f:
+            summary_text = f.read()
+            
+    log_workflow("Markdown Formatter: Speculating legal subject and extracting index terms...")
+    spec_subject = speculate_legal_subject(full_text)
+    articles, interpretations, cases = extract_legal_indices(full_text)
+    
+    highlighted_summary = summary_text
+    keywords_highlight = ["爭點", "重點整理", "必考", "結論", "實務見解"]
+    for kw in keywords_highlight:
+        highlighted_summary = re.sub(f"({kw})", r"**【\1】**", highlighted_summary)
+        
+    duration_min = int(media_info.get("duration_sec", 0) // 60)
+    duration_sec = int(media_info.get("duration_sec", 0) % 60)
+    
+    # 執行影片板書追蹤並整合至逐字稿
+    cleaned_with_notes = cleaned_text if cleaned_text else full_text
+    
+    if manifest.get("source_path", "").lower().endswith(".mp4"):
+        try:
+            from visual_analyzer import VisualLegalAnalyzer
+            analyzer = VisualLegalAnalyzer()
+            parts = source_name.split("_")
+            class_name = parts[0] if len(parts) > 1 else "法律實務"
+            lesson_name = parts[1] if len(parts) > 2 else "第一堂"
+            
+            video_path = manifest["source_path"]
+            if os.path.exists(video_path):
+                log_workflow(f"Markdown Formatter: Auto-tracking blackboard for video {source_name}...")
+                analyzer.track_video_blackboard(video_path, class_name, lesson_name)
+                
+                # 進行板書與逐字稿的時間軸交叉插補
+                clean_video_name = analyzer._sanitize_filename(source_stem)
+                cleaned_with_notes = interleave_blackboard_notes(cleaned_with_notes, clean_video_name, str(analyzer.obsidian_dir))
+            else:
+                log_error(f"Markdown Formatter: Original video not found for blackboard tracking: {video_path}")
+        except Exception as vae:
+            log_error(f"Markdown Formatter: Failed to run blackboard tracking or interleave notes: {vae}")
+            
+    api_key_for_assets = None
+    qm = QuotaManager() if QuotaManager else None
+    if qm:
+        try:
+            api_key_for_assets = qm.acquire_key_exclusive()
+        except:
+            api_key_for_assets = os.environ.get("GEMINI_API_KEY")
+    else:
+        api_key_for_assets = os.environ.get("GEMINI_API_KEY")
+
+    # 自動生成講義封面圖片
+    cover_md = ""
+    try:
+        cover_filename = generate_cover_image(spec_subject, source_stem, processed_md_dir, api_key=api_key_for_assets)
+        if cover_filename:
+            cover_md = f"![課程封面](./{cover_filename})\n\n"
+            log_workflow(f"Markdown Formatter: Generated cover image {cover_filename}")
+    except Exception as e:
+        log_error(f"Markdown Formatter: Failed to generate cover image: {e}")
+
+    # 自動生成複雜概念短影片 (Fallback 為分鏡圖)
+    video_md = ""
+    try:
+        video_filename, matched_concept = generate_concept_video(summary_text, source_stem, processed_md_dir, api_key=api_key_for_assets)
+        if video_filename:
+            video_md = f"\n> [!TIP]\n> 🎬 **AI 影片解說 (生成中/降級保護)**：偵測到複雜法律概念「{matched_concept}」，為您產生視覺化白板分鏡圖。\n> ![分鏡圖](./{video_filename})\n\n"
+            log_workflow(f"Markdown Formatter: Generated concept video storyboard {video_filename} for '{matched_concept}'")
+    except Exception as e:
+        log_error(f"Markdown Formatter: Failed to generate concept video: {e}")
+
+    if qm and api_key_for_assets:
+        try:
+            qm.release_key(api_key_for_assets)
+        except:
+            pass
+
+    # 組合 Markdown 內容
+    md_content = f"""# 臺灣法律教材研讀：{source_stem}
+
+{cover_md}## 📊 檔案元數據 (Metadata)
+- **原始檔名**：{source_name}
+- **分析日期**：{time.strftime("%Y-%m-%d %H:%M:%S")}
+- **教材學科**：{spec_subject}
+- **教材時長**：{duration_min} 分 {duration_sec} 秒
+- **總切片數**：{manifest.get("chunks_count", 1)} 片
+- **語言語系**：繁體中文 (台灣常規法律實務)
+
+## ⚖️ 關聯法規與實務見解索引
+- **法規條文**：{", ".join(articles) if articles else "未偵測到明確條文"}
+- **司法釋字**：{", ".join(interpretations) if interpretations else "未偵測到明確釋字"}
+- **實務判決**：{", ".join(cases) if cases else "未偵測到明確裁判字號"}
+
+---
+
+## 🧠 智慧教材法理消化 (RAG 摘要)
+{highlighted_summary}
+{video_md}
+---
+
+## 🎙️ 去冗餘精校逐字稿 (Cleaned Transcript)
+{cleaned_with_notes}
+"""
+
+    out_md_file = os.path.join(processed_md_dir, f"{source_stem}.md")
+    with open(out_md_file, "w", encoding="utf-8-sig") as wf:
+        wf.write(md_content)
+    log_workflow(f"Markdown Formatter: Saved final Markdown file to {out_md_file}")
+    
+    # 5. 時間軸字幕段落解析（修正版）
+    log_workflow("Markdown Formatter: Parsing time-aligned segments for SRT, VTT, and TXT...")
+    all_segments = []
+
+    for idx, chunk in enumerate(chunks):
+        chunk_path = chunk["path"]
+        stem = Path(chunk_path).stem
+        chunk_txt_file = os.path.join(task_chunks_dir, f"{stem}.txt")
+
+        if not os.path.exists(chunk_txt_file):
+            continue
+
+        with open(chunk_txt_file, "r", encoding="utf-8-sig") as rf:
+            chunk_content = rf.read().strip()
+
+        chunk_start = chunk["start_time"]   # 此 chunk 在原始影片的絕對起始秒數
+        chunk_end   = chunk["end_time"]
+
+        # ── 取得此分片的正確時間段落（加入絕對偏移）──
+        chunk_segs = [REDACTED](chunk_content, chunk_start)
+
+        # ── 近鄰去重：僅保留在 chunk 實際時間範圍內的段落 ──
+        # 不使用固定 ±15s 視窗（該邏輯錯誤過濾每個 chunk 開頭的合法內容）
+        # 改用：只要段落的絕對 start 落在 [chunk_start, chunk_end] 內即保留
+        for seg in chunk_segs:
+            if chunk_start <= seg["start"] <= chunk_end:
+                all_segments.append(seg)
+
+    # ── Fallback：若 chunk txt 全部遺失，從 merged_full_transcript 估算時間軸 ──
+    if not all_segments and os.path.exists(full_txt_path):
+        log_workflow("Markdown Formatter: [Fallback] No chunk txt found, estimating SRT from merged transcript...")
+        total_dur = media_info.get("duration_sec", 0) or (chunks[-1]["end_time"] if chunks else 3600)
+        with open(full_txt_path, "r", encoding="utf-8-sig") as rf:
+            fb_text = rf.read()
+        # 先嘗試解析 merged_full 裡的 [MM:SS] 時間戳
+        fb_segs = [REDACTED](fb_text, 0)
+        # merged_full 的時間戳是各 chunk 的相對時間，需要根據章節重新分配絕對偏移
+        # 策略：把所有段落按章節分配到整個影片時長，均等縮放
+        if fb_segs:
+            last_ts = fb_segs[-1]["start"]
+            if last_ts > 0:
+                scale = total_dur / (last_ts + 30)
+                for seg in fb_segs:
+                    seg["start"] = seg["start"] * scale
+                    seg["end"]   = seg["end"]   * scale
+            all_segments = fb_segs
+        else:
+            # 最後手段：把 merged_full 文字按字數均等切成句子，分配時間
+            sentences = [s.strip() for s in re.split(r"[。！？\n]+", fb_text) if len(s.strip()) > 5]
+            if sentences:
+                slot = total_dur / len(sentences)
+                for i, sent in enumerate(sentences):
+                    all_segments.append({
+                        "start": i * slot,
+                        "end":   (i + 1) * slot,
+                        "text":  sent[:80]
+                    })
+
+    # ── 依絕對時間排序 ──
+    all_segments.sort(key=lambda x: x["start"])
+
+    # ── 近鄰去重：移除與前一個段落起始時間差 < 1s 的重複段落 ──
+    deduped = []
+    prev_start = -999
+    for seg in all_segments:
+        if seg["start"] - prev_start >= 1.0:
+            deduped.append(seg)
+            prev_start = seg["start"]
+    all_segments = deduped
+
+    # ── 微調結束時間，確保不重疊 ──
+    for i in range(len(all_segments) - 1):
+        if all_segments[i]["end"] > all_segments[i+1]["start"]:
+            all_segments[i]["end"] = all_segments[i+1]["start"]
+        if all_segments[i]["end"] <= all_segments[i]["start"]:
+            all_segments[i]["end"] = all_segments[i]["start"] + 3.0
+    if all_segments:
+        if all_segments[-1]["end"] <= all_segments[-1]["start"]:
+            all_segments[-1]["end"] = all_segments[-1]["start"] + 3.0
+
+    log_workflow(f"Markdown Formatter: SRT 共 {len(all_segments)} 個字幕段落（已修正時間偏移）")
+
+    # 輸出 SRT
+    srt_lines = []
+    for s_idx, seg in enumerate(all_segments):
+        srt_lines.append(str(s_idx + 1))
+        srt_lines.append(f"{format_srt_time(seg['start'])} --> {format_srt_time(seg['end'])}")
+        srt_lines.append(seg["text"])
+        srt_lines.append("")
+    out_srt_file = os.path.join(processed_md_dir, f"{source_stem}.srt")
+    with open(out_srt_file, "w", encoding="utf-8-sig") as wf:
+        wf.write("\n".join(srt_lines))
+    log_workflow(f"Markdown Formatter: Saved SRT subtitle to {out_srt_file}")
+    
+    # 輸出 VTT
+    vtt_lines = ["WEBVTT", ""]
+    for s_idx, seg in enumerate(all_segments):
+        vtt_lines.append(str(s_idx + 1))
+        vtt_lines.append(f"{format_vtt_time(seg['start'])} --> {format_vtt_time(seg['end'])}")
+        vtt_lines.append(seg["text"])
+        vtt_lines.append("")
+    out_vtt_file = os.path.join(processed_md_dir, f"{source_stem}.vtt")
+    with open(out_vtt_file, "w", encoding="utf-8-sig") as wf:
+        wf.write("\n".join(vtt_lines))
+    log_workflow(f"Markdown Formatter: Saved VTT subtitle to {out_vtt_file}")
+    
+    # 輸出純文字 TXT
+    clean_txt = cleaned_text if cleaned_text else full_text
+    # 移除 Markdown 標題
+    clean_txt = re.sub(r"#+\s+.*?\n", "", clean_txt)
+    # 移除時間軸標記
+    clean_txt = re.sub(r"\[(?:(\d{1,2}):)?(\d{2}):(\d{2})\]", "", clean_txt)
+    # 整理空行
+    clean_txt = re.sub(r"\n\s*\n+", "\n\n", clean_txt).strip()
+    
+    out_txt_file = os.path.join(processed_md_dir, f"{source_stem}.txt")
+    with open(out_txt_file, "w", encoding="utf-8-sig") as wf:
+        wf.write(clean_txt)
+    log_workflow(f"Markdown Formatter: Saved pure TXT transcript to {out_txt_file}")
+    
+    # 6. 輸出 RAG 系統專用 JSON 索引
+    rag_index = {
+        "task_id": task_id,
+        "doc_id": task_id, # for Qdrant compatibility
+        "original_name": source_name,
+        "title": source_stem, # for Qdrant compatibility
+        "source_path": source_name, # for Qdrant compatibility
+        "processing_date": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "duration_sec": media_info.get("duration_sec", 0),
+        "speculated_subject": spec_subject,
+        "inferred_subject": spec_subject, # for Qdrant compatibility
+        "indices": {
+            "articles": articles,
+            "interpretations": interpretations,
+            "cases": cases
+        },
+        "summary": summary_text,
+        "full_text_cleaned": clean_txt,
+        "cleaned_text": clean_txt, # for Qdrant compatibility
+        "segments": all_segments
+    }
+    
+    out_json_file = os.path.join(processed_md_dir, f"{source_stem}_index.json")
+    with ManifestManager(out_json_file) as mm:
+            mm.write(rag_index)
+    log_workflow(f"Markdown Formatter: Saved RAG JSON index to {out_json_file}")
+    
+    # 6.5. 自動備份檔案存回影片原始目錄
+    try:
+        source_path = manifest.get("source_path")
+        if source_path:
+            backup_dir = os.path.dirname(source_path)
+            if os.path.exists(backup_dir):
+                import shutil
+                for fpath in [out_md_file, out_srt_file, out_vtt_file, out_txt_file, out_json_file]:
+                    if os.path.exists(fpath):
+                        shutil.copy(fpath, backup_dir)
+                log_workflow(f"Markdown Formatter: 成功將所有產出檔案備份至影片原目錄: {backup_dir}")
+            else:
+                log_workflow(f"Markdown Formatter: 影片原目錄不存在，跳過備份: {backup_dir}", level="warning")
+    except Exception as e:
+        log_workflow(f"Markdown Formatter: 自動備份至影片原目錄失敗: {e}", level="warning")
+    
+    # 7. 寫入 ChromaDB RAG 資料庫
+    try:
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from agent_core_pro import LocalLegalAgent
+        agent = LocalLegalAgent()
+        
+        # 寫入摘要
+        if summary_text:
+            safe_chroma_text = clean_txt[:150000]
+            doc_to_store = f"【自動吸收消化精華】\n{summary_text}\n\n【原始校對文本】\n{safe_chroma_text}"
+            doc_embedding = agent._get_embedding(doc_to_store)
+            if doc_embedding:
+                agent.intel_coll.add(
+                    ids=[f"auto_ref_{source_stem}_{int(time.time())}"],
+                    documents=[doc_to_store],
+                    embeddings=[doc_embedding],
+                    metadatas=[{
+                        "source": source_name,
+                        "mode": "背景長影音自動切片處理",
+                        "size_mb": round(os.path.getsize(full_txt_path) / (1024 * 1024), 2),
+                        "type": "summary",
+                        "class_name": spec_subject,
+                        "lesson_name": source_stem
+                    }]
+                )
+                log_workflow("Markdown Formatter: Successfully stored summary to ChromaDB.")
+
+        # 寫入時間軸分段 (RAG 段落索引)
+        if all_segments:
+            for g_idx in range(0, len(all_segments), 3):
+                group = all_segments[g_idx : g_idx + 3]
+                start_time = group[0]["start"]
+                end_time = group[-1]["end"]
+                
+                def format_ts(sec):
+                    m = int(sec // 60)
+                    s = int(sec % 60)
+                    return f"{m:02d}:{s:02d}"
+                
+                ts_range = f"{format_ts(start_time)} -> {format_ts(end_time)}"
+                chunk_text = "\n".join([seg["text"] for seg in group])
+                
+                doc_content = f"【教材影音片段 - {source_name}】\n時間軸：{ts_range}\n\n{chunk_text}"
+                doc_embedding = agent._get_embedding(doc_content)
+                if doc_embedding:
+                    agent.intel_coll.add(
+                        ids=[f"chunk_audio_{source_stem}_{g_idx}_{int(time.time())}"],
+                        documents=[doc_content],
+                        embeddings=[doc_embedding],
+                        metadatas=[{
+                            "source": source_name,
+                            "class_name": spec_subject,
+                            "lesson_name": source_stem,
+                            "timestamp": ts_range,
+                            "type": "audio"
+                        }]
+                    )
+            log_workflow(f"Markdown Formatter: Successfully stored audio segments to ChromaDB.")
+    except Exception as dbe:
+        log_error(f"Markdown Formatter: Failed to store to ChromaDB: {dbe}")
+        
+    # 8. 觸發 Qdrant 雙向量 RAG 資料庫寫入
+    try:
+        import subprocess
+        workspace_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ingest_script = os.path.join(workspace_root, "src", "legal_rag", "ingest_documents.py")
+        deployed_script = "C:/LocalAI_Workstation/src/legal_rag/ingest_documents.py"
+        target_script = ingest_script if os.path.exists(ingest_script) else deployed_script
+        
+        if os.path.exists(target_script):
+            log_workflow(f"Markdown Formatter: Triggering Qdrant ingestion: {target_script}")
+            subprocess.Popen([sys.executable, target_script], cwd=os.path.dirname(target_script), creationflags=0x08000000)
+        else:
+            log_error(f"Markdown Formatter: Qdrant ingest script not found!")
+    except Exception as qe:
+        log_error(f"Markdown Formatter: Failed to trigger Qdrant ingestion: {qe}")
+
+    # ===== 執行 V5.1 Hard Gate 驗收標準 (檔案大小 vs 影片時長) =====
+    try:
+        duration_total_min = duration_min + duration_sec / 60.0
+        if duration_total_min > 5:  # 只針對 5 分鐘以上的課程進行驗證
+            srt_size_kb = os.path.getsize(out_txt_file) / 1024.0 if os.path.exists(out_txt_file) else 0
+            ratio = srt_size_kb / duration_total_min
+            
+            if ratio < 0.5:
+                log_error(f"Markdown Formatter: [Validation Failed] Transcript too short! {ratio:.2f} KB/min")
+                manifest["status"] = "failed_validation_too_short"
+                manifest["steps"]["formatter"] = "failed"
+                manifest["error"] = f"Validation failed: Transcript too short. Ratio: {ratio:.2f} KB/min (Duration: {duration_total_min:.1f} min, Size: {srt_size_kb:.1f} KB)"
+            elif ratio > 1.8:
+                log_error(f"Markdown Formatter: [Validation Failed] Transcript too long (Looping)! {ratio:.2f} KB/min")
+                manifest["status"] = "failed_validation_too_long"
+                manifest["steps"]["formatter"] = "failed"
+                manifest["error"] = f"Validation failed: Transcript too long. Ratio: {ratio:.2f} KB/min (Duration: {duration_total_min:.1f} min, Size: {srt_size_kb:.1f} KB)"
+            else:
+                log_workflow(f"Markdown Formatter: [Validation Passed] Healthy transcript ratio: {ratio:.2f} KB/min")
+                manifest["status"] = "completed"
+                manifest["steps"]["formatter"] = "completed"
+        else:
+            # 課程太短，直接標記完成
+            manifest["status"] = "completed"
+            manifest["steps"]["formatter"] = "completed"
+    except Exception as val_e:
+        log_error(f"Markdown Formatter: Validation logic error: {val_e}")
+        manifest["status"] = "completed"
+        manifest["steps"]["formatter"] = "completed"
+    # ==============================================================
+
+    manifest["output_markdown"] = out_md_file
+    manifest["output_srt"] = out_srt_file
+    manifest["output_vtt"] = out_vtt_file
+    manifest["output_txt"] = out_txt_file
+    manifest["output_json_index"] = out_json_file
+    
+    with ManifestManager(manifest_file) as mm:
+            mm.write(manifest)
+        
+    # 10. 蒸餾訓練資料採集（Whisper 原始 vs Gemini 精校 CoT 訓練對）
+    save_distillation_pair(task_id, source_name, spec_subject, full_text, cleaned_text, chunks)
+
+    # 11. 攔截並備份原始切片 (防止被系統無情刪除)
+    import shutil
+    try:
+        task_chunks_dir = f"A:/chunks/{task_id}"
+        if os.path.exists(task_chunks_dir):
+            target_drive = "F:/"
+            fallback_drive = "E:/"
+            backup_base = target_drive
+            
+            # 檢查 F 碟是否有超過 50GB 的剩餘空間
+            if os.path.exists(target_drive):
+                free_bytes = shutil.disk_usage(target_drive).free
+                if free_bytes < 50 * 1024 * 1024 * 1024:
+                    backup_base = fallback_drive
+            
+            final_backup_dir = os.path.join(backup_base, "chunks_backup", task_id)
+            os.makedirs(os.path.dirname(final_backup_dir), exist_ok=True)
+            
+            # 將整個資料夾搬移過去 (包含 .wav 與 .txt)
+            shutil.move(task_chunks_dir, final_backup_dir)
+            log_workflow(f"Markdown Formatter: 成功將原始切片搬移備份至 {final_backup_dir}")
+    except Exception as e:
+        log_error(f"Markdown Formatter: 備份切片失敗: {e}")
+
+    log_workflow(f"Markdown Formatter: Completed task {task_id}")
+    return True
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--task-id", required=True, help="Task ID to process")
+    args = parser.parse_args()
+    format_markdown(args.task_id)
+
+`
+
+===== FILE: config.yaml =====
+`yaml
+api:
+  _placeholder: true
+  gcs_bucket_name: lexmind-audio-chunks-bbb51788
+  gemini_api_account: sk87826453@gmail.com
+  gemini_api_key: AUTO_LOAD_FROM_ENV
+  gemini_model_high_accuracy: gemini-2.5-flash
+  gemini_model_override: gemini-2.5-flash
+  merge_model: gemini-2.5-flash
+  stt_model: gemini-2.5-flash
+  vertexai_project: [REDACTED]
+  vertexai_project_name: My First Project
+  vertexai_project_number: '1024794909249'
+dispatcher:
+  concurrency: 20
+  max_workers: 20
+paths:
+  chunks_dir: A:/chunks
+  logs_dir: A:/logs
+  manifests_dir: A:/manifests
+  processed_md_dir: A:/processed_md
+settings:
+  merge_engine: vertexai
+  stt_engine: vertexai
+`
+

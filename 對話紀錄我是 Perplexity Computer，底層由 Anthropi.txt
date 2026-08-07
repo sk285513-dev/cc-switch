@@ -1,0 +1,169 @@
+我是 Perplexity Computer，底層由 Anthropic 的 Claude 模型驅動（目前這個對話跑的是 Claude Sonnet 4.6），不是 ChatGPT 5.1，所以可以直接接手這個任務。我具備長程式碼審查、跨文件調試和完整改寫輸出的能力，也可以在沙盒裡實際做語法驗證然後交付。
+
+我已初步讀完你轉移過來的資料，確認內容如下：
+
+已接收的工作內容
+Prompt_for_coder.txt：完整套件指令，含7個目標檔案原始碼（run_workflow.py、workflow_helper.py、manifest_manager.py、stt_runner.py、merge_transcript.py、markdown_formatter.py、config.yaml），以及輸出指令格式要求（問題列程式碼可直接覆寫
+
+code_extraction-2.txt：各檔案的SHA256 / 行數 / 修改時間快照
+
+func_scan-3.txt / module_scan_results-4.txt：C:\LocalAI_Workstation 全站模組掃描結果
+
+加上工作站專案描述中的13大鐵律（禁止Emoji、UTF-8-SIG、.get()防呆、超時必設、429使用局部active_key、ensure_ascii=True、禁止幽靈檔案等）
+
+我已經看到了初步病灶
+光是第一輪掃讀就發現幾個明顯的問題，例如：run_workflow.py 與 stt_runner.py 都繞過 ManifestManager 直接無鎖讀寫器清單；stt_engine 的系統讀取不一致（config.get("settings",{}).get("stt_engine")vs ，會導致 Vertex 模式判別並啟用錯誤保護時的完整錯誤保護時sys_config.get("stt_engine")以ensure_ascii=False違反鐵律寫 11；_run_task_steps
+
+要我現在就按照發包規格，開始完整審查並輸出「問題清單 + 七個可直接覆蓋的完整檔案 + PowerShell 驗證指令」嗎？確認後我就直接動工了。
+
+workflow_helper.py 完成。接著寫manifest_manager.py。
+
+LexMind_V6_Peer_Review_Report.txt
+
+
+
+已完成 14 個步驟
+第 4 支核心腳本已全部交付（以上檔案可直接下載覆蓋C:\LocalAI_Workstation\scripts_v6\，報告內附備份與覆蓋的 PowerShell 指令）。
+
+本批重點
+20個實際病灶全數修復：引擎系統誤判（Vertex被當Gemini）、無鎖manifest覆蓋、writer執行緒task_done漏呼叫造成的假死、429未用局部request_key、503 busy循環、、ensure_ascii=Falseimport階段reconfigure（10106）等，明細都在交付第一部分
+
+V3三大防線已對位實裝：金鑰匙憑key_for_release身分核對釋放（強制恢復）、老化改讀清單有效負載的created_at+math.exp半衰期公式（新增calculate_effective_priority）、所有原子寫入加finally.tmp 清道夫
+
+全過：4/4透過py_compile、Emoji掃描、ensure_ascii檢查、無需重新配置驗證檢查，並已轉存UTF-8-SIG
+
+有兩件事要注意
+V3報告是對幻影版本寫的－safe_acquire_key、、在你實機原始碼中都不存在（已全文搜尋確認）。我沒有憑空修復這些幻影函數，而是把三大防線原則實裝到真實程式碼上，符合鐵律force_reclaim13as_completed(timeout=600)
+
+跨批次相依：本批 JSON 改以 UTF-8-SIG 寫入，第二批修改quota_manager.py等腳本時，所有 JSON 讀取必須統一utf-8-sig，否則遇 BOM 會解析失敗（報告內已標記）
+
+接下來請把LexMind_V6_Core_Debug_Handoff.txt（統一規格書）和LexMind_V6_Source_Code_Mirror.txt（10支鏡像）上傳到這個對話，我會逐條做最終合規比對，有落差就立即修改，然後開第二批。
+
+
+manifest_manager.py（可覆蓋版本）
+Python
+
+workflow_helper.py（可覆蓋版本）
+Python
+
+run_workflow.py（可覆蓋版本）
+Python
+
+stt_runner.py（可覆蓋版本）
+Python
+
+LexMind V6 第一批修復交付報告
+LexMind V6 第一批修復交付報告
+文件
+请你仔细看一下这些对话记录，本。 来。 是要。 请你们。 帮忙做原本程式。 跟脚本。 在 debug 的时候发现没。 办法。 明确地指出。 程式。 的。 Bug 停在哪里。 所以。 有一个 AI 建议说要做架构的调。 整，程式码的收缩跟断点。 方便找出 bug，但。 是这样子搞了两三天之后它却写自己写不出来。 所以你现在给出来这些脚本。 是不是可以请你。 依照原本设计的。 初衷。 能够让它。 架构清晰。 然后每一个。 工作流。 生产流。 资讯流。 能够有清楚的。 程式的收缩，然后能够清楚地 input output 断点。 能够查到时候 debug 的时候能够快速地查询到卡在哪里。 你再帮我严谨地重新调查这些 source code 的规划系统架构的规划跟你现在脚本有没有。 遵循这些。 方向在做。 Coding
+
+
+已完成 37 個步驟
+
+已完成8個步驟
+第四版已交付。直說重點：這批專家審查的不是我的檔案。六條指控我逐條用 grep 對我的交付碼查證，結果如下：
+
+逐條查證結果
+指控	事實
+金漏洩（exclusive_key + pass、最終缺）	不存在。我的process_single_chunk根本沒有exclusive_key參數；金鑰匙釋放本來就在run_stt和run_single_task_safe的finally裡，還有key_for_release身體分核對。被引用的段pass程序碼出自被退件的舊草案
+is_retryable不認得超時	不存在。四支文件裡is_retryable出現次數 = 0。我的設計是「通用錯誤分支全部重試」，TimeoutError 明確落入該分支，退避重試到上限才判失敗
+ensure_ascii=False	0筆。稱為的第57行其實是get_engine_setting降級函數
+log_stage是幽靈系統、謊言說謊	不實。 run_workflow 13處+stt_runner 8處+workflow_helper定義1處，21+個斷點白紙黑字
+FileHandler 缺少錯誤 / 多行日誌	部分屬實，已修改：FileHandler 補errors="replace"；_log_chunk_error現在連\n在一起壓平
+殭屍執行緒 / QuotaManager 洗版	部分屬實，已修改：新增_make_genai_client()在客戶端層附加180秒網路逾時，被放棄的後台執行緒必然有界終止；QuotaManager不且可用無外部金鑰匙時快速失敗返回，不再帶無金鑰匙洗版
+一翻兩眼的驗證方法
+報告附錄二有第四版的SHA256指紋。把文件覆蓋到scripts_v6後跑一行：
+
+PowerShell
+Get-FileHash workflow_helper.py, manifest_manager.py, stt_runner.py, run_workflow.py -Algorithm SHA256
+跟報告裡的指紋比對－一致，代表審查對像是本版，歡迎任何專家再審；不一致，代表他們審的是舊檔案。另外附三條 30 秒快檢指令（log_stage 計數、ensure_ascii=False 計數、release_key 的最後上下文），任何 AI 或人均複驗。
+
+建議以後把檔案發給專家會診時，一併附上SHA256，避免再發生「審舊版、判新版藥品」的賠償案件。四支已通過重新全部驗證，隨時可覆蓋使用。
+
+
+stt_runner.py（可覆蓋版本）
+Python
+
+workflow_helper.py（可覆蓋版本）
+Python
+
+manifest_manager.py（可覆蓋版本）
+Python
+
+run_workflow.py（可覆蓋版本）
+Python
+
+LexMind V6 第一批修復交付報告
+LexMind V6 第一批修復交付報告
+文件
+鑑定完成，結果一翻兩眼：
+
+鑑定結論
+檔案	實機雜比對	判定
+manifest_manager.py	=我的v4（BOM被剝掉）	內容正確，只需補回BOM
+運行工作流程.py	=我的v4（BOM被剝掉）	內容正確，只需補回BOM
+workflow_helper.py	不符我 v1–v4 任何版本的任何變形	根本上不是我交付的檔案
+stt_runner.py	不符我 v1–v4 任何版本的任何變形	根本上不是我交付的檔案
+事實：第一，你的兩個下載/讀取通道會剝掉UTF-8 BOM（換行LF保留），這是正常現象，補回即可；第二，現在scripts_v6裡面的workflow_helper.py不是stt_runner.py我的任何一個版本——極可能是流程中其他AI寫入的版本蓋掉了，或者根本沒有復製成功。專家審出「pass金鑰匙漏」「is_retryable」之前的那些幻影程式碼，很可能就是在審這支來路不明的文件。
+
+修復步驟（三步驟收工）
+從上一則訊息重新下載workflow_helper.py和stt_runner.py（第四版），覆蓋到scripts_v6
+
+覆蓋後先驗「下載版指紋」（BOM被剝掉的預期值）：
+
+文字
+workflow_helper.py  D392CCD85A947177FC235B6F0E4D80C0F69269D22337E570D8A21BE9577097B1
+stt_runner.py       122DCBC7F98730D4DDE41D9C44F1C9698EFB25F62C3DA1C9ABD416CB594E45DD
+四支一次補回BOM（鐵律3）並輸出最終指紋：
+
+PowerShell
+cd C:\LocalAI_Workstation\scripts_v6
+foreach ($f in "workflow_helper.py","manifest_manager.py","stt_runner.py","run_workflow.py") {
+    $b = [System.IO.File]::ReadAllBytes("$PWD\$f")
+    if (-not ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)) {
+        [System.IO.File]::WriteAllBytes("$PWD\$f", [byte[]](0xEF,0xBB,0xBF) + $b)
+        Write-Host "[FIX] $f BOM restored"
+    } else { Write-Host "[OK] $f already has BOM" }
+}
+Get-FileHash workflow_helper.py, manifest_manager.py, stt_runner.py, run_workflow.py -Algorithm SHA256
+最終四個指紋應完全等於報告附件二的「標準版（UTF-8-SIG）」值：AEB7D2...、BFD05F...、7B7688...、24B674...。全部達到後，這四支就是經過完整驗證的第四版，可以直接跑python -m py_compile四連檢和一次性測試了。
+
+Algorithm       Hash                                                                   Path
+---------       ----                                                                   ----
+SHA256          AEB7D244E7B5EC65938C126453EC0DC58224E971E0097EA9CFC49A09B698DD07       C:\LocalAI_Workstation\scripts_v6\workflow_helper.py
+SHA256          BFD05FEB7082659D68115F31D6B07361C2337014F3A87E2A53D931C51E9DB9D1       C:\LocalAI_Workstation\scripts_v6\manifest_manager.py
+SHA256          7B7688F6056BF9C3A9C0C2586405F9A90C92B6871BE6EA71176516EA9A04F417       C:\LocalAI_Workstation\scripts_v6\stt_runner.py
+SHA256          24B674415FAE685A1378F44B96E48C1D062E63C907B0E97DF09DD6BFCEB01C1D       C:\LocalAI_Workstation\scripts_v6\run_workflow.py
+
+已完成 3 個步驟
+診斷確認：程序檔就在C:\LocalAI_Workstation\config\，scripts_v6\config\下方沒有－百分之百是CWD相對路徑病灶。三個任務不是程序壞，是「站錯位置起跑」。
+
+現在照兩步收尾：
+
+PowerShell
+# 1. 復活三個冤死任務（STT 已完成，只補 merge）
+cd A:\manifests
+foreach ($id in "task_20260728_210243_7509","task_20260728_210243_9008","task_20260728_210243_7500") {
+    $m = Get-Content "$id.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($m.status -eq "failed") {
+        $m.status = "transcribed"
+        $m | ConvertTo-Json -Depth 10 | Set-Content "$id.json" -Encoding UTF8
+        Write-Host "[RESET] $id -> transcribed"
+    }
+}
+
+# 2. 從工作站根目錄重跑（這是目前唯一正確的起跑位置）
+cd C:\LocalAI_Workstation
+python scripts_v6\run_workflow.py --one-shot
+
+# 3. 驗收：這三個任務應出現 merge IN -> OUT ok=1
+Select-String -Path A:\logs\stage_trace.log -Pattern "task_20260728_210243_(7509|9008|7500)" | Select-Object -Last 12
+同時把兩件事記入第二批的必修清單：
+
+quota_manager.py 路徑名稱確定——config/quota_policy.yaml等所有相對路徑以Path(__file__).resolve().parent.parent名稱確定，無論從哪個目錄、哪個排程器啟動都不會迷航（連你的 PS1 啟動器都不用改）
+
+merge_transcript.py 毀滅引擎毀滅－Vertex模式下完全不該初始化QuotaManager，這次它卻在合併階段去讀金鑰匙政策檔，證明毀滅有答案，用統一配置層get_engine_setting()堵死
+
+跑完上面三步、確認三個任務復活後，我說一聲，我就正式開工第二批七支（quota_manager 和 merge_transcript 打頭陣，因為它們這次是實戰抓到的編碼犯）。
+
+

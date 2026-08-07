@@ -1,0 +1,2459 @@
+### File: run_workflow.py
+- SHA256: bc67f4ba9b98c4db2019320db80c014c7ba8d5d3b48c60cf140785d1ca5f621b
+- MTime: 2026-08-03 06:27:05
+- Total lines: 857
+
+--- Lines 1 to 45 ---
+   1 | # [CRITICAL CROSS-FILE DEPENDENCY WARNING]
+   2 | # Upstream: LexMind_V6_沙盒驗證版.ps1
+   3 | # Downstream: stt_runner.py, etc.
+   4 | # Shared State: Database, Chunks
+   5 | 
+   6 | import os
+   7 | import sys, io
+   8 | if hasattr(sys.stdout, 'reconfigure'):
+   9 |     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+  10 | if hasattr(sys.stderr, 'reconfigure'):
+  11 |     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+  12 | import sys
+  13 | import time
+  14 | import json
+  15 | import argparse
+  16 | import threading
+  17 | import subprocess
+  18 | import random
+  19 | import faulthandler
+  20 | from pathlib import Path
+  21 | from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+  22 | from concurrent.futures import ThreadPoolExecutor, as_completed
+  23 | 
+  24 | # 故障快照：啟用 faulthandler（Python 原生）以備用
+  25 | faulthandler.enable()
+  26 | 
+  27 | # 共用監控工具
+  28 | _mu_dir = os.path.dirname(os.path.abspath(__file__))
+  29 | try:
+  30 |     import importlib.util as _ilu
+  31 |     _spec = _ilu.spec_from_file_location("monitoring_utils", os.path.join(_mu_dir, "monitoring_utils.py"))
+  32 |     _mu = _ilu.module_from_spec(_spec)
+  33 |     _spec.loader.exec_module(_mu)
+  34 |     dump_stack_snapshot = _mu.dump_stack_snapshot
+  35 | except Exception:
+  36 |     def dump_stack_snapshot(**kwargs):
+  37 |         pass  # fallback: no-op if monitoring_utils not available
+  38 | 
+  39 | ENTERPRISE_MODE = os.environ.get("LEXMIND_ENTERPRISE", "0") == "1"
+  40 | 
+  41 | 
+  42 | # ══════════════════════════════════════════════════════════════════
+  43 | # ★ GCP PROJECT BOOTSTRAP — 必須在所有 Vertex / STT / QuotaManager
+  44 | #   初始化之前執行，確保 google.auth.default() 能解析到正確 project。
+  45 | # ══════════════════════════════════════════════════════════════════
+
+--- Lines 94 to 115 ---
+  94 | 
+  95 | from file_watcher import scan_new_files
+  96 | from preprocess_media import preprocess
+  97 | from chunk_planner import plan_chunks
+  98 | from stt_runner import run_stt
+  99 | from merge_transcript import merge_workflow
+ 100 | from markdown_formatter import format_markdown
+ 101 | from workflow_helper import ensure_dirs, log_workflow, log_error
+ 102 | from scripts_v6.quota_manager import QuotaManager
+ 103 | 
+ 104 | # [Block D] 狀態收斂與效能優化 (原子寫入)
+ 105 | def atomic_json_dump(data, filepath):
+ 106 |     tmp_path = str(filepath) + f".{os.getpid()}.{threading.get_ident()}.tmp"
+ 107 |     with open(tmp_path, "w", encoding="utf-8") as f:
+ 108 |         json.dump(data, f, ensure_ascii=False, indent=2)
+ 109 |     max_retries = 30
+ 110 |     for i in range(max_retries):
+ 111 |         try:
+ 112 |             os.replace(tmp_path, filepath)
+ 113 |             break
+ 114 |         except PermissionError:
+ 115 |             if i == max_retries - 1:
+
+--- Lines 117 to 178 ---
+ 117 |                 logging.error(f"嚴重 I/O 錯誤：等待 {max_retries} 次後仍無法覆寫 {filepath}")
+ 118 |                 if os.path.exists(tmp_path):
+ 119 |                     os.remove(tmp_path)
+ 120 |                 raise
+ 121 |             import random
+ 122 |             sleep_time = (0.1 * (1.2 ** i)) + random.uniform(0.01, 0.05)
+ 123 |             time.sleep(min(sleep_time, 2.0))
+ 124 | 
+ 125 | 
+ 126 | 
+ 127 | class SingleInstanceLock:
+ 128 |     def __init__(self, lock_file):
+ 129 |         self.lock_file = lock_file
+ 130 |         self.fp = None
+ 131 | 
+ 132 |     def acquire(self):
+ 133 |         try:
+ 134 |             self.fp = open(self.lock_file, 'a+')
+ 135 |             self.fp.seek(0)
+ 136 |             if sys.platform == 'win32':
+ 137 |                 import msvcrt
+ 138 |                 msvcrt.locking(self.fp.fileno(), msvcrt.LK_NBLCK, 1)
+ 139 |             else:
+ 140 |                 import fcntl
+ 141 |                 fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+ 142 |             return True
+ 143 |         except (IOError, OSError, ImportError):
+ 144 |             if self.fp:
+ 145 |                 try:
+ 146 |                     self.fp.close()
+ 147 |                 except Exception:
+ 148 |                     pass
+ 149 |             return False
+ 150 | 
+ 151 |     def release(self):
+ 152 |         if self.fp:
+ 153 |             try:
+ 154 |                 self.fp.seek(0)
+ 155 |                 if sys.platform == 'win32':
+ 156 |                     import msvcrt
+ 157 |                     msvcrt.locking(self.fp.fileno(), msvcrt.LK_UNLCK, 1)
+ 158 |                 else:
+ 159 |                     import fcntl
+ 160 |                     fcntl.flock(self.fp.fileno(), fcntl.LOCK_UN)
+ 161 |             except Exception:
+ 162 |                 pass
+ 163 |             try:
+ 164 |                 self.fp.close()
+ 165 |             except Exception:
+ 166 |                 pass
+ 167 |             try:
+ 168 |                 os.remove(self.lock_file)
+ 169 |             except Exception:
+ 170 |                 pass
+ 171 | 
+ 172 | def get_legal_priority_score(source_name: str) -> int:
+ 173 |     """
+ 174 |     國考科目優先級評分（數字越小 = 越優先處理）
+ 175 | 
+ 176 |     排序邏輯（依台灣律師高考 / 地政士高考 / 司法特考核心科目）：
+ 177 |       0   → mock 測試任務
+ 178 |       10  → 憲法（根本大法）
+
+--- Lines 461 to 801 ---
+ 461 |             new = max(current - 4, STT_CONCURRENCY_MIN)
+ 462 |             reason = f"KPI=0 且並發={current}≥12，疑似 API 雪崩，降並發 -4"
+ 463 |         else:
+ 464 |             new = min(current + 2, STT_CONCURRENCY_MAX)
+ 465 |             reason = f"KPI=0 且並發={current}<12，適度增加 +2"
+ 466 | 
+ 467 |     # 7. 回寫並發數到 kpi_state 供下一輪讀取
+ 468 |     try:
+ 469 |         s = json.load(open(kpi_state_path, encoding="utf-8-sig")) if os.path.exists(kpi_state_path) else {}
+ 470 |         s["stt_concurrency"] = new
+ 471 |         atomic_json_dump(s, kpi_state_path)
+ 472 |     except Exception:
+ 473 |         pass
+ 474 | 
+ 475 |     import logging
+ 476 |     logging.info(f"[AdaptiveConcurrency] {reason} → 並發={new}（樣本={len(kpi_vals)}, 近期KPI均值={recent_kpi:.1f}）")
+ 477 |     return new
+ 478 | 
+ 479 | 
+ 480 | TASK_CONCURRENCY = STT_CONCURRENCY_DEFAULT  # 初始值，會被 compute_adaptive_concurrency() 覆蓋
+ 481 | 
+ 482 | 
+ 483 | 
+ 484 | def run_single_task_safe(manifest: dict, manifest_path: Path, exclusive_key: str, qm: QuotaManager, chunking_only: bool) -> bool:
+ 485 |     """
+ 486 |     包裝單一任務的完整流程，供 ThreadPoolExecutor 並列呼叫。
+ 487 |     ★ Fix ❷：exclusive_key 可為 None，此時在 Worker 啟動時才向 qm 按需取得，
+ 488 |               確保 key 不被預先鎖死在等待佇列中。
+ 489 |     返回 True 表示任務成功。
+ 490 |     """
+ 491 |     # ── 避免多個 Worker 在同一毫秒打向 API，給予 1~4 秒隨機緩衝 ──
+ 492 |     time.sleep(random.uniform(1.0, 4.0))
+ 493 |     paths = ensure_dirs()
+ 494 |     task_id = manifest.get("task_id", "unknown_task")
+ 495 |     key_acquired_here = False
+ 496 | 
+ 497 |     # ★ 按需取得 key（若呼叫方沒有預先分配）
+ 498 |     if not chunking_only and exclusive_key is None and qm is not None:
+ 499 |         try:
+ 500 |             exclusive_key = qm.acquire_key_exclusive()
+ 501 |             key_acquired_here = True
+ 502 |             if exclusive_key == "__VERTEX_AUTH__":
+ 503 |                 # Vertex 模式：哨兵不是真實 key，下游改走 ADC 路徑
+ 504 |                 log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始（Vertex AI 模式）")
+ 505 |                 exclusive_key = None   # 傳 None 給 _run_task_steps，讓它走 vertexai=True
+ 506 |             else:
+ 507 |                 log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始，按需取得金鑰: {exclusive_key[:8]}...")
+ 508 |         except RuntimeError:
+ 509 |             log_error(f"[Parallel Dispatcher] Task {task_id} 無可用金鑰，跳過本輪。")
+ 510 |             return False
+ 511 |     elif exclusive_key == "__VERTEX_AUTH__":
+ 512 |         log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始（Vertex AI 模式，傳入哨兵）")
+ 513 |         exclusive_key = None
+ 514 |     elif exclusive_key:
+ 515 |         log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始，使用傳入金鑰: {exclusive_key[:8]}...")
+ 516 |     else:
+ 517 |         log_workflow(f"[Parallel Dispatcher] Task {task_id} 開始（chunking-only 模式）")
+ 518 | 
+ 519 |     # ── 接入點 1: run_single_task_safe 入口 ───────────────────────────────
+ 520 |     _task_start_time = time.time()
+ 521 |     source_name = manifest.get("source_name", "unknown")
+ 522 |     chunk_count = manifest.get("chunk_count", 0)
+ 523 |     try:
+ 524 |         return _run_task_steps(manifest, manifest_path, paths, exclusive_key, chunking_only)
+ 525 |     except Exception as e:
+ 526 |         _elapsed = time.time() - _task_start_time
+ 527 |         # 堂疊快照（接入點 1）
+ 528 |         dump_stack_snapshot(
+ 529 |             task_id=task_id,
+ 530 |             source_name=source_name,
+ 531 |             stage="run_single_task_safe",
+ 532 |             chunk_count=chunk_count,
+ 533 |             elapsed_seconds=_elapsed,
+ 534 |         )
+ 535 |         log_error(f"[Parallel Dispatcher] Task {task_id} 發生異常：{e}")
+ 536 |         try:
+ 537 |             with open(manifest_path, "r", encoding="utf-8-sig") as f:
+ 538 |                 current_manifest = json.load(f)
+ 539 |             current_manifest["status"] = "failed"
+ 540 |             current_manifest["error"] = str(e)
+ 541 |             atomic_json_dump(current_manifest, manifest_path)
+ 542 |         except Exception:
+ 543 |             pass
+ 544 |         return False
+ 545 |     finally:
+ 546 |         # ★ 只有本函式自己取的 key 才在這裡釋放
+ 547 |         if key_acquired_here and qm and exclusive_key:
+ 548 |             qm.release_key(exclusive_key)
+ 549 | 
+ 550 | def process_active_tasks(chunking_only=False):
+ 551 |     paths = ensure_dirs()
+ 552 |     manifests_dir = paths["manifests_dir"]
+ 553 |     
+ 554 |     # 尋找所有非 chunks 且未完成/未失敗的任務清單
+ 555 |     manifest_paths = Path(manifests_dir).glob("*.json")
+ 556 |     active_tasks = []
+ 557 |     
+ 558 |     for p in manifest_paths:
+ 559 |         if not p.name.startswith("task_") or p.name.endswith("_chunks.json"):
+ 560 |             continue
+ 561 |         try:
+ 562 |             with open(p, "r", encoding="utf-8-sig") as f:
+ 563 |                 data = json.load(f)
+ 564 |                 status = data.get("status")
+ 565 |                 # 在 chunking_only 模式下，如果 chunk_planner 已經 completed，我們跳過此任務
+ 566 |                 if chunking_only and data.get("steps", {}).get("chunk_planner") == "completed":
+ 567 |                     continue
+ 568 |                 if status not in ["completed", "failed"]:
+ 569 |                     active_tasks.append((p, data))
+ 570 |         except Exception:
+ 571 |             pass
+ 572 |             
+ 573 |     # 依照「先程序後實體、國考主要科目優先、再來分科」的法學專業排序佇列
+ 574 |     active_tasks.sort(key=lambda x: (
+ 575 |         get_legal_priority_score(x[1].get("source_name", "")),
+ 576 |         x[1].get("task_id", "")
+ 577 |     ))
+ 578 |     
+ 579 |     # 暫時鎖定僅執行第一堂課已測試完畢，註解此行以解鎖所有課程排程
+ 580 |     # active_tasks = [t for t in active_tasks if t[1].get("task_id") == "task_20260706_201825_00_3231"]
+ 581 |             
+ 582 |     if not active_tasks:
+ 583 |         return
+ 584 | 
+ 585 |     log_workflow(f"Workflow Engine: Found {len(active_tasks)} active tasks to process.")
+ 586 | 
+ 587 |     # ── 建立全局共享的 QuotaManager 實例 ──
+ 588 |     from workflow_helper import load_config
+ 589 |     sys_config = load_config()
+ 590 |     stt_engine = sys_config.get("stt_engine", "gemini")
+ 591 |     merge_engine = sys_config.get("merge_engine", "gemini")
+ 592 | 
+ 593 |     if stt_engine == "vertexai" and merge_engine == "vertexai":
+ 594 |         log_workflow("[INFO] 系統走企業高速公路，跳過 QuotaManager 私家金鑰盤查")
+ 595 |         qm = None
+ 596 |     else:
+ 597 |         try:
+ 598 |             qm = QuotaManager()
+ 599 |         except Exception as qm_err:
+ 600 |             log_error(f"QuotaManager 初始化失敗，回退至單線程模式：{qm_err}")
+ 601 |             qm = None
+ 602 | 
+ 603 |     # ── 雙階段自適應並發數選擇 ──
+ 604 |     # Phase A (NOW）16:00): queued > chunked → 用 PREPROCESS_CONCURRENCY=3
+ 605 |     # Phase B (16:00+):      強制 STT_CONCURRENCY=15，並把 chunked 任務排到最前面
+ 606 |     # 《重要》必須用台灣時間 UTC+8，不能用 datetime.now()（這是 UTC）
+ 607 |     _tw_now = _dt.now(_tz.utc).replace(tzinfo=None) + _td(hours=8)
+ 608 |     _now_hour = _tw_now.hour
+ 609 |     _is_stt_phase = True if ENTERPRISE_MODE else (_now_hour >= 16 or _now_hour < 8)
+ 610 | 
+ 611 |     queued_count  = sum(1 for _, d in active_tasks if d.get("status") == "queued")
+ 612 |     chunked_count = sum(1 for _, d in active_tasks if d.get("status") == "chunked")
+ 613 | 
+ 614 |     if _is_stt_phase or chunked_count > 0:
+ 615 |         # ── KPI 回饋自動調節（取代時間硬編碼）──
+ 616 |         effective_concurrency = compute_adaptive_concurrency()
+ 617 |         chunked_tasks = [(p, d) for p, d in active_tasks if d.get("status") == "chunked"]
+ 618 |         other_tasks   = [(p, d) for p, d in active_tasks if d.get("status") != "chunked"]
+ 619 |         active_tasks  = chunked_tasks + other_tasks
+ 620 |         log_workflow(f"[Dispatcher] ✅ STT Phase B ({chunked_count} chunked + {queued_count} queued) 並發={effective_concurrency}（KPI自適應）")
+ 621 |     elif queued_count > chunked_count:
+ 622 |         # Phase A: queued 任務排首，確保 preprocess 真正執行
+ 623 |         effective_concurrency = PREPROCESS_CONCURRENCY
+ 624 |         queued_tasks = [(p, d) for p, d in active_tasks if d.get("status") == "queued"]
+ 625 |         other_tasks  = [(p, d) for p, d in active_tasks if d.get("status") != "queued"]
+ 626 |         active_tasks = queued_tasks + other_tasks
+ 627 |         log_workflow(f"[Dispatcher] Preprocess Phase A ({queued_count} queued 優先 + {chunked_count} chunked) → 並發={effective_concurrency}（CPU 安全）")
+ 628 |     else:
+ 629 |         effective_concurrency = STT_CONCURRENCY_DEFAULT
+ 630 |         log_workflow(f"[Dispatcher] 佇列以 STT 為主 ({chunked_count} chunked vs {queued_count} queued) → 並發={effective_concurrency}（網路最佳）")
+ 631 | 
+ 632 |     batch = active_tasks[:effective_concurrency * 8]
+ 633 |     log_workflow(f"[Parallel Dispatcher] 本輪提交 {len(batch)}/{len(active_tasks)} 個任務（並發數 {effective_concurrency}）")
+ 634 | 
+ 635 | 
+ 636 |     with ThreadPoolExecutor(max_workers=effective_concurrency) as executor:
+ 637 |         futures = {}
+ 638 |         for i, (manifest_path, manifest) in enumerate(batch):
+ 639 |             fut = executor.submit(
+ 640 |                 run_single_task_safe,
+ 641 |                 manifest,
+ 642 |                 manifest_path,
+ 643 |                 None,   # ★ 不預傳 key，Worker 自行按需取得
+ 644 |                 qm,
+ 645 |                 chunking_only,
+ 646 |             )
+ 647 |             futures[fut] = manifest.get("task_id", "unknown_task")
+ 648 | 
+ 649 |         for future in as_completed(futures):
+ 650 |             task_id = futures[future]
+ 651 |             try:
+ 652 |                 success = future.result()
+ 653 |                 status = "success" if success else "failed"
+ 654 |                 log_workflow(f"[Parallel Dispatcher] Task {task_id} 完成，狀態：{status}")
+ 655 |             except Exception as e:
+ 656 |                 log_error(f"[Parallel Dispatcher] Task {task_id} Future 異常：{e}")
+ 657 | 
+ 658 |     # 若本輪還有剩餘任務，交由 run_loop 下一輪迭代處理（不遞迴，避免爆棧）
+ 659 |     remaining = len(active_tasks) - len(batch)
+ 660 |     if remaining > 0:
+ 661 |         log_workflow(f"[Parallel Dispatcher] 本輪完成，剩餘 {remaining} 個任務等待下一輪。")
+ 662 | 
+ 663 | 
+ 664 | 
+ 665 | 
+ 666 | def _run_task_steps(manifest: dict, manifest_path: Path, paths: dict, exclusive_key: str, chunking_only: bool) -> bool:
+ 667 |     """
+ 668 |     執行單一任務的工作流步驟。
+ 669 |     全程同步執行 stt→merge→formatter。
+ 670 |     exclusive_key: 多工模式下此 Task 獨佔的 API 金鑰，傳遞給 run_stt()。
+ 671 |     返回 True 表示任務成功完成。
+ 672 |     """
+ 673 |     task_id = manifest.get("task_id", "unknown")
+ 674 |     source_name = manifest.get("source_name")
+ 675 |     steps = manifest.get("steps")
+ 676 |     
+ 677 |     if not source_name:
+ 678 |         log_error(f"Workflow Engine: task {task_id} missing source_name, mark for review")
+ 679 |         manifest["status"] = "needs_review"
+ 680 |         atomic_json_dump(manifest, manifest_path)
+ 681 |         return False
+ 682 |         
+ 683 |     if steps is None:
+ 684 |         log_error(f"Workflow Engine: task {task_id} missing steps, mark for review")
+ 685 |         manifest["status"] = "needs_review"
+ 686 |         atomic_json_dump(manifest, manifest_path)
+ 687 |         return False
+ 688 | 
+ 689 |     # ★ 相容變山：舊格式 manifest 用 video_path，新格式用 source_path
+ 690 |     if "source_path" not in manifest and "video_path" in manifest:
+ 691 |         manifest["source_path"] = manifest.get("video_path", "")
+ 692 |         try:
+ 693 |             atomic_json_dump(manifest, manifest_path)
+ 694 |         except Exception:
+ 695 |             pass
+ 696 | 
+ 697 |     # ── 真實任務步驟 ──
+ 698 |     try:
+ 699 |         # 步驟二：Preprocess
+ 700 |         if manifest["steps"].get("preprocess") == "pending":
+ 701 |             success = preprocess(task_id)
+ 702 |             if not success:
+ 703 |                 raise RuntimeError("Preprocess step failed")
+ 704 |             with open(manifest_path, "r", encoding="utf-8-sig") as f:
+ 705 |                 manifest = json.load(f)
+ 706 | 
+ 707 |         # 步驟三：Chunk Planner
+ 708 |         if manifest["steps"].get("chunk_planner") == "pending":
+ 709 |             success = plan_chunks(task_id)
+ 710 |             if not success:
+ 711 |                 raise RuntimeError("Chunk planning step failed")
+ 712 |             with open(manifest_path, "r", encoding="utf-8-sig") as f:
+ 713 |                 manifest = json.load(f)
+ 714 | 
+ 715 |         if chunking_only:
+ 716 |             log_workflow(f"Workflow Engine: Task {task_id} chunking done. Stopping (--chunking-only mode).")
+ 717 |             return True
+ 718 | 
+ 719 |         # ── 任務計時（用於接入點 2/3/4 的 elapsed_seconds）────────────────────
+ 720 |         _steps_start = time.time()
+ 721 |         _source = manifest.get("source_name", "unknown")
+ 722 |         _chunks = manifest.get("chunk_count", 0)
+ 723 | 
+ 724 |         # 步驟四：STT（傳入排他金鑰供並列模式使用）
+ 725 |         if manifest["steps"].get("stt") == "pending":
+ 726 |             _stt_start = time.time()
+ 727 |             success = run_stt(task_id, exclusive_key=exclusive_key)
+ 728 |             if not success:
+ 729 |                 # ── 接入點 2: STT 失敗堂疊快照 ───────────────────────
+ 730 |                 dump_stack_snapshot(
+ 731 |                     task_id=task_id,
+ 732 |                     source_name=_source,
+ 733 |                     stage="stt",
+ 734 |                     chunk_count=_chunks,
+ 735 |                     elapsed_seconds=time.time() - _stt_start,
+ 736 |                 )
+ 737 |                 raise RuntimeError("STT transcription step failed")
+ 738 |             with open(manifest_path, "r", encoding="utf-8-sig") as f:
+ 739 |                 manifest = json.load(f)
+ 740 | 
+ 741 |         # 步驟五：Merge
+ 742 |         if manifest["steps"].get("merge") == "pending":
+ 743 |             _merge_start = time.time()
+ 744 |             success = merge_workflow(task_id)
+ 745 |             if not success:
+ 746 |                 # ── 接入點 3: merge_map / reduce 失敗堂疊快照 ─────────────
+ 747 |                 dump_stack_snapshot(
+ 748 |                     task_id=task_id,
+ 749 |                     source_name=_source,
+ 750 |                     stage="merge_map_reduce",
+ 751 |                     chunk_count=_chunks,
+ 752 |                     elapsed_seconds=time.time() - _merge_start,
+ 753 |                 )
+ 754 |                 raise RuntimeError("Merge step failed")
+ 755 |             with open(manifest_path, "r", encoding="utf-8-sig") as f:
+ 756 |                 manifest = json.load(f)
+ 757 | 
+ 758 |         # 步驟六：Formatter
+ 759 |         if manifest["steps"].get("formatter", "pending") == "pending":
+ 760 |             success = format_markdown(task_id)
+ 761 |             if not success:
+ 762 |                 raise RuntimeError("Formatter step failed")
+ 763 |             with open(manifest_path, "r", encoding="utf-8-sig") as f:
+ 764 |                 manifest = json.load(f)
+ 765 | 
+ 766 |         # 任務完成
+ 767 |         manifest["status"] = "completed"
+ 768 |         atomic_json_dump(manifest, manifest_path)
+ 769 |         log_workflow(f"Workflow Engine: Task {task_id} completed successfully!")
+ 770 | 
+ 771 |         return True
+ 772 | 
+ 773 |     except Exception as e:
+ 774 |         _total_elapsed = time.time() - _steps_start
+ 775 |         # ── 接入點 4: Vertex / 外部 API 呼叫層經常是此遊例的根源─────────────
+ 776 |         dump_stack_snapshot(
+ 777 |             task_id=task_id,
+ 778 |             source_name=_source,
+ 779 |             stage="vertex_or_external_api",
+ 780 |             chunk_count=_chunks,
+ 781 |             elapsed_seconds=_total_elapsed,
+ 782 |         )
+ 783 |         log_error(f"Workflow Engine: Critical error in task {task_id}: {e}")
+ 784 |         try:
+ 785 |             with open(manifest_path, "r", encoding="utf-8-sig") as f:
+ 786 |                 current_manifest = json.load(f)
+ 787 |             # ★ 保護：若 stt_runner 已將任務重置為 chunked（等待重試），不要覆寫為 failed
+ 788 |             if current_manifest.get("status") != "chunked":
+ 789 |                 current_manifest["status"] = "failed"
+ 790 |                 current_manifest["error"] = str(e)
+ 791 |                 atomic_json_dump(current_manifest, manifest_path)
+ 792 |             else:
+ 793 |                 log_workflow(f"Workflow Engine: Task {task_id} already reset to chunked by stt_runner, skipping failed overwrite.")
+ 794 |         except Exception as write_err:
+ 795 |             log_error(f"Failed to mark task as failed: {write_err}")
+ 796 |         return False
+ 797 | 
+ 798 | 
+ 799 | def run_loop(chunking_only=False):
+ 800 |     log_workflow("臺灣法律教材長影音切片處理工作流監控服務已啟動！" + (" [僅切片模式]" if chunking_only else ""))
+ 801 |     ensure_dirs()
+
+--- Lines 821 to 857 ---
+ 821 |                     pass
+ 822 |             else:
+ 823 |                 log_error(f"Error in main workflow loop: {e}")
+ 824 |         except Exception as e:
+ 825 |             import traceback
+ 826 |             log_error(f"Error in main workflow loop: {e}\n{traceback.format_exc()}")
+ 827 | 
+ 828 |         time.sleep(10)
+ 829 | 
+ 830 | 
+ 831 | def main():
+ 832 |     parser = argparse.ArgumentParser()
+ 833 |     parser.add_argument("--one-shot", action="store_true", help="Run once and exit instead of loop")
+ 834 |     parser.add_argument("--chunking-only", action="store_true", help="Only run local chunking steps (preprocess, chunk planner)")
+ 835 |     args = parser.parse_args()
+ 836 |     
+ 837 |     paths = ensure_dirs()
+ 838 |     lock_file = os.path.join(paths["manifests_dir"], "workflow.lock")
+ 839 |     lock = SingleInstanceLock(lock_file)
+ 840 |     
+ 841 |     if not lock.acquire():
+ 842 |         print(f"[Workflow Lock] Another instance of run_workflow is already running (locked on {lock_file}). Exiting.")
+ 843 |         sys.exit(0)
+ 844 |         
+ 845 |     try:
+ 846 |         if args.one_shot:
+ 847 |             log_workflow("Workflow Engine: Running in one-shot mode." + (" [僅切片模式]" if args.chunking_only else ""))
+ 848 |             scan_new_files()
+ 849 |             process_active_tasks(args.chunking_only)
+ 850 |         else:
+ 851 |             run_loop(args.chunking_only)
+ 852 |     finally:
+ 853 |         lock.release()
+ 854 | 
+ 855 | if __name__ == "__main__":
+ 856 |     main()
+ 857 | 
+
+### File: workflow_helper.py
+- SHA256: e3d7718b4f06dc60ea93b6a8c6bbd590a83e5c38ebf5882a59c0037c359ed730
+- MTime: 2026-07-30 14:18:44
+- Total lines: 329
+
+--- Lines 1 to 94 ---
+   1 | ﻿import os
+   2 | import sys, io
+   3 | if hasattr(sys.stdout, 'reconfigure'):
+   4 |     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+   5 | if hasattr(sys.stderr, 'reconfigure'):
+   6 |     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+   7 | import yaml
+   8 | from pathlib import Path
+   9 | 
+  10 | def load_config():
+  11 |     # Load config.yaml from workspace root
+  12 |     script_dir = Path(__file__).parent.resolve()
+  13 |     workspace_root = script_dir.parent
+  14 |     config_path = workspace_root / "config.yaml"
+  15 |     
+  16 |     if not config_path.exists():
+  17 |         config_path = script_dir / "config.yaml"
+  18 |         
+  19 |     if not config_path.exists():
+  20 |         # Fallback to current working directory
+  21 |         config_path = Path("config.yaml").resolve()
+  22 |         
+  23 |     if not config_path.exists():
+  24 |         # Create a default dict if config file is not found
+  25 |         return {
+  26 |             "paths": {
+  27 |                 "project_root": "D:\\LegalAI_Project",
+  28 |                 "raw_data_dir": "raw_data",
+  29 |                 "processed_md_dir": "processed_md",
+  30 |                 "manifests_dir": "manifests",
+  31 |                 "chunks_dir": "chunks",
+  32 |                 "logs_dir": "logs"
+  33 |             },
+  34 |             "api": {
+  35 |                 "gemini_api_key": "AUTO_LOAD_FROM_ENV",
+  36 |                 "gemini_model_low_cost": "gemini-3.5-flash",   # 首選：實測最高品質
+  37 |                 "gemini_model_high_accuracy": "gemini-flash-latest", # 無 Pro 配額，用 flash-latest 代替
+  38 |             },
+  39 |             "settings": {
+  40 |                 "low_cost_mode": True,
+  41 |                 "chunk_limit_audio_sec": 1200,
+  42 |                 "chunk_limit_video_sec": 360,
+  43 |                 "overlap_sec": 30,
+  44 |                 "silence_detect_duration": 1.5,
+  45 |                 "silence_detect_noise_db": -35,
+  46 |                 "stt_max_retries": 3
+  47 |             }
+  48 |         }
+  49 |         
+  50 |     with open(config_path, "r", encoding="utf-8") as f:
+  51 |         config = yaml.safe_load(f)
+  52 |     return config
+  53 | 
+  54 | def get_resolved_paths():
+  55 |     config = load_config()
+  56 |     paths = config.get("paths", {})
+  57 |     root = paths.get("project_root", "D:\\LegalAI_Project")
+  58 |     
+  59 |     # If D:\ drive does not exist, fallback to C:\LegalAI_Project
+  60 |     if root.startswith("D:\\") and not os.path.exists("D:\\"):
+  61 |         root = root.replace("D:\\", "C:\\")
+  62 |         
+  63 |     resolved = {"project_root": root}
+  64 |     v6_env = os.environ.get("LEXMIND_ENV", "v5_prod")
+  65 |     suffix = "_v6" if v6_env == "v6_canary" else ""
+  66 | 
+  67 |     resolved = {"project_root": root}
+  68 |     for key in ["raw_data_dir", "processed_md_dir", "manifests_dir", "chunks_dir", "logs_dir"]:
+  69 |         sub_dir = paths.get(key, "")
+  70 |         base_path = os.path.join(root, sub_dir)
+  71 |         resolved[key] = base_path + suffix if suffix else base_path
+  72 |         
+  73 |     return resolved
+  74 | 
+  75 | def ensure_dirs():
+  76 |     paths = get_resolved_paths()
+  77 |     for key, path in paths.items():
+  78 |         if key == "project_root":
+  79 |             continue
+  80 |         os.makedirs(path, exist_ok=True)
+  81 |     return paths
+  82 | 
+  83 | def get_all_keys():
+  84 |     import json
+  85 |     config = load_config()
+  86 |     keys = []
+  87 |     
+  88 |     # 1. 讀取 config.yaml 中的金鑰列表
+  89 |     api_section = config.get("api", {})
+  90 |     if "gemini_api_keys" in api_section and isinstance(api_section["gemini_api_keys"], list):
+  91 |         for k in api_section["gemini_api_keys"]:
+  92 |             if k and isinstance(k, str):
+  93 |                 keys.append(k.strip())
+  94 |                 
+
+--- Lines 110 to 168 ---
+ 110 |                     for k in val.split(","):
+ 111 |                         k_clean = k.strip()
+ 112 |                         if k_clean and k_clean not in keys:
+ 113 |                             keys.append(k_clean)
+ 114 |                 elif line_str.startswith("GEMINI_API_KEY="):
+ 115 |                     val = line_str.split("=", 1)[1].strip()
+ 116 |                     if val and val not in keys:
+ 117 |                         keys.append(val)
+ 118 |                         
+ 119 |     # 4. 讀取環境變數
+ 120 |     env_keys_str = os.environ.get("GEMINI_API_KEYS")
+ 121 |     if env_keys_str:
+ 122 |         for k in env_keys_str.split(","):
+ 123 |             k_clean = k.strip()
+ 124 |             if k_clean and k_clean not in keys:
+ 125 |                 keys.append(k_clean)
+ 126 |     env_single = os.environ.get("GEMINI_API_KEY")
+ 127 |     if env_single and env_single not in keys:
+ 128 |         keys.append(env_single)
+ 129 |         
+ 130 |     return [k for k in keys if k]
+ 131 | 
+ 132 | def get_gemini_key():
+ 133 |     import json
+ 134 |     import time
+ 135 |     keys = get_all_keys()
+ 136 |     if not keys:
+ 137 |         return ""
+ 138 |     if len(keys) == 1:
+ 139 |         return keys[0]
+ 140 |         
+ 141 |     resolved_paths = get_resolved_paths()
+ 142 |     state_file = os.path.join(resolved_paths["manifests_dir"], "api_keys_state.json")
+ 143 |     
+ 144 |     state = {}
+ 145 |     if os.path.exists(state_file):
+ 146 |         try:
+ 147 |             with open(state_file, "r", encoding="utf-8") as f:
+ 148 |                 state = json.load(f)
+ 149 |         except Exception:
+ 150 |             pass
+ 151 |             
+ 152 |     # Read config/quota_state.json to sync status
+ 153 |     quota_exhausted = []
+ 154 |     quota_state_file = "config/quota_state.json"
+ 155 |     try:
+ 156 |         if os.path.exists(quota_state_file):
+ 157 |             with open(quota_state_file, "r", encoding="utf-8") as f:
+ 158 |                 quota_state = json.load(f)
+ 159 |             quota_exhausted = quota_state.get("exhausted_keys", [])
+ 160 |     except Exception:
+ 161 |         pass
+ 162 | 
+ 163 |     # 尋找第一個未標記為耗盡，或者已冷卻完畢（超過 10 分鐘）的金鑰
+ 164 |     active_keys = []
+ 165 |     current_time = time.time()
+ 166 |     quota_state_changed = False
+ 167 |     for k in keys:
+ 168 |         k_state = state.get(k, {})
+
+--- Lines 175 to 195 ---
+ 175 |             if k in quota_exhausted:
+ 176 |                 quota_exhausted.remove(k)
+ 177 |                 quota_state_changed = True
+ 178 |             
+ 179 |         if status != "exhausted" and k not in quota_exhausted:
+ 180 |             active_keys.append(k)
+ 181 |             
+ 182 |     if quota_state_changed:
+ 183 |         try:
+ 184 |             with open(quota_state_file, "w", encoding="utf-8") as f:
+ 185 |                 json.dump({"exhausted_keys": quota_exhausted}, f, ensure_ascii=False, indent=2)
+ 186 |         except Exception:
+ 187 |             pass
+ 188 | 
+ 189 |     if not active_keys:
+ 190 |         # 如果全部金鑰都耗盡了，安全起見自動重設狀態檔案，重新循環嘗試
+ 191 |         log_workflow("[Key Pool] 金鑰池內所有金鑰皆已標記為耗盡。正在重設狀態重新循環...", level="warning")
+ 192 |         reset_exhausted_keys()
+ 193 |         return keys[0]
+ 194 |         
+ 195 |     # 實作 Round-Robin 輪詢：尋找 last_used_key，並挑選它的下一個金鑰
+
+--- Lines 200 to 306 ---
+ 200 |             next_index = (active_keys.index(last_key) + 1) % len(active_keys)
+ 201 |         except ValueError:
+ 202 |             next_index = 0
+ 203 |         
+ 204 |     selected_key = active_keys[next_index]
+ 205 |     
+ 206 |     # 記錄最後使用的金鑰
+ 207 |     state["last_used_key"] = selected_key
+ 208 |     try:
+ 209 |         with open(state_file, "w", encoding="utf-8") as f:
+ 210 |             json.dump(state, f, ensure_ascii=False, indent=2)
+ 211 |     except Exception:
+ 212 |         pass
+ 213 |         
+ 214 |     return selected_key
+ 215 | 
+ 216 | def mark_key_exhausted(key):
+ 217 |     if not key:
+ 218 |         return
+ 219 |     import json
+ 220 |     import time
+ 221 |     resolved_paths = get_resolved_paths()
+ 222 |     state_file = os.path.join(resolved_paths["manifests_dir"], "api_keys_state.json")
+ 223 |     
+ 224 |     state = {}
+ 225 |     if os.path.exists(state_file):
+ 226 |         try:
+ 227 |             with open(state_file, "r", encoding="utf-8") as f:
+ 228 |                 state = json.load(f)
+ 229 |         except Exception:
+ 230 |             pass
+ 231 |             
+ 232 |     state[key] = {
+ 233 |         "status": "exhausted",
+ 234 |         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+ 235 |         "exhausted_at": time.time()
+ 236 |     }
+ 237 |     
+ 238 |     try:
+ 239 |         with open(state_file, "w", encoding="utf-8") as f:
+ 240 |             json.dump(state, f, ensure_ascii=False, indent=2)
+ 241 |         log_workflow(f"[Key Pool] 成功標記 API Key {key[:8]}...{key[-4:]} 為「暫時耗盡（進入10分鐘冷卻）」。", level="info")
+ 242 |     except Exception as e:
+ 243 |         print(f"Error saving key pool state: {e}")
+ 244 | 
+ 245 |     # 同步標記到 config/quota_state.json
+ 246 |     try:
+ 247 |         quota_state_file = "config/quota_state.json"
+ 248 |         quota_exhausted = []
+ 249 |         if os.path.exists(quota_state_file):
+ 250 |             with open(quota_state_file, "r", encoding="utf-8") as f:
+ 251 |                 quota_state = json.load(f)
+ 252 |             quota_exhausted = quota_state.get("exhausted_keys", [])
+ 253 |         if key not in quota_exhausted:
+ 254 |             quota_exhausted.append(key)
+ 255 |             with open(quota_state_file, "w", encoding="utf-8") as f:
+ 256 |                 json.dump({"exhausted_keys": quota_exhausted}, f, ensure_ascii=False, indent=2)
+ 257 |     except Exception:
+ 258 |         pass
+ 259 | 
+ 260 | def reset_exhausted_keys():
+ 261 |     resolved_paths = get_resolved_paths()
+ 262 |     state_file = os.path.join(resolved_paths["manifests_dir"], "api_keys_state.json")
+ 263 |     if os.path.exists(state_file):
+ 264 |         try:
+ 265 |             os.remove(state_file)
+ 266 |             log_workflow("[Key Pool] 成功重置金鑰池中所有金鑰之狀態。", level="info")
+ 267 |         except Exception as e:
+ 268 |             print(f"Error resetting key pool state: {e}")
+ 269 | 
+ 270 |     try:
+ 271 |         quota_state_file = "config/quota_state.json"
+ 272 |         if os.path.exists(quota_state_file):
+ 273 |             with open(quota_state_file, "w", encoding="utf-8") as f:
+ 274 |                 json.dump({"exhausted_keys": []}, f, ensure_ascii=False, indent=2)
+ 275 |     except Exception:
+ 276 |         pass
+ 277 | 
+ 278 | def log_workflow(message, level="info"):
+ 279 |     paths = ensure_dirs()
+ 280 |     log_file = os.path.join(paths["logs_dir"], "workflow.log")
+ 281 |     import time
+ 282 |     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+ 283 |     log_line = f"[{timestamp}] [{level.upper()}] {message}\n"
+ 284 |     print(log_line.strip())
+ 285 |     with open(log_file, "a", encoding="utf-8") as f:
+ 286 |         f.write(log_line)
+ 287 | 
+ 288 | def log_error(message):
+ 289 |     paths = ensure_dirs()
+ 290 |     log_file = os.path.join(paths["logs_dir"], "chunk_errors.log")
+ 291 |     import time
+ 292 |     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+ 293 |     log_line = f"[{timestamp}] [ERROR] {message}\n"
+ 294 |     print(log_line.strip())
+ 295 |     with open(log_file, "a", encoding="utf-8") as f:
+ 296 |         f.write(log_line)
+ 297 |     
+ 298 |     # Also log to main workflow log
+ 299 |     log_workflow(message, level="error")
+ 300 | 
+ 301 | def get_ffmpeg_path():
+ 302 |     import shutil
+ 303 |     p = shutil.which("ffmpeg")
+ 304 |     if p:
+ 305 |         return p
+ 306 |     winget_paths = [
+
+### File: manifest_manager.py
+- SHA256: fdedece89317a3c708f2e64b88b618f12935ae07e3acf1c8c1b36822d47a218f
+- MTime: 2026-07-31 06:18:43
+- Total lines: 94
+
+--- Lines 1 to 94 ---
+   1 | import json
+   2 | import json
+   3 | import os
+   4 | import threading
+   5 | import time
+   6 | from pathlib import Path
+   7 | from filelock import FileLock, Timeout
+   8 | 
+   9 | _thread_locks = {}
+  10 | _thread_locks_lock = threading.Lock()
+  11 | 
+  12 | def get_thread_lock(path_str):
+  13 |     # Normalize path to ensure all variations point to the same lock
+  14 |     norm_path = os.path.normpath(os.path.abspath(path_str))
+  15 |     with _thread_locks_lock:
+  16 |         if norm_path not in _thread_locks:
+  17 |             _thread_locks[norm_path] = threading.Lock()
+  18 |         return _thread_locks[norm_path]
+  19 | 
+  20 | class ManifestManager:
+  21 |     """
+  22 |     A unified manager for reading and writing task manifest JSON files.
+  23 |     Uses filelock to prevent race conditions across multiple processes.
+  24 |     Uses threading.Lock to prevent race conditions across threads in the same process.
+  25 |     Uses atomic replace to prevent file corruption during writes, with retries for Windows AV locks.
+  26 |     """
+  27 |     def __init__(self, manifest_path: str | Path, timeout: int = 30):
+  28 |         self.manifest_path = Path(manifest_path)
+  29 |         self.lock_path = self.manifest_path.with_suffix('.json.lock')
+  30 |         self.timeout = timeout
+  31 |         
+  32 |         self.file_lock = FileLock(str(self.lock_path), timeout=self.timeout)
+  33 |         self.thread_lock = get_thread_lock(str(self.manifest_path))
+  34 | 
+  35 |     def __enter__(self):
+  36 |         self.thread_lock.acquire()
+  37 |         try:
+  38 |             self.file_lock.acquire()
+  39 |         except Exception:
+  40 |             self.thread_lock.release()
+  41 |             raise
+  42 |         return self
+  43 | 
+  44 |     def __exit__(self, exc_type, exc_val, exc_tb):
+  45 |         try:
+  46 |             self.file_lock.release()
+  47 |         finally:
+  48 |             self.thread_lock.release()
+  49 |         
+  50 |     def read(self) -> dict:
+  51 |         if not self.manifest_path.exists():
+  52 |             return {}
+  53 |         try:
+  54 |             with open(self.manifest_path, 'r', encoding='utf-8') as f:
+  55 |                 return json.load(f)
+  56 |         except Exception as e:
+  57 |             print(f"[ManifestManager] Warning: failed to read {self.manifest_path}: {e}")
+  58 |             return {}
+  59 |             
+  60 |     def write(self, data: dict):
+  61 |         pid = os.getpid()
+  62 |         tid = threading.get_ident()
+  63 |         tmp_path = self.manifest_path.with_suffix(f'.json.tmp.{pid}.{tid}')
+  64 |         
+  65 |         with open(tmp_path, "w", encoding="utf-8-sig") as f:
+  66 |             json.dump(data, f, ensure_ascii=False, indent=2)
+  67 |             f.flush()
+  68 |             os.fsync(f.fileno())
+  69 |             
+  70 |         # Retry loop for Windows (Antivirus or search indexer might briefly hold the file)
+  71 |         retries = 20
+  72 |         for i in range(retries):
+  73 |             try:
+  74 |                 os.replace(tmp_path, self.manifest_path)
+  75 |                 break
+  76 |             except PermissionError as e:
+  77 |                 if i == retries - 1:
+  78 |                     print(f"[ManifestManager] Fatal: Could not replace file after {retries} retries: {e}")
+  79 |                     raise
+  80 |                 time.sleep(0.05)
+  81 | 
+  82 | def update_manifest(manifest_path: str | Path, update_fn) -> bool:
+  83 |     try:
+  84 |         with ManifestManager(manifest_path) as mm:
+  85 |             data = mm.read()
+  86 |             if not data:
+  87 |                 return False
+  88 |             update_fn(data)
+  89 |             mm.write(data)
+  90 |             return True
+  91 |     except Timeout:
+  92 |         print(f"[ManifestManager] Error: Timeout waiting for lock on {manifest_path}")
+  93 |         return False
+  94 | 
+
+### File: stt_runner.py
+- SHA256: bae5555df85b5d75822b68017eb0a694e25c12d8eea64dbc6fc3062925d52b3c
+- MTime: 2026-08-03 06:59:25
+- Total lines: 663
+
+--- Lines 8 to 49 ---
+   8 | import sys, io
+   9 | import json
+  10 | import logging
+  11 | import time
+  12 | import base64
+  13 | import yaml
+  14 | import datetime
+  15 | import subprocess
+  16 | import re
+  17 | import threading
+  18 | import queue
+  19 | import multiprocessing
+  20 | from concurrent.futures import ThreadPoolExecutor, as_completed
+  21 | from dotenv import load_dotenv
+  22 | from google import genai
+  23 | from google.genai import types
+  24 | from quota_manager import QuotaManager
+  25 | from whisper_pool import WhisperPool
+  26 | from model_router import get_router
+  27 | 
+  28 | # ==========================================
+  29 | # [EXPERT FIX] 動態讀取環境變數，落實 I/O 與 Port 隔離
+  30 | # ==========================================
+  31 | V6_ENV = os.environ.get("LEXMIND_ENV", "v5_prod")
+  32 | PORT = int(os.environ.get("LEXMIND_PORT", 8080))  # 實際應用 Port
+  33 | 
+  34 | if V6_ENV == "v6_canary":
+  35 |     DB_PATH = "A:/logs/jobs_v6.db"
+  36 |     MANIFESTS_DIR = "A:/manifests_v6/"
+  37 | else:
+  38 |     DB_PATH = "A:/logs/jobs.db"
+  39 |     MANIFESTS_DIR = "A:/manifests/"
+  40 | 
+  41 | os.makedirs(MANIFESTS_DIR, exist_ok=True)
+  42 | 
+  43 | 
+  44 | # ==========================================
+  45 | # [EXPERT FIX] SQLite 高併發優化：強制啟用 WAL 模式與拉長 Timeout
+  46 | # ==========================================
+  47 | def get_db_connection(db_path):
+  48 |     conn = sqlite3.connect(db_path, timeout=30.0)
+  49 |     conn.execute("PRAGMA journal_mode=WAL;")
+
+--- Lines 74 to 126 ---
+  74 |             if i == max_retries - 1:
+  75 |                 logging.error(f"嚴重 I/O 錯誤：等待 {max_retries} 次後仍無法覆寫 {filepath}")
+  76 |                 if os.path.exists(tmp_path):
+  77 |                     os.remove(tmp_path)
+  78 |                 raise
+  79 |             import random
+  80 |             sleep_time = (0.1 * (1.2 ** i)) + random.uniform(0.01, 0.05)
+  81 |             time.sleep(min(sleep_time, 2.0))
+  82 | 
+  83 | # [Block A / G] 狀態寫入收斂區塊
+  84 | def manifest_writer_thread(chunks_manifest_path, manifest_update_queue):
+  85 |     """背景單一寫入者：批次合併 processing / retrying / failed / completed 狀態到 chunks manifest"""
+  86 |     logging.info("[ManifestWriter] Background writer started.")
+  87 | 
+  88 |     while True:
+  89 |         updates = []
+  90 |         stop_seen = False
+  91 | 
+  92 |         try:
+  93 |             item = manifest_update_queue.get(timeout=2.0)
+  94 |             if item == "STOP":
+  95 |                 manifest_update_queue.task_done()
+  96 |                 break
+  97 |             updates.append(item)
+  98 | 
+  99 |             while not manifest_update_queue.empty():
+ 100 |                 try:
+ 101 |                     val = manifest_update_queue.get_nowait()
+ 102 |                     if val == "STOP":
+ 103 |                         stop_seen = True
+ 104 |                     else:
+ 105 |                         updates.append(val)
+ 106 |                 except queue.Empty:
+ 107 |                     break
+ 108 | 
+ 109 |             if not updates:
+ 110 |                 if stop_seen:
+ 111 |                     manifest_update_queue.task_done()
+ 112 |                     break
+ 113 |                 continue
+ 114 | 
+ 115 |             if os.path.exists(chunks_manifest_path):
+ 116 |                 with open(chunks_manifest_path, "r", encoding="utf-8-sig") as f:
+ 117 |                     try:
+ 118 |                         current_chunks = json.load(f)
+ 119 |                     except Exception:
+ 120 |                         current_chunks = []
+ 121 |             else:
+ 122 |                 current_chunks = []
+ 123 | 
+ 124 |             index = {}
+ 125 |             for c in current_chunks:
+ 126 |                 if isinstance(c, dict) and c.get("filename"):
+
+--- Lines 138 to 207 ---
+ 138 | 
+ 139 |                 existing = index.get(filename, {"filename": filename})
+ 140 |                 existing["status"] = status
+ 141 | 
+ 142 |                 if "started_at" in u:
+ 143 |                     existing["started_at"] = u["started_at"]
+ 144 |                 if "updated_at" in u:
+ 145 |                     existing["updated_at"] = u["updated_at"]
+ 146 |                 if "failed_at" in u:
+ 147 |                     existing["failed_at"] = u["failed_at"]
+ 148 |                 if "retry_count" in u:
+ 149 |                     existing["retry_count"] = u["retry_count"]
+ 150 |                 if "last_error" in u:
+ 151 |                     existing["last_error"] = u["last_error"]
+ 152 | 
+ 153 |                 index[filename] = existing
+ 154 |                 updated = True
+ 155 | 
+ 156 |             if updated:
+ 157 |                 atomic_json_dump(list(index.values()), chunks_manifest_path)
+ 158 | 
+ 159 |             for _ in updates:
+ 160 |                 manifest_update_queue.task_done()
+ 161 | 
+ 162 |             if stop_seen:
+ 163 |                 manifest_update_queue.task_done()
+ 164 |                 break
+ 165 | 
+ 166 |         except queue.Empty:
+ 167 |             continue
+ 168 |         except Exception as e:
+ 169 |             logging.error(f"[ManifestWriter] Failed to write manifest batch: {e}")
+ 170 | 
+ 171 | # [Block B / G] 蒸餾並發限制收斂區塊
+ 172 | def distill_worker_thread(worker_id, distill_task_queue):
+ 173 |     """背景蒸餾工作緒：限制最多只有 N 個子進程同時跑 Whisper"""
+ 174 |     logging.info(f"[DistillWorker-{worker_id}] Background distill worker started.")
+ 175 |     while True:
+ 176 |         task = distill_task_queue.get()
+ 177 |         if task == "STOP":
+ 178 |             break
+ 179 |             
+ 180 |         try:
+ 181 |             chunk_filename = task["filename"]
+ 182 |             chunk_path = task["chunk_path"]
+ 183 |             txt_output_path = task["txt_path"]
+ 184 |             task_id = task["task_id"]
+ 185 |             
+ 186 |             logging.info(f"[DistillWorker-{worker_id}] Processing distill task: {chunk_filename}")
+ 187 |             
+ 188 |             # 直接在同一個進程內呼叫，共享 WhisperPool Semaphore，避免多進程 CUDA OOM/Deadlock
+ 189 |             with open(txt_output_path, "r", encoding="utf-8-sig") as f:
+ 190 |                 transcription = f.read()
+ 191 |             run_distill_process(task_id, chunk_filename, chunk_path, transcription)
+ 192 |             
+ 193 |             logging.info(f"[DistillWorker-{worker_id}] Completed distill task: {chunk_filename}")
+ 194 |         except Exception as e:
+ 195 |             logging.error(f"[DistillWorker-{worker_id}] Distill task failed: {e}")
+ 196 |         finally:
+ 197 |             distill_task_queue.task_done()
+ 198 | 
+ 199 | def apply_glossary_fix(text):
+ 200 |     glossary = {
+ 201 |         "common_errors": {
+ 202 |             "假芳": "甲方", "假方": "甲方",
+ 203 |             "倚芳": "乙方", "倚方": "乙方", "以方": "乙方",
+ 204 |             "炳芳": "丙方", "丙芳": "丙方", "炳方": "丙方",
+ 205 |             "丁芳": "丁方",
+ 206 |             "形式訴訟法": "刑事訴訟法",
+ 207 |             "形式訴訟":   "刑事訴訟",
+
+--- Lines 283 to 366 ---
+ 283 |     t = threading.Thread(target=_target, daemon=True)
+ 284 |     t.start()
+ 285 |     fired = done_evt.wait(timeout_sec)
+ 286 |     if not fired:
+ 287 |         raise TimeoutError(f"{func.__name__} 逾時 {timeout_sec}s，放棄此呼叫")
+ 288 |     if error_box[0]:
+ 289 |         raise error_box[0]
+ 290 |     return result_box[0]
+ 291 | 
+ 292 | # [Block C / G] 狀態機防護收斂區塊
+ 293 | def process_single_chunk(
+ 294 |     chunk: dict, client, qm: QuotaManager, current_key_ref: list, key_lock: threading.Lock,
+ 295 |     task_id: str, chunks_manifest_path: str, config: dict, chunk_errors_log: str, stt_engine: str,
+ 296 |     manifest_update_queue: queue.Queue, distill_task_queue: queue.Queue
+ 297 | ) -> bool:
+ 298 |     chunk_path = chunk["path"]
+ 299 |     chunk_filename = chunk["filename"]
+ 300 |     retry_limit = 6
+ 301 |     uploaded_file = None
+ 302 |     upload_client = None
+ 303 |     last_upload_key = None
+ 304 |     consecutive_429_count = 0
+ 305 |     processing_sent = False
+ 306 | 
+ 307 |     logging.info(f"[Parallel STT] Processing chunk: {chunk_filename}")
+ 308 | 
+ 309 |     def queue_processing_once():
+ 310 |         nonlocal processing_sent
+ 311 |         if not processing_sent:
+ 312 |             now_ts = time.time()
+ 313 |             manifest_update_queue.put({
+ 314 |                 "filename": chunk_filename,
+ 315 |                 "status": "processing",
+ 316 |                 "started_at": now_ts,
+ 317 |                 "updated_at": now_ts,
+ 318 |                 "retry_count": chunk.get("retry_count", 0),
+ 319 |                 "last_error": None,
+ 320 |             })
+ 321 |             processing_sent = True
+ 322 | 
+ 323 |     def queue_retrying(error_obj):
+ 324 |         now_ts = time.time()
+ 325 |         manifest_update_queue.put({
+ 326 |             "filename": chunk_filename,
+ 327 |             "status": "retrying",
+ 328 |             "updated_at": now_ts,
+ 329 |             "retry_count": chunk.get("retry_count", 0),
+ 330 |             "last_error": str(error_obj),
+ 331 |         })
+ 332 | 
+ 333 |     def queue_failed(error_obj):
+ 334 |         now_ts = time.time()
+ 335 |         manifest_update_queue.put({
+ 336 |             "filename": chunk_filename,
+ 337 |             "status": "failed",
+ 338 |             "updated_at": now_ts,
+ 339 |             "failed_at": now_ts,
+ 340 |             "retry_count": chunk.get("retry_count", 0),
+ 341 |             "last_error": str(error_obj),
+ 342 |         })
+ 343 | 
+ 344 |     def queue_completed():
+ 345 |         now_ts = time.time()
+ 346 |         manifest_update_queue.put({
+ 347 |             "filename": chunk_filename,
+ 348 |             "status": "completed",
+ 349 |             "updated_at": now_ts,
+ 350 |             "retry_count": chunk.get("retry_count", 0),
+ 351 |             "last_error": None,
+ 352 |         })
+ 353 | 
+ 354 |     while chunk["retry_count"] < retry_limit:
+ 355 |         try:
+ 356 |             queue_processing_once()
+ 357 | 
+ 358 |             if stt_engine in ["gemini", "vertexai"]:
+ 359 |                 file_size = os.path.getsize(chunk_path)
+ 360 |                 if file_size > 2000 * 1024 * 1024:
+ 361 |                     raise ValueError(f"{chunk_filename} 超過 2GB 上傳上限")
+ 362 | 
+ 363 |                 if stt_engine == "gemini":
+ 364 |                     with key_lock:
+ 365 |                         active_key = current_key_ref[0]
+ 366 |                     if upload_client is not None and last_upload_key != active_key:
+
+--- Lines 393 to 506 ---
+ 393 | 
+ 394 |                 txt_output_path = os.path.splitext(chunk_path)[0] + ".txt"
+ 395 |                 with open(txt_output_path, "w", encoding="utf-8-sig") as tf:
+ 396 |                     tf.write(transcription or "")
+ 397 |                 json_output_path = os.path.splitext(chunk_path)[0] + ".json"
+ 398 |                 atomic_json_dump({
+ 399 |                     "task_id": task_id, "filename": chunk_filename, "part_no": chunk.get("part_no", chunk.get("chunk_id")),
+ 400 |                     "transcription": transcription, "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+ 401 |                 }, json_output_path)
+ 402 |                 
+ 403 |                 distill_task_queue.put({
+ 404 |                     "filename": chunk_filename,
+ 405 |                     "chunk_path": chunk_path,
+ 406 |                     "txt_path": txt_output_path,
+ 407 |                     "task_id": task_id
+ 408 |                 })
+ 409 | 
+ 410 |             chunk["status"] = "completed"
+ 411 |             consecutive_429_count = 0
+ 412 |             if stt_engine == "gemini":
+ 413 |                 qm.reset_key(current_key_ref[0])
+ 414 |             logging.info(f"[Parallel STT] [OK] 完成：{chunk_filename}")
+ 415 |             queue_completed()
+ 416 |             return True
+ 417 | 
+ 418 |         except Exception as e:
+ 419 |             err_str = str(e)
+ 420 |             is_429 = ("ResourceExhausted" in type(e).__name__) or ("429" in err_str)
+ 421 |             if stt_engine == "gemini" and is_429:
+ 422 |                 consecutive_429_count += 1
+ 423 |                 chunk["retry_count"] += 1
+ 424 |                 queue_retrying(e)
+ 425 |                 with key_lock:
+ 426 |                     current_key = current_key_ref[0]
+ 427 |                 res = qm.handle_error(e, current_key, consecutive_429_count)
+ 428 |                 sleep_time = res["sleep_time"]
+ 429 |                 new_key = res["new_key"]
+ 430 | 
+ 431 |                 if new_key:
+ 432 |                     with key_lock:
+ 433 |                         current_key_ref[0] = new_key
+ 434 |                     consecutive_429_count = 0
+ 435 |                 else:
+ 436 |                     queue_failed(e)
+ 437 |                     break
+ 438 | 
+ 439 |                 if sleep_time > 0:
+ 440 |                     time.sleep(sleep_time)
+ 441 |                 continue
+ 442 |             elif stt_engine == "vertexai" and "ResourceExhausted" in type(e).__name__:
+ 443 |                 chunk["retry_count"] += 1
+ 444 |                 queue_retrying(e)
+ 445 |                 time.sleep(15 * (chunk["retry_count"]))
+ 446 |                 continue
+ 447 | 
+ 448 |             if "503" in err_str or "UNAVAILABLE" in err_str or "Server disconnected" in err_str:
+ 449 |                 backoff_times = [5, 10, 15, 30, 30, 30]
+ 450 |                 wait_503 = backoff_times[min(chunk["retry_count"], len(backoff_times)-1)]
+ 451 |                 chunk["retry_count"] += 1
+ 452 |                 with error_log_lock:
+ 453 |                     with open(chunk_errors_log, "a", encoding="utf-8") as ef:
+ 454 |                         ef.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} [{task_id}][{chunk_filename}]: {e}\n")
+ 455 |                 if chunk["retry_count"] < retry_limit:
+ 456 |                     queue_retrying(e)
+ 457 |                 if chunk["retry_count"] == 3:
+ 458 |                     with key_lock:
+ 459 |                         current_key = current_key_ref[0]
+ 460 |                     try:
+ 461 |                         res = qm.handle_error(Exception("503"), current_key, 0)
+ 462 |                         new_key = res.get("new_key")
+ 463 |                         if new_key and new_key != current_key:
+ 464 |                             with key_lock:
+ 465 |                                 current_key_ref[0] = new_key
+ 466 |                             uploaded_file = None
+ 467 |                     except Exception:
+ 468 |                         pass
+ 469 |                 if chunk["retry_count"] < 3:
+ 470 |                     time.sleep(wait_503)
+ 471 |                     continue
+ 472 |             else:
+ 473 |                 chunk["retry_count"] += 1
+ 474 |                 import traceback
+ 475 |                 tb_str = traceback.format_exc().replace('\n', ' | ')
+ 476 |                 with error_log_lock:
+ 477 |                     with open(chunk_errors_log, "a", encoding="utf-8") as ef:
+ 478 |                         ef.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} [{task_id}][{chunk_filename}] (Other Error): ExceptionClass={type(e).__name__}, RetryCount={chunk['retry_count']}, Error={e}, Traceback={tb_str}\n")
+ 479 |                 if chunk["retry_count"] < retry_limit:
+ 480 |                     queue_retrying(e)
+ 481 | 
+ 482 |     if chunk["status"] != "completed":
+ 483 |         chunk["status"] = "failed"
+ 484 |         queue_failed(f"chunk failed after retries: {chunk_filename}")
+ 485 |         return False
+ 486 |     return True
+ 487 | 
+ 488 | ALLOWED_MODELS = [
+ 489 |     "gemini-3.5-flash", "gemini-flash-latest", "gemini-3-flash-preview", 
+ 490 |     "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-flash-lite-latest",
+ 491 | ]
+ 492 | 
+ 493 | def transcribe_chunk(client, uploaded_file, config, qm=None, api_key=None) -> str:
+ 494 |     router = get_router()
+ 495 |     model = router.acquire()
+ 496 |     prompt = """你是一位專業的台灣法律課程與講座的逐字稿整理助理。
+ 497 | 請將提供的音檔進行精確的繁體中文語音轉錄，並遵守以下規定：
+ 498 | 【重要：完整性與精確性要求】
+ 499 | 此檔案為極為關鍵的法律教學教材，是後續所有 AI 專案與智能庫的智慧基礎。請務必做到「一字不漏、完全轉錄」！
+ 500 | 嚴禁 any 摘要、縮寫、省略、或簡化發言的行為。請完整保留講師的所有口語說明、舉例與課堂細節。
+ 501 | 1. 輸出格式一律為繁體中文（台灣習慣用詞）。
+ 502 | 2. 保留台灣法律專業術語。
+ 503 | 3. 完整保留所有提到的法律法條名稱與條號。
+ 504 | 4. 保留釋字字號與法院判決字號之標準格式。
+ 505 | 5. 聽不清楚或不確定之處不可憑空預測，一律以 [待確認] 標記。
+ 506 | 6. 【絕對強制指令】：你必須在每一句話、或至少每隔 2 到 3 個語意斷點的前方，強制插入當前的時間戳記（例如 [01:23]、[05:45]）。
+
+--- Lines 526 to 574 ---
+ 526 |             contents=[uploaded_file, prompt],
+ 527 |             config=genai_types.GenerateContentConfig(safety_settings=safety_settings, temperature=0.3)
+ 528 |         )
+ 529 |         router.report_success(model)
+ 530 |         text = response.text
+ 531 |         if not text or not text.strip():
+ 532 |             candidates = response.candidates or []
+ 533 |             finish = str(getattr(candidates[0], 'finish_reason', 'UNKNOWN')) if candidates else 'NO_CANDIDATES'
+ 534 |             if 'SAFETY' in finish:
+ 535 |                 raise ValueError(f"Safety filter triggered (finish_reason={finish})，換模型重試")
+ 536 |             raise ValueError(f"API 回傳空白內容 (finish_reason={finish})，觸發 retry")
+ 537 |         return text
+ 538 |     except Exception as e:
+ 539 |         router.report_error(model, e)
+ 540 |         raise
+ 541 | 
+ 542 | def run_stt(task_id: str, exclusive_key: str = None):
+ 543 |     script_dir = os.path.dirname(os.path.abspath(__file__))
+ 544 |     from workflow_helper import load_config, get_resolved_paths
+ 545 |     config = load_config()
+ 546 |     paths = get_resolved_paths()
+ 547 |         
+ 548 |     manifests_dir = paths['manifests_dir']
+ 549 |     workflow_log = os.path.join(paths['logs_dir'], "workflow.log")
+ 550 |     chunk_errors_log = os.path.join(paths['logs_dir'], "chunk_errors.log")
+ 551 |     
+ 552 |     logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(workflow_log, encoding='utf-8')])
+ 553 |     os.makedirs(os.path.dirname(chunk_errors_log), exist_ok=True)
+ 554 |     
+ 555 |     manifest_path = os.path.join(manifests_dir, f"{task_id}.json")
+ 556 |     if not os.path.exists(manifest_path):
+ 557 |         return
+ 558 |     with open(manifest_path, 'r', encoding='utf-8-sig') as f:
+ 559 |         manifest = json.load(f)
+ 560 | 
+ 561 |     chunks_manifest_path = os.path.join(manifests_dir, f"{task_id}_chunks.json")
+ 562 |     if not os.path.exists(chunks_manifest_path):
+ 563 |         return
+ 564 |     with open(chunks_manifest_path, 'r', encoding='utf-8-sig') as f:
+ 565 |         chunks = json.load(f)
+ 566 |         
+ 567 |     if not chunks:
+ 568 |         return
+ 569 |         
+ 570 |     stt_engine = config.get("settings", {}).get("stt_engine", "gemini")
+ 571 |     qm = None
+ 572 |     current_key = None
+ 573 |     client = None
+ 574 |     key_lock = threading.Lock()
+
+--- Lines 577 to 650 ---
+ 577 |         qm = QuotaManager()
+ 578 |         if exclusive_key:
+ 579 |             current_key = exclusive_key
+ 580 |         else:
+ 581 |             current_key = qm.acquire_key_exclusive()
+ 582 |         client = genai.Client(api_key=current_key)
+ 583 | 
+ 584 |     current_key_ref = [current_key]
+ 585 |     pending_chunks = [c for c in chunks if c["status"] != "completed"]
+ 586 | 
+ 587 |     manifest_update_queue = queue.Queue()
+ 588 |     distill_task_queue = queue.Queue()
+ 589 | 
+ 590 |     # 啟動背景寫入器 (解決 Bug 1: I/O 阻塞)
+ 591 |     writer_thread = threading.Thread(target=manifest_writer_thread, args=(chunks_manifest_path, manifest_update_queue), daemon=True)
+ 592 |     writer_thread.start()
+ 593 | 
+ 594 |     # 啟動背景蒸餾工作池 (解決 Bug 2: 限制最多 2 個進程，防 OOM)
+ 595 |     distill_workers = []
+ 596 |     for i in range(6):
+ 597 |         t = threading.Thread(target=distill_worker_thread, args=(i, distill_task_queue), daemon=True)
+ 598 |         t.start()
+ 599 |         distill_workers.append(t)
+ 600 | 
+ 601 |     all_succeeded = True
+ 602 |     with ThreadPoolExecutor(max_workers=CHUNK_CONCURRENCY) as executor:
+ 603 |         futures = {
+ 604 |             executor.submit(process_single_chunk, chunk, client, qm, current_key_ref, key_lock, task_id, chunks_manifest_path, config, chunk_errors_log, stt_engine, manifest_update_queue, distill_task_queue): chunk
+ 605 |             for chunk in pending_chunks
+ 606 |         }
+ 607 |         for future in as_completed(futures):
+ 608 |             chunk = futures[future]
+ 609 |             try:
+ 610 |                 if not future.result():
+ 611 |                     all_succeeded = False
+ 612 |             except Exception as exc:
+ 613 |                 chunk["status"] = "failed"
+ 614 |                 all_succeeded = False
+ 615 | 
+ 616 |     # 先等寫入佇列清空，再發 STOP，避免最後一批狀態遺失
+ 617 |     manifest_update_queue.join()
+ 618 |     manifest_update_queue.put("STOP")
+ 619 | 
+ 620 |     for _ in range(6):
+ 621 |         distill_task_queue.put("STOP")
+ 622 |         
+ 623 |     writer_thread.join()
+ 624 |     for t in distill_workers:
+ 625 |         t.join()
+ 626 |         
+ 627 |     if all_succeeded:
+ 628 |         manifest["status"] = "transcribed"
+ 629 |         manifest["steps"]["stt"] = "completed"
+ 630 |         atomic_json_dump(manifest, manifest_path)
+ 631 |         atomic_json_dump(chunks, chunks_manifest_path)
+ 632 |     else:
+ 633 |         for c in chunks:
+ 634 |             if c["status"] == "failed":
+ 635 |                 c["status"] = "pending"
+ 636 |                 c["retry_count"] = 0
+ 637 |         manifest["status"] = "chunked"
+ 638 |         manifest["steps"]["stt"] = "pending"
+ 639 |         atomic_json_dump(manifest, manifest_path)
+ 640 |         atomic_json_dump(chunks, chunks_manifest_path)
+ 641 | 
+ 642 |     return all_succeeded
+ 643 | 
+ 644 | if __name__ == "__main__":
+ 645 |     import argparse
+ 646 |     parser = argparse.ArgumentParser()
+ 647 |     parser.add_argument("task_id", type=str, nargs='?', default=None)
+ 648 |     parser.add_argument("--distill", action="store_true")
+ 649 |     parser.add_argument("--chunk_filename", type=str)
+ 650 |     parser.add_argument("--chunk_path", type=str)
+
+### File: merge_transcript.py
+- SHA256: e7e65ce3439790909ae13ccaa61dc911622eaa1ba8cd8a51cf8101d479e7ee79
+- MTime: 2026-08-03 07:08:27
+- Total lines: 809
+
+--- Lines 3 to 23 ---
+   3 | from pathlib import Path
+   4 | sys.path.append(str(Path(__file__).resolve().parent.parent))
+   5 | try:
+   6 |     if hasattr(sys.stdout, 'reconfigure'):
+   7 |         sys.stdout.reconfigure(encoding='utf-8-sig', errors='replace')
+   8 |     if hasattr(sys.stderr, 'reconfigure'):
+   9 |         sys.stderr.reconfigure(encoding='utf-8-sig', errors='replace')
+  10 | except Exception:
+  11 |     pass
+  12 | import argparse
+  13 | from manifest_manager import ManifestManager, update_manifest
+  14 | import difflib
+  15 | import requests
+  16 | import re
+  17 | from workflow_helper import ensure_dirs, load_config, log_workflow, log_error
+  18 | from llm_gateway import call_llm_with_resilience
+  19 | 
+  20 | # ==========================================
+  21 | # 【機制二十六】混合架構：Whisper 本地兜底與 Gemini 雲端提效
+  22 | # 目的：雙軌並行及銜接精校，將分片進行上下文比對與拼接校正。
+  23 | # ==========================================
+
+--- Lines 38 to 127 ---
+  38 |         log_path = Path(r"A:\logs_v6\merge_degraded.log")
+  39 |         log_path.parent.mkdir(parents=True, exist_ok=True)
+  40 | 
+  41 |         payload = {
+  42 |             "event": "[DEGRADED]",
+  43 |             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+  44 |             "task_id": task.get("task_id", "unknown_task"),
+  45 |             "source_name": task.get("source_name", ""),
+  46 |             "reason": reason,
+  47 |             "merge_mode": merge_mode,
+  48 |             "retry_count": int(task.get("retry_count", 0)),
+  49 |             "needs_review": bool(task.get("needs_review", False)),
+  50 |             "extra": extra or {}
+  51 |         }
+  52 | 
+  53 |         with log_path.open("a", encoding="utf-8", errors="replace") as f:
+  54 |             f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+  55 |     except Exception:
+  56 |         pass
+  57 | 
+  58 | 
+  59 | def mark_task_degraded(task, reason="merge_timeout", merge_mode="raw_fallback"):
+  60 |     """
+  61 |     在當前任務的資料結構上標記降級資訊。
+  62 |     """
+  63 |     current_retry = int(task.get("retry_count", 0)) + 1
+  64 |     task["degraded_reason"] = reason
+  65 |     task["merge_mode"] = merge_mode
+  66 |     task["retry_count"] = current_retry
+  67 |     if current_retry >= 2:
+  68 |         task["needs_review"] = True
+  69 |     return task
+  70 | 
+  71 | 
+  72 | def apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file):
+  73 |     """
+  74 |     執行 raw_fallback：
+  75 |     - 標記 degraded_reason / merge_mode / retry_count / needs_review
+  76 |     - 寫入 [DEGRADED] 日誌
+  77 |     - 直接用原始 chunks 合併輸出
+  78 |     - 保存輸出與 manifest
+  79 |     """
+  80 |     manifest = mark_task_degraded(manifest, reason="merge_timeout", merge_mode="raw_fallback")
+  81 | 
+  82 |     log_degraded_event(
+  83 |         manifest,
+  84 |         reason="merge_timeout",
+  85 |         merge_mode="raw_fallback",
+  86 |         extra={"chunk_count": len(raw_chunks)}
+  87 |     )
+  88 | 
+  89 |     merged_text = "\n".join(raw_chunks)
+  90 |     merged_text = apply_glossary_fix(merged_text)
+  91 | 
+  92 |     out_full_path = os.path.join(task_chunks_dir, "merged_full_transcript.txt")
+  93 |     out_cleaned_path = os.path.join(task_chunks_dir, "merged_cleaned_transcript.txt")
+  94 |     out_summary_path = os.path.join(task_chunks_dir, "merged_summary.txt")
+  95 | 
+  96 |     try:
+  97 |         with open(out_full_path, "w", encoding="utf-8-sig") as wf:
+  98 |             wf.write(merged_text)
+  99 |         with open(out_cleaned_path, "w", encoding="utf-8-sig") as wf:
+ 100 |             wf.write(merged_text)
+ 101 |         with open(out_summary_path, "w", encoding="utf-8-sig") as wf:
+ 102 |             wf.write("### 📖 全局章節大綱 (因超時降級為 raw_fallback，無摘要)\n")
+ 103 |         manifest.setdefault("steps", {})
+ 104 |         manifest["steps"]["merge"] = "completed"
+ 105 |         manifest["status"] = "merged"
+ 106 |         manifest.setdefault("paths", {})
+ 107 |         manifest["paths"].update({
+ 108 |             "merged_full_transcript": out_full_path,
+ 109 |             "merged_cleaned_transcript": out_cleaned_path,
+ 110 |             "merged_summary": out_summary_path
+ 111 |         })
+ 112 |         
+ 113 |         from manifest_manager import ManifestManager
+ 114 |         with ManifestManager(manifest_file) as mm:
+ 115 |             mm.write(manifest)
+ 116 |     except Exception as e:
+ 117 |         log_error(f"Merge Agent: raw_fallback save failed: {e}")
+ 118 | 
+ 119 |     return merged_text
+ 120 | 
+ 121 | PROMPT_GAP_REFINE = """你是一個法學專業的文字編輯，請幫我將以下法律教材「分片銜接處」的上下文進行語意精校與拼接修剪：
+ 122 | 1. 修正同音錯字（如將「投地」修正為「土地」）。
+ 123 | 2. 修復銜接點左右的語意中斷與重複字句，使兩端句子流暢、自然地拼合在一起。
+ 124 | 3. 嚴格保留所有實質法律內容，不要加入任何引言、解釋或額外說明。
+ 125 | 4. 輸出修飾後的流暢銜接段落即可。
+ 126 | 
+ 127 | 待精校銜接處內容：
+
+--- Lines 225 to 545 ---
+ 225 |             "一習慣": "依習慣", "考課": "考科"
+ 226 |         }
+ 227 |     }
+ 228 |     fixed_text = text
+ 229 |     for wrong, right in glossary.get("common_errors", {}).items():
+ 230 |         fixed_text = re.sub(wrong, right, fixed_text)
+ 231 |     return fixed_text
+ 232 | 
+ 233 | LAST_CALL_TIMES = {}
+ 234 | 
+ 235 | def call_gemini_api(prompt, model_name, api_key, qm, use_search_grounding=False, timeout=120.0):
+ 236 |     """
+ 237 |     統一包裝器：透過 ModelRouter Agent 調用 Gemini，若為 Vertex AI 則直走企業通道。
+ 238 |     model_name 參數保留以相容舊介面，實際模型由 Router 决定。
+ 239 |     """
+ 240 |     import requests
+ 241 |     import time
+ 242 |     from workflow_helper import load_config
+ 243 |     config = load_config()
+ 244 |     # 獨立判斷 Merge 引擎，預設走 AI Studio (gemini) 以避免誤觸企業通道
+ 245 |     merge_engine = config.get("settings", {}).get("merge_engine", "gemini")
+ 246 | 
+ 247 |     from model_router import get_router
+ 248 |     router = get_router()
+ 249 | 
+ 250 |     if merge_engine == "vertexai":
+ 251 |         import os
+ 252 |         from google import genai
+ 253 |         from google.genai import types
+ 254 |         v_project = config.get("settings", {}).get("vertexai_project")
+ 255 |         v_loc = config.get("settings", {}).get("vertexai_location", "us-central1")
+ 256 |         v_cred_path = config.get("settings", {}).get("vertexai_credentials_path", "")
+ 257 |         if v_cred_path:
+ 258 |             full_cred_path = os.path.normpath(os.path.join(config.get("paths", {}).get("project_root", "C:\\LocalAI_Workstation"), v_cred_path))
+ 259 |             os.environ["[REDACTED_LONG_STR]"] = full_cred_path
+ 260 |         
+ 261 |         # Vertex AI client (第 172 行)
+ 262 |         client = genai.Client(
+ 263 |             vertexai=True,
+ 264 |             project=v_project,
+ 265 |             location=v_loc,
+ 266 |             http_options={"timeout": timeout}
+ 267 |         )
+ 268 |         # 強制使用高品質 Pro 模型 (Vertex AI 企業通道專用，執行最終精校)
+ 269 |         v_model = config.get("api", {}).get("gemini_model_high_accuracy", "gemini-2.5-flash")
+ 270 | 
+ 271 |         tool_objs = [{"google_search": {}}] if use_search_grounding else None
+ 272 | 
+ 273 |         last_err = None
+ 274 |         timeout_like_errors = 0
+ 275 | 
+ 276 |         # [DIAGNOSTIC] 診斷不洩密日誌
+ 277 |         print(f"[DIAGNOSTIC] merge_engine={merge_engine}, auth_mode=vertex, model={v_model}, project={v_project}, location={v_loc}")
+ 278 | 
+ 279 |         for attempt in range(3):
+ 280 |             try:
+ 281 |                 response = client.models.generate_content(
+ 282 |                     model=v_model,
+ 283 |                     contents=prompt,
+ 284 |                     config=types.GenerateContentConfig(
+ 285 |                         temperature=0.3,
+ 286 |                         tools=tool_objs
+ 287 |                     )
+ 288 |                 )
+ 289 |                 if not response.text:
+ 290 |                     raise ValueError("API returned empty text")
+ 291 | 
+ 292 |                 router.report_success(v_model)
+ 293 |                 return response.text
+ 294 | 
+ 295 |             except Exception as e:
+ 296 |                 router.report_error(v_model, e)
+ 297 |                 err_str = str(e).lower()
+ 298 |                 last_err = e
+ 299 | 
+ 300 |                 # 統一判斷 timeout 類錯誤，不在這裡做 raw_fallback，只標記類型給外層判斷
+ 301 |                 is_timeout = (
+ 302 |                     "timed out" in err_str
+ 303 |                     or "timeout" in err_str
+ 304 |                     or "read operation" in err_str
+ 305 |                     or "deadline exceeded" in err_str
+ 306 |                     or "504" in err_str
+ 307 |                 )
+ 308 |                 if is_timeout:
+ 309 |                     timeout_like_errors += 1
+ 310 | 
+ 311 |                 if "429" in err_str or "quota" in err_str:
+ 312 |                     print(f"[WARN] Vertex AI quota limit hit, backing off 30s... (attempt {attempt+1}/3)")
+ 313 |                     time.sleep(30)
+ 314 |                 else:
+ 315 |                     print(f"[WARN] Vertex AI error: {e}, backing off 5s...")
+ 316 |                     time.sleep(5)
+ 317 | 
+ 318 |         # 3 次皆失敗：統一區分 timeout 類錯誤與其他錯誤
+ 319 |         err_msg = str(last_err).lower() if last_err else ""
+ 320 |         if (
+ 321 |             timeout_like_errors >= 1
+ 322 |             or "timed out" in err_msg
+ 323 |             or "timeout" in err_msg
+ 324 |             or "read operation" in err_msg
+ 325 |             or "deadline exceeded" in err_msg
+ 326 |             or "504" in err_msg
+ 327 |         ):
+ 328 |             # 統一讓外層判定為 VERTEX_TIMEOUT
+ 329 |             raise RuntimeError(f"VERTEX_TIMEOUT: {last_err}")
+ 330 | 
+ 331 |         raise RuntimeError(f"VERTEX_FAILED: {last_err or 'unknown error'}")
+ 332 | 
+ 333 |     # ---------------- 原有 Gemini AI Studio 邏輯 ----------------
+ 334 | 
+ 335 |     def _do_call(current_model: str) -> str:
+ 336 |         nonlocal api_key
+ 337 |         last_err = None
+ 338 |         # RPM 限速
+ 339 |         now = time.time()
+ 340 |         last_time = LAST_CALL_TIMES.get(current_model, 0)
+ 341 |         required_interval = 30.0 if "pro" in current_model else 5.0
+ 342 |         elapsed = now - last_time
+ 343 |         if elapsed < required_interval:
+ 344 |             wait_time = required_interval - elapsed
+ 345 |             print(f"[Rate Limiter] Sleeping {wait_time:.1f} seconds to respect rate limit for {current_model}...")
+ 346 |             time.sleep(wait_time)
+ 347 |             
+ 348 |         LAST_CALL_TIMES[current_model] = time.time()
+ 349 | 
+ 350 |         # 對於每個模型，嘗試最多 3 次一般性錯誤，並在 429 時採用 QuotaManager 進行 Jitter 退避重試
+ 351 |         nonlocal qm
+ 352 |         if qm is None:
+ 353 |             try:
+ 354 |                 from quota_manager import QuotaManager
+ 355 |                 qm = QuotaManager()
+ 356 |             except ImportError:
+ 357 |                 pass
+ 358 | 
+ 359 |         attempt = 0
+ 360 |         consecutive_429 = 0
+ 361 |         last_err = None
+ 362 |         
+ 363 |         while True:
+ 364 |             url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={api_key}"
+ 365 |             payload = {
+ 366 |                 "contents": [{"parts": [{"text": prompt}]}]
+ 367 |             }
+ 368 |             if use_search_grounding:
+ 369 |                 payload["tools"] = [{"googleSearch": {}}]
+ 370 |             
+ 371 |             # 使用 QuotaManager 進行 RPM 節流防禦 (5s / 6RPM)
+ 372 |             if qm:
+ 373 |                 qm.throttle_key(api_key)
+ 374 |                 
+ 375 |             try:
+ 376 |                 # [DIAGNOSTIC] 診斷不洩密日誌
+ 377 |                 import hashlib
+ 378 |                 key_preview = hashlib.sha256(api_key.encode("utf-8")).hexdigest()[:6] if api_key else "None"
+ 379 |                 print(f"[DIAGNOSTIC] merge_engine={merge_engine}, auth_mode=aistudio, model={current_model}, key_sha256_prefix={key_preview}")
+ 380 |                 
+ 381 |                 response = requests.post(url, json=payload, timeout=timeout)
+ 382 |                 # [DIAGNOSTIC] HTTP Status 紀錄
+ 383 |                 print(f"[DIAGNOSTIC] HTTP Status: {response.status_code}")
+ 384 |                 if response.status_code == 200:
+ 385 |                     res_data = response.json()
+ 386 |                     try:
+ 387 |                         return res_data["candidates"][0]["content"]["parts"][0]["text"]
+ 388 |                     except (KeyError, IndexError):
+ 389 |                         raise RuntimeError("Invalid Gemini API response format")
+ 390 |                 elif response.status_code == 429:
+ 391 |                     raise Exception(f"429 Too Many Requests: {response.text}")
+ 392 |                 elif response.status_code == 401:
+ 393 |                     raise Exception(f"401 Unauthorized: {response.text}")
+ 394 |                 else:
+ 395 |                     raise RuntimeError(f"HTTP {response.status_code}: {response.text}")
+ 396 |             except Exception as e:
+ 397 |                 err_str = str(e)
+ 398 |                 # 檢查連線或呼叫異常是否是因為金鑰額度限制
+ 399 |                 if qm and ("429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower() or "401" in err_str):
+ 400 |                     if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+ 401 |                         consecutive_429 += 1
+ 402 |                         
+ 403 |                     res = qm.handle_error(e, api_key, consecutive_429, exclusive=True)
+ 404 |                     
+ 405 |                     if res["project_cooldown"]:
+ 406 |                         consecutive_429 = 0
+ 407 |                         
+ 408 |                     if res["sleep_time"] > 0:
+ 409 |                         print(f"[Gemini API Retry] {api_key[:8]}... 觸發 Jitter 避退，睡眠 {res['sleep_time']:.1f} 秒...")
+ 410 |                         time.sleep(res["sleep_time"])
+ 411 |                         
+ 412 |                     if res["new_key"] and res["new_key"] != api_key:
+ 413 |                         api_key = res["new_key"]
+ 414 |                         consecutive_429 = 0
+ 415 |                         print(f"已更換為新金鑰: {api_key[:8]}...{api_key[-4:]}")
+ 416 |                         
+ 417 |                     # 額度限制異常不增加一般性錯誤 attempt 計數，繼續重試
+ 418 |                     continue 
+ 419 |                 
+ 420 |                 print(f"[Gemini API] Error calling model {current_model}: {e}")
+ 421 |                 router.report_error(current_model, e)
+ 422 |                 last_err = e
+ 423 |                 attempt += 1
+ 424 |                 if attempt >= 3:
+ 425 |                     raise last_err or RuntimeError(f"All attempts for {current_model} failed")
+ 426 |                 time.sleep(5)
+ 427 |         
+ 428 |     # 根據需求，直接呼叫或輪替
+ 429 |     res = _do_call(model_name)
+ 430 |     router.report_success(model_name)
+ 431 |     return res
+ 432 | 
+ 433 | def merge_workflow(task_id):
+ 434 |     paths = ensure_dirs()
+ 435 |     manifests_dir = paths["manifests_dir"]
+ 436 |     chunks_dir = paths["chunks_dir"]
+ 437 |     task_chunks_dir = os.path.join(chunks_dir, task_id)
+ 438 | 
+ 439 |     manifest_file = os.path.join(manifests_dir, f"{task_id}.json")
+ 440 |     chunks_manifest_file = os.path.join(manifests_dir, f"{task_id}_chunks.json")
+ 441 | 
+ 442 |     if not os.path.exists(manifest_file) or not os.path.exists(chunks_manifest_file):
+ 443 |         log_error(f"Manifest or chunks manifest missing for {task_id}")
+ 444 |         return False
+ 445 | 
+ 446 |     with ManifestManager(manifest_file) as mm:
+ 447 |         manifest = mm.read() or {}
+ 448 |     with ManifestManager(chunks_manifest_file) as mm:
+ 449 |         chunks = mm.read() or []
+ 450 | 
+ 451 |     qm = QuotaManager()
+ 452 |     api_key = None
+ 453 |     raw_chunks = []
+ 454 | 
+ 455 |     try:
+ 456 |         try:
+ 457 |             api_key = qm.acquire_key_exclusive()
+ 458 |         except Exception as e:
+ 459 |             log_error(f"Merge Agent: 無法取得排他性 API 金鑰 ({e})，任務將保留，稍後重試。")
+ 460 |             return False
+ 461 | 
+ 462 |         log_workflow(f"Merge Agent: Reading and concatenating {len(chunks)} chunks...")
+ 463 | 
+ 464 |         total_chunks = len(chunks)
+ 465 | 
+ 466 |         if total_chunks == 0:
+ 467 |             log_error("Merge Agent: [GUARD] No chunk data found, reset task to chunked for STT retry")
+ 468 |             manifest["status"] = "chunked"
+ 469 |             manifest.setdefault("steps", {})
+ 470 |             manifest["steps"]["stt"] = "pending"
+ 471 |             manifest["steps"].pop("merge", None)
+ 472 |             manifest["steps"].pop("formatter", None)
+ 473 |             with ManifestManager(manifest_file) as mm:
+ 474 |                 mm.write(manifest)
+ 475 |             return False
+ 476 | 
+ 477 |         done_txt = 0
+ 478 |         for chk in chunks:
+ 479 |             chk_path = chk.get("path", "")
+ 480 |             if not chk_path:
+ 481 |                 continue
+ 482 |             stem = Path(chk_path).stem
+ 483 |             chk_txt = os.path.join(task_chunks_dir, f"{stem}.txt")
+ 484 |             if os.path.exists(chk_txt):
+ 485 |                 done_txt += 1
+ 486 | 
+ 487 |         completion_rate = done_txt / total_chunks if total_chunks > 0 else 0.0
+ 488 | 
+ 489 |         if completion_rate < 0.85:
+ 490 |             log_error(
+ 491 |                 f"Merge Agent: [GUARD] STT 完成率不足！"
+ 492 |                 f"{done_txt}/{total_chunks} = {completion_rate*100:.0f}% < 85%，"
+ 493 |                 f"拒絕合併，重置任務為 chunked 等待重跑 STT"
+ 494 |             )
+ 495 |             manifest["status"] = "chunked"
+ 496 |             manifest.setdefault("steps", {})
+ 497 |             manifest["steps"]["stt"] = "pending"
+ 498 |             manifest["steps"].pop("merge", None)
+ 499 |             manifest["steps"].pop("formatter", None)
+ 500 |             with ManifestManager(manifest_file) as mm:
+ 501 |                 mm.write(manifest)
+ 502 |             return False
+ 503 | 
+ 504 |         log_workflow(
+ 505 |             f"Merge Agent: STT 完成率 {done_txt}/{total_chunks} = {completion_rate*100:.0f}% >= 85%，開始合併"
+ 506 |         )
+ 507 | 
+ 508 |         import time as _time
+ 509 |         map_timeout_count = 0
+ 510 |         map_start_ts = _time.time()
+ 511 | 
+ 512 |         merged_full_text = ""
+ 513 |         merged_cleaned_text = ""
+ 514 | 
+ 515 |         for chunk in chunks:
+ 516 |             chunk_path = chunk.get("path", "")
+ 517 |             if not chunk_path:
+ 518 |                 continue
+ 519 |             stem = Path(chunk_path).stem
+ 520 |             chunk_txt_file = os.path.join(task_chunks_dir, f"{stem}.txt")
+ 521 |             if os.path.exists(chunk_txt_file):
+ 522 |                 with open(chunk_txt_file, "r", encoding="utf-8-sig", errors="replace") as rf:
+ 523 |                     raw_text = rf.read().strip()
+ 524 |                     raw_chunks.append(raw_text)
+ 525 | 
+ 526 |         non_empty_raw_chunks = [c for c in raw_chunks if c and c.strip()]
+ 527 |         if not non_empty_raw_chunks:
+ 528 |             log_error("Merge Agent: [GUARD] raw_chunks are empty after TXT loading, reset task to chunked")
+ 529 |             manifest["status"] = "chunked"
+ 530 |             manifest.setdefault("steps", {})
+ 531 |             manifest["steps"]["stt"] = "pending"
+ 532 |             manifest["steps"].pop("merge", None)
+ 533 |             manifest["steps"].pop("formatter", None)
+ 534 |             with ManifestManager(manifest_file) as mm:
+ 535 |                 mm.write(manifest)
+ 536 |             return False
+ 537 | 
+ 538 |         raw_chunks = non_empty_raw_chunks
+ 539 |         merged_full_text = "\n".join(raw_chunks)
+ 540 | 
+ 541 |         for idx, chunk_content in enumerate(raw_chunks):
+ 542 |             cleaned_chunk = chunk_content
+ 543 |             log_workflow(
+ 544 |                 f"[DEBUG] Map start: task_id={task_id}, "
+ 545 |                 f"idx={idx+1}/{len(raw_chunks)}, "
+
+--- Lines 549 to 569 ---
+ 549 |             log_workflow(f"Merge Agent: 正在執行切片 {idx+1}/{len(raw_chunks)} 的去冗餘與排版 (Map)...")
+ 550 |             try:
+ 551 |                 from model_router import get_router as _get_router
+ 552 |                 current_model = _get_router().acquire()
+ 553 |                 log_workflow(
+ 554 |                     f"[DEBUG] Map model_acquired: task_id={task_id}, "
+ 555 |                     f"chunk_id=part_{idx+1:03d}, model={current_model}"
+ 556 |                 )
+ 557 | 
+ 558 |                 result = call_llm_with_resilience(
+ 559 |                     stage="map",
+ 560 |                     task_id=task_id,
+ 561 |                     chunk_id=f"part_{idx+1:03d}",
+ 562 |                     prompt=PROMPT_CLEAN.format(text=chunk_content),
+ 563 |                     model_name=current_model,
+ 564 |                     api_key=api_key,
+ 565 |                     qm=qm,
+ 566 |                     timeout=120.0,
+ 567 |                     use_search_grounding=False,
+ 568 |                 )
+ 569 | 
+
+--- Lines 577 to 628 ---
+ 577 |                     log_workflow(
+ 578 |                         f"[DEBUG] Map cleaned_used: task_id={task_id}, "
+ 579 |                         f"chunk_id=part_{idx+1:03d}"
+ 580 |                     )
+ 581 |                 else:
+ 582 |                     log_error(
+ 583 |                         f"Merge Agent: 切片 {idx+1} 去冗餘失敗: "
+ 584 |                         f"{result.error_code}: {result.error_message}. fallback to raw chunk."
+ 585 |                     )
+ 586 |                     if result.error_code in {"VERTEX_TIMEOUT", "AISTUDIO_TIMEOUT", "PROVIDER_TIMEOUT"}:
+ 587 |                         map_timeout_count += 1
+ 588 |                     cleaned_chunk = chunk_content
+ 589 |                     log_workflow(
+ 590 |                         f"[DEBUG] Map raw_fallback_used: task_id={task_id}, "
+ 591 |                         f"chunk_id=part_{idx+1:03d}, code={result.error_code}"
+ 592 |                     )
+ 593 | 
+ 594 |             except Exception as ce:
+ 595 |                 err_str = str(ce).lower()
+ 596 |                 log_error(f"Merge Agent: 切片 {idx+1} 去冗餘失敗: {ce}. fallback to raw chunk.")
+ 597 |                 if (
+ 598 |                     "vertex_timeout" in err_str
+ 599 |                     or "timed out" in err_str
+ 600 |                     or "timeout" in err_str
+ 601 |                     or "read operation" in err_str
+ 602 |                     or "deadline exceeded" in err_str
+ 603 |                     or "504" in err_str
+ 604 |                 ):
+ 605 |                     map_timeout_count += 1
+ 606 |                 cleaned_chunk = chunk_content
+ 607 |                 log_workflow(
+ 608 |                     f"[DEBUG] Map exception_fallback_used: task_id={task_id}, "
+ 609 |                     f"chunk_id=part_{idx+1:03d}"
+ 610 |                 )
+ 611 | 
+ 612 |             total_elapsed = _time.time() - map_start_ts
+ 613 |             if map_timeout_count >= 3 or total_elapsed >= 600:
+ 614 |                 log_error(
+ 615 |                     f"Merge Agent: 觸發全局 raw_fallback, "
+ 616 |                     f"map_timeout_count={map_timeout_count}, total_elapsed={round(total_elapsed, 3)}"
+ 617 |                 )
+ 618 |                 apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file)
+ 619 |                 return True
+ 620 | 
+ 621 |             if not merged_cleaned_text:
+ 622 |                 merged_cleaned_text = cleaned_chunk
+ 623 |             else:
+ 624 |                 chars1 = list(merged_cleaned_text)
+ 625 |                 chars2 = list(cleaned_chunk)
+ 626 | 
+ 627 |                 suffix_len = min(400, len(chars1))
+ 628 |                 suffix = chars1[-suffix_len:]
+
+--- Lines 648 to 668 ---
+ 648 |                     log_workflow(f"Merge Agent: 正在執行縫隙 {idx}/{len(raw_chunks)-1} 邊界平滑化 (Reduce)...")
+ 649 |                     try:
+ 650 |                         from model_router import get_router as _get_router
+ 651 |                         current_model = _get_router().acquire()
+ 652 |                         log_workflow(
+ 653 |                             f"[DEBUG] Reduce model_acquired: task_id={task_id}, "
+ 654 |                             f"gap_id=gap_{idx:03d}, model={current_model}"
+ 655 |                         )
+ 656 | 
+ 657 |                         result = call_llm_with_resilience(
+ 658 |                             stage="reduce",
+ 659 |                             task_id=task_id,
+ 660 |                             chunk_id=f"gap_{idx:03d}",
+ 661 |                             prompt=PROMPT_GAP_REFINE.format(text=raw_gap),
+ 662 |                             model_name=current_model,
+ 663 |                             api_key=api_key,
+ 664 |                             qm=qm,
+ 665 |                             timeout=120.0,
+ 666 |                             use_search_grounding=False,
+ 667 |                         )
+ 668 | 
+
+--- Lines 679 to 737 ---
+ 679 |                             log_workflow(
+ 680 |                                 f"[DEBUG] Reduce refined_merge_used: task_id={task_id}, "
+ 681 |                                 f"gap_id=gap_{idx:03d}"
+ 682 |                             )
+ 683 |                         else:
+ 684 |                             log_error(
+ 685 |                                 f"Merge Agent: 邊界縫隙 {idx} 精校失敗: "
+ 686 |                                 f"{result.error_code}: {result.error_message}. fallback to direct merge."
+ 687 |                             )
+ 688 |                             if result.error_code in {"VERTEX_TIMEOUT", "AISTUDIO_TIMEOUT", "PROVIDER_TIMEOUT"}:
+ 689 |                                 map_timeout_count += 1
+ 690 |                             merged_cleaned_text = part1 + part2
+ 691 |                             log_workflow(
+ 692 |                                 f"[DEBUG] Reduce direct_merge_fallback_used: task_id={task_id}, "
+ 693 |                                 f"gap_id=gap_{idx:03d}, code={result.error_code}"
+ 694 |                             )
+ 695 | 
+ 696 |                     except Exception as ge:
+ 697 |                         err_str = str(ge).lower()
+ 698 |                         log_error(f"Merge Agent: 邊界縫隙 {idx} 精校失敗: {ge}. fallback to direct merge.")
+ 699 |                         if (
+ 700 |                             "vertex_timeout" in err_str
+ 701 |                             or "timed out" in err_str
+ 702 |                             or "timeout" in err_str
+ 703 |                             or "read operation" in err_str
+ 704 |                             or "deadline exceeded" in err_str
+ 705 |                             or "504" in err_str
+ 706 |                         ):
+ 707 |                             map_timeout_count += 1
+ 708 |                         merged_cleaned_text = part1 + part2
+ 709 |                         log_workflow(
+ 710 |                             f"[DEBUG] Reduce direct_merge_exception_used: task_id={task_id}, "
+ 711 |                             f"gap_id=gap_{idx:03d}"
+ 712 |                         )
+ 713 |                 else:
+ 714 |                     merged_cleaned_text = merged_cleaned_text + "\n" + cleaned_chunk
+ 715 | 
+ 716 |             total_elapsed = _time.time() - map_start_ts
+ 717 |             if map_timeout_count >= 3 or total_elapsed >= 600:
+ 718 |                 log_error(
+ 719 |                     f"Merge Agent: Reduce/Map 累積超時，觸發全局 raw_fallback, "
+ 720 |                     f"map_timeout_count={map_timeout_count}, total_elapsed={round(total_elapsed, 3)}"
+ 721 |                 )
+ 722 |                 apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file)
+ 723 |                 return True
+ 724 | 
+ 725 |         if not merged_cleaned_text or not merged_cleaned_text.strip():
+ 726 |             log_error("Merge Agent: merged_cleaned_text is empty, switching to raw_fallback")
+ 727 |             apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file)
+ 728 |             return True
+ 729 | 
+ 730 |         merged_full_text = apply_glossary_fix(merged_full_text)
+ 731 |         merged_cleaned_text = apply_glossary_fix(merged_cleaned_text)
+ 732 | 
+ 733 |         out_full_path = os.path.join(task_chunks_dir, "merged_full_transcript.txt")
+ 734 |         with open(out_full_path, "w", encoding="utf-8-sig", errors="replace") as wf:
+ 735 |             wf.write(merged_full_text)
+ 736 | 
+ 737 |         out_cleaned_path = os.path.join(task_chunks_dir, "merged_cleaned_transcript.txt")
+
+--- Lines 751 to 804 ---
+ 751 |                 timeout=120.0
+ 752 |             )
+ 753 |         except Exception as e:
+ 754 |             log_error(f"Merge Agent: Global summary failed: {e}. Fallback to template.")
+ 755 |             summary_text = "### 📖 全局章節大綱 (摘要生成遇限失敗)\n"
+ 756 | 
+ 757 |         out_summary_path = os.path.join(task_chunks_dir, "merged_summary.txt")
+ 758 |         with open(out_summary_path, "w", encoding="utf-8-sig", errors="replace") as wf:
+ 759 |             wf.write(summary_text)
+ 760 | 
+ 761 |         manifest.setdefault("steps", {})
+ 762 |         manifest["steps"]["merge"] = "completed"
+ 763 |         manifest["status"] = "merged"
+ 764 |         manifest.setdefault("paths", {})
+ 765 |         manifest["paths"].update({
+ 766 |             "merged_full_transcript": out_full_path,
+ 767 |             "merged_cleaned_transcript": out_cleaned_path,
+ 768 |             "merged_summary": out_summary_path
+ 769 |         })
+ 770 | 
+ 771 |         with ManifestManager(manifest_file) as mm:
+ 772 |             mm.write(manifest)
+ 773 | 
+ 774 |         log_workflow(f"Merge Agent: Completed merge workflow for {task_id}")
+ 775 |         return True
+ 776 | 
+ 777 |     except Exception as e:
+ 778 |         log_error(f"Merge Agent: Unexpected error: {e}")
+ 779 |         try:
+ 780 |             if raw_chunks:
+ 781 |                 log_error("Merge Agent: Unexpected error occurred, switching to emergency raw_fallback.")
+ 782 |                 apply_raw_fallback(task_id, manifest, raw_chunks, task_chunks_dir, manifest_file)
+ 783 |                 return True
+ 784 |         except Exception as fallback_err:
+ 785 |             log_error(f"Merge Agent: emergency raw_fallback also failed: {fallback_err}")
+ 786 | 
+ 787 |         manifest.setdefault("steps", {})
+ 788 |         manifest["steps"]["merge"] = "failed"
+ 789 |         manifest["status"] = "chunked"
+ 790 |         try:
+ 791 |             with ManifestManager(manifest_file) as mm:
+ 792 |                 mm.write(manifest)
+ 793 |         except Exception as write_err:
+ 794 |             log_error(f"Merge Agent: failed to persist failed manifest state: {write_err}")
+ 795 | 
+ 796 |         return False
+ 797 | 
+ 798 |     finally:
+ 799 |         try:
+ 800 |             if api_key:
+ 801 |                 qm.release_key(api_key)
+ 802 |         except Exception as release_err:
+ 803 |             log_error(f"Merge Agent: release_key failed: {release_err}")
+ 804 | 
+
+### File: markdown_formatter.py
+- SHA256: c2b0aec7dec89f804e0a695b58c212e0f7a9f5d8da68307c61b4934658374f97
+- MTime: 2026-07-29 11:01:27
+- Total lines: 847
+
+--- Lines 3 to 23 ---
+   3 | import sys, io
+   4 | from pathlib import Path
+   5 | sys.path.append(str(Path(__file__).resolve().parent.parent))
+   6 | if hasattr(sys.stdout, 'reconfigure'):
+   7 |     sys.stdout.reconfigure(encoding='utf-8-sig', errors='replace')
+   8 | if hasattr(sys.stderr, 'reconfigure'):
+   9 |     sys.stderr.reconfigure(encoding='utf-8-sig', errors='replace')
+  10 | import sys
+  11 | import argparse
+  12 | import json
+  13 | from manifest_manager import ManifestManager, update_manifest
+  14 | import re
+  15 | import time
+  16 | from pathlib import Path
+  17 | from workflow_helper import ensure_dirs, load_config, log_workflow, log_error
+  18 | try:
+  19 |     from quota_manager import QuotaManager
+  20 | except ImportError:
+  21 |     try:
+  22 |         from scripts_v6.quota_manager import QuotaManager
+  23 |     except ImportError:
+
+--- Lines 55 to 75 ---
+  55 |                     continue
+  56 |                 print(f"Failed to generate prompt with Gemini: {e}")
+  57 |                 break
+  58 |             
+  59 |     safe_prompt = urllib.parse.quote(prompt)
+  60 |     image_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?width=1920&height=1080&nologo=true"
+  61 |     out_path = os.path.join(output_dir, f"{source_stem}_cover.jpg")
+  62 |     try:
+  63 |         req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+  64 |         with urllib.request.urlopen(req) as response, open(out_path, 'wb') as out_file:
+  65 |             out_file.write(response.read())
+  66 |         return f"{source_stem}_cover.jpg"
+  67 |     except Exception as e:
+  68 |         print(f"Failed to download image: {e}")
+  69 |         return None
+  70 | 
+  71 | def generate_concept_video(summary_text, source_stem, output_dir, api_key=None):
+  72 |     import urllib.request, urllib.parse, os, json
+  73 |     
+  74 |     complex_keywords = ["侵權", "分割", "抵押", "無權占有", "連帶保證", "不當得利"]
+  75 |     found_concepts = [kw for kw in complex_keywords if kw in summary_text]
+
+--- Lines 345 to 365 ---
+ 345 |             "task_id":     task_id,
+ 346 |             "source":      source_name,
+ 347 |             "subject":     spec_subject,
+ 348 |             "timestamp":   time.strftime("%Y-%m-%d %H:%M:%S"),
+ 349 |             "granularity": "full",
+ 350 |             "input":       full_text[:6000],
+ 351 |             "output":      cleaned_text[:6000],
+ 352 |             "cot":         cot,
+ 353 |         }
+ 354 |         with open(out_path, "a", encoding="utf-8-sig") as f:
+ 355 |             f.write(json.dumps(pair, ensure_ascii=False) + "\n")
+ 356 |         pairs_written += 1
+ 357 | 
+ 358 |         # 每 Chunk 一個訓練對（細粒度，品質更高）
+ 359 |         for idx, chunk in enumerate(chunk_list):
+ 360 |             raw_chunk = chunk.get("transcript", "") or (raw_parts[idx] if idx < len(raw_parts) else "")
+ 361 |             clean_chunk = chunk.get("cleaned", "") or (clean_parts[idx] if idx < len(clean_parts) else "")
+ 362 |             if not raw_chunk or not clean_chunk or raw_chunk == clean_chunk:
+ 363 |                 continue
+ 364 |             cot_chunk = build_cot(raw_chunk, clean_chunk)
+ 365 |             pair_chunk = {
+
+--- Lines 367 to 539 ---
+ 367 |                 "source":      source_name,
+ 368 |                 "subject":     spec_subject,
+ 369 |                 "timestamp":   time.strftime("%Y-%m-%d %H:%M:%S"),
+ 370 |                 "granularity": f"chunk_{idx+1}",
+ 371 |                 "chunk_index": idx + 1,
+ 372 |                 "input":       raw_chunk[:4000],
+ 373 |                 "output":      clean_chunk[:4000],
+ 374 |                 "cot":         cot_chunk,
+ 375 |             }
+ 376 |             with open(out_path, "a", encoding="utf-8-sig") as f:
+ 377 |                 f.write(json.dumps(pair_chunk, ensure_ascii=False) + "\n")
+ 378 |             pairs_written += 1
+ 379 | 
+ 380 |         log_workflow(f"Markdown Formatter: [Distill] {pairs_written} training pairs saved -> {out_path}")
+ 381 |     except Exception as de:
+ 382 |         log_error(f"Markdown Formatter: [Distill] Failed to save distillation pairs: {de}")
+ 383 | 
+ 384 | def format_markdown(task_id):
+ 385 |     paths = ensure_dirs()
+ 386 |     manifests_dir = paths["manifests_dir"]
+ 387 |     processed_md_dir = paths["processed_md_dir"]
+ 388 |     chunks_dir = paths["chunks_dir"]
+ 389 |     task_chunks_dir = os.path.join(chunks_dir, task_id)
+ 390 |     
+ 391 |     manifest_file = os.path.join(manifests_dir, f"{task_id}.json")
+ 392 |     chunks_manifest_file = os.path.join(manifests_dir, f"{task_id}_chunks.json")
+ 393 |     
+ 394 |     if not os.path.exists(manifest_file) or not os.path.exists(chunks_manifest_file):
+ 395 |         log_error(f"Manifest or chunks manifest missing for {task_id}")
+ 396 |         return False
+ 397 |         
+ 398 |     with ManifestManager(manifest_file) as mm:
+ 399 |             manifest = mm.read()
+ 400 |     with ManifestManager(chunks_manifest_file) as mm:
+ 401 |             chunks = mm.read()
+ 402 |         
+ 403 |     media_info = manifest.get("media_info", {})
+ 404 |     source_name = manifest["source_name"]
+ 405 |     source_stem = Path(source_name).stem
+ 406 |     
+ 407 |     full_txt_path = os.path.join(task_chunks_dir, "merged_full_transcript.txt")
+ 408 |     cleaned_txt_path = os.path.join(task_chunks_dir, "merged_cleaned_transcript.txt")
+ 409 |     summary_path = os.path.join(task_chunks_dir, "merged_summary.txt")
+ 410 |     
+ 411 |     if not os.path.exists(full_txt_path):
+ 412 |         log_error(f"Merged transcript missing at {full_txt_path}")
+ 413 |         return False
+ 414 |         
+ 415 |     with open(full_txt_path, "r", encoding="utf-8-sig") as f:
+ 416 |         full_text = f.read()
+ 417 |         
+ 418 |     cleaned_text = ""
+ 419 |     if os.path.exists(cleaned_txt_path):
+ 420 |         with open(cleaned_txt_path, "r", encoding="utf-8-sig") as f:
+ 421 |             cleaned_text = f.read()
+ 422 |             
+ 423 |     summary_text = ""
+ 424 |     if os.path.exists(summary_path):
+ 425 |         with open(summary_path, "r", encoding="utf-8-sig") as f:
+ 426 |             summary_text = f.read()
+ 427 |             
+ 428 |     log_workflow("Markdown Formatter: Speculating legal subject and extracting index terms...")
+ 429 |     spec_subject = speculate_legal_subject(full_text)
+ 430 |     articles, interpretations, cases = extract_legal_indices(full_text)
+ 431 |     
+ 432 |     highlighted_summary = summary_text
+ 433 |     keywords_highlight = ["爭點", "重點整理", "必考", "結論", "實務見解"]
+ 434 |     for kw in keywords_highlight:
+ 435 |         highlighted_summary = re.sub(f"({kw})", r"**【\1】**", highlighted_summary)
+ 436 |         
+ 437 |     duration_min = int(media_info.get("duration_sec", 0) // 60)
+ 438 |     duration_sec = int(media_info.get("duration_sec", 0) % 60)
+ 439 |     
+ 440 |     # 執行影片板書追蹤並整合至逐字稿
+ 441 |     cleaned_with_notes = cleaned_text if cleaned_text else full_text
+ 442 |     
+ 443 |     if manifest.get("source_path", "").lower().endswith(".mp4"):
+ 444 |         try:
+ 445 |             from visual_analyzer import VisualLegalAnalyzer
+ 446 |             analyzer = VisualLegalAnalyzer()
+ 447 |             parts = source_name.split("_")
+ 448 |             class_name = parts[0] if len(parts) > 1 else "法律實務"
+ 449 |             lesson_name = parts[1] if len(parts) > 2 else "第一堂"
+ 450 |             
+ 451 |             video_path = manifest["source_path"]
+ 452 |             if os.path.exists(video_path):
+ 453 |                 log_workflow(f"Markdown Formatter: Auto-tracking blackboard for video {source_name}...")
+ 454 |                 analyzer.track_video_blackboard(video_path, class_name, lesson_name)
+ 455 |                 
+ 456 |                 # 進行板書與逐字稿的時間軸交叉插補
+ 457 |                 clean_video_name = analyzer._sanitize_filename(source_stem)
+ 458 |                 cleaned_with_notes = interleave_blackboard_notes(cleaned_with_notes, clean_video_name, str(analyzer.obsidian_dir))
+ 459 |             else:
+ 460 |                 log_error(f"Markdown Formatter: Original video not found for blackboard tracking: {video_path}")
+ 461 |         except Exception as vae:
+ 462 |             log_error(f"Markdown Formatter: Failed to run blackboard tracking or interleave notes: {vae}")
+ 463 |             
+ 464 |     api_key_for_assets = None
+ 465 |     qm = QuotaManager() if QuotaManager else None
+ 466 |     if qm:
+ 467 |         try:
+ 468 |             api_key_for_assets = qm.acquire_key_exclusive()
+ 469 |         except:
+ 470 |             api_key_for_assets = os.environ.get("GEMINI_API_KEY")
+ 471 |     else:
+ 472 |         api_key_for_assets = os.environ.get("GEMINI_API_KEY")
+ 473 | 
+ 474 |     # 自動生成講義封面圖片
+ 475 |     cover_md = ""
+ 476 |     try:
+ 477 |         cover_filename = generate_cover_image(spec_subject, source_stem, processed_md_dir, api_key=api_key_for_assets)
+ 478 |         if cover_filename:
+ 479 |             cover_md = f"![課程封面](./{cover_filename})\n\n"
+ 480 |             log_workflow(f"Markdown Formatter: Generated cover image {cover_filename}")
+ 481 |     except Exception as e:
+ 482 |         log_error(f"Markdown Formatter: Failed to generate cover image: {e}")
+ 483 | 
+ 484 |     # 自動生成複雜概念短影片 (Fallback 為分鏡圖)
+ 485 |     video_md = ""
+ 486 |     try:
+ 487 |         video_filename, matched_concept = generate_concept_video(summary_text, source_stem, processed_md_dir, api_key=api_key_for_assets)
+ 488 |         if video_filename:
+ 489 |             video_md = f"\n> [!TIP]\n> 🎬 **AI 影片解說 (生成中/降級保護)**：偵測到複雜法律概念「{matched_concept}」，為您產生視覺化白板分鏡圖。\n> ![分鏡圖](./{video_filename})\n\n"
+ 490 |             log_workflow(f"Markdown Formatter: Generated concept video storyboard {video_filename} for '{matched_concept}'")
+ 491 |     except Exception as e:
+ 492 |         log_error(f"Markdown Formatter: Failed to generate concept video: {e}")
+ 493 | 
+ 494 |     if qm and api_key_for_assets:
+ 495 |         try:
+ 496 |             qm.release_key(api_key_for_assets)
+ 497 |         except:
+ 498 |             pass
+ 499 | 
+ 500 |     # 組合 Markdown 內容
+ 501 |     md_content = f"""# 臺灣法律教材研讀：{source_stem}
+ 502 | 
+ 503 | {cover_md}## 📊 檔案元數據 (Metadata)
+ 504 | - **原始檔名**：{source_name}
+ 505 | - **分析日期**：{time.strftime("%Y-%m-%d %H:%M:%S")}
+ 506 | - **教材學科**：{spec_subject}
+ 507 | - **教材時長**：{duration_min} 分 {duration_sec} 秒
+ 508 | - **總切片數**：{manifest.get("chunks_count", 1)} 片
+ 509 | - **語言語系**：繁體中文 (台灣常規法律實務)
+ 510 | 
+ 511 | ## ⚖️ 關聯法規與實務見解索引
+ 512 | - **法規條文**：{", ".join(articles) if articles else "未偵測到明確條文"}
+ 513 | - **司法釋字**：{", ".join(interpretations) if interpretations else "未偵測到明確釋字"}
+ 514 | - **實務判決**：{", ".join(cases) if cases else "未偵測到明確裁判字號"}
+ 515 | 
+ 516 | ---
+ 517 | 
+ 518 | ## 🧠 智慧教材法理消化 (RAG 摘要)
+ 519 | {highlighted_summary}
+ 520 | {video_md}
+ 521 | ---
+ 522 | 
+ 523 | ## 🎙️ 去冗餘精校逐字稿 (Cleaned Transcript)
+ 524 | {cleaned_with_notes}
+ 525 | """
+ 526 | 
+ 527 |     out_md_file = os.path.join(processed_md_dir, f"{source_stem}.md")
+ 528 |     with open(out_md_file, "w", encoding="utf-8-sig") as wf:
+ 529 |         wf.write(md_content)
+ 530 |     log_workflow(f"Markdown Formatter: Saved final Markdown file to {out_md_file}")
+ 531 |     
+ 532 |     # 5. 時間軸字幕段落解析（修正版）
+ 533 |     log_workflow("Markdown Formatter: Parsing time-aligned segments for SRT, VTT, and TXT...")
+ 534 |     all_segments = []
+ 535 | 
+ 536 |     for idx, chunk in enumerate(chunks):
+ 537 |         chunk_path = chunk["path"]
+ 538 |         stem = Path(chunk_path).stem
+ 539 |         chunk_txt_file = os.path.join(task_chunks_dir, f"{stem}.txt")
+
+--- Lines 613 to 659 ---
+ 613 | 
+ 614 |     # 輸出 SRT
+ 615 |     srt_lines = []
+ 616 |     for s_idx, seg in enumerate(all_segments):
+ 617 |         srt_lines.append(str(s_idx + 1))
+ 618 |         srt_lines.append(f"{format_srt_time(seg['start'])} --> {format_srt_time(seg['end'])}")
+ 619 |         srt_lines.append(seg["text"])
+ 620 |         srt_lines.append("")
+ 621 |     out_srt_file = os.path.join(processed_md_dir, f"{source_stem}.srt")
+ 622 |     with open(out_srt_file, "w", encoding="utf-8-sig") as wf:
+ 623 |         wf.write("\n".join(srt_lines))
+ 624 |     log_workflow(f"Markdown Formatter: Saved SRT subtitle to {out_srt_file}")
+ 625 |     
+ 626 |     # 輸出 VTT
+ 627 |     vtt_lines = ["WEBVTT", ""]
+ 628 |     for s_idx, seg in enumerate(all_segments):
+ 629 |         vtt_lines.append(str(s_idx + 1))
+ 630 |         vtt_lines.append(f"{format_vtt_time(seg['start'])} --> {format_vtt_time(seg['end'])}")
+ 631 |         vtt_lines.append(seg["text"])
+ 632 |         vtt_lines.append("")
+ 633 |     out_vtt_file = os.path.join(processed_md_dir, f"{source_stem}.vtt")
+ 634 |     with open(out_vtt_file, "w", encoding="utf-8-sig") as wf:
+ 635 |         wf.write("\n".join(vtt_lines))
+ 636 |     log_workflow(f"Markdown Formatter: Saved VTT subtitle to {out_vtt_file}")
+ 637 |     
+ 638 |     # 輸出純文字 TXT
+ 639 |     clean_txt = cleaned_text if cleaned_text else full_text
+ 640 |     # 移除 Markdown 標題
+ 641 |     clean_txt = re.sub(r"#+\s+.*?\n", "", clean_txt)
+ 642 |     # 移除時間軸標記
+ 643 |     clean_txt = re.sub(r"\[(?:(\d{1,2}):)?(\d{2}):(\d{2})\]", "", clean_txt)
+ 644 |     # 整理空行
+ 645 |     clean_txt = re.sub(r"\n\s*\n+", "\n\n", clean_txt).strip()
+ 646 |     
+ 647 |     out_txt_file = os.path.join(processed_md_dir, f"{source_stem}.txt")
+ 648 |     with open(out_txt_file, "w", encoding="utf-8-sig") as wf:
+ 649 |         wf.write(clean_txt)
+ 650 |     log_workflow(f"Markdown Formatter: Saved pure TXT transcript to {out_txt_file}")
+ 651 |     
+ 652 |     # 6. 輸出 RAG 系統專用 JSON 索引
+ 653 |     rag_index = {
+ 654 |         "task_id": task_id,
+ 655 |         "doc_id": task_id, # for Qdrant compatibility
+ 656 |         "original_name": source_name,
+ 657 |         "title": source_stem, # for Qdrant compatibility
+ 658 |         "source_path": source_name, # for Qdrant compatibility
+ 659 |         "processing_date": time.strftime("%Y-%m-%d %H:%M:%S"),
+
+--- Lines 666 to 691 ---
+ 666 |             "cases": cases
+ 667 |         },
+ 668 |         "summary": summary_text,
+ 669 |         "full_text_cleaned": clean_txt,
+ 670 |         "cleaned_text": clean_txt, # for Qdrant compatibility
+ 671 |         "segments": all_segments
+ 672 |     }
+ 673 |     
+ 674 |     out_json_file = os.path.join(processed_md_dir, f"{source_stem}_index.json")
+ 675 |     with ManifestManager(out_json_file) as mm:
+ 676 |             mm.write(rag_index)
+ 677 |     log_workflow(f"Markdown Formatter: Saved RAG JSON index to {out_json_file}")
+ 678 |     
+ 679 |     # 6.5. 自動備份檔案存回影片原始目錄
+ 680 |     try:
+ 681 |         source_path = manifest.get("source_path")
+ 682 |         if source_path:
+ 683 |             backup_dir = os.path.dirname(source_path)
+ 684 |             if os.path.exists(backup_dir):
+ 685 |                 import shutil
+ 686 |                 for fpath in [out_md_file, out_srt_file, out_vtt_file, out_txt_file, out_json_file]:
+ 687 |                     if os.path.exists(fpath):
+ 688 |                         shutil.copy(fpath, backup_dir)
+ 689 |                 log_workflow(f"Markdown Formatter: 成功將所有產出檔案備份至影片原目錄: {backup_dir}")
+ 690 |             else:
+ 691 |                 log_workflow(f"Markdown Formatter: 影片原目錄不存在，跳過備份: {backup_dir}", level="warning")
+
+--- Lines 771 to 820 ---
+ 771 | 
+ 772 |     # ===== 執行 V5.1 Hard Gate 驗收標準 (檔案大小 vs 影片時長) =====
+ 773 |     try:
+ 774 |         duration_total_min = duration_min + duration_sec / 60.0
+ 775 |         if duration_total_min > 5:  # 只針對 5 分鐘以上的課程進行驗證
+ 776 |             srt_size_kb = os.path.getsize(out_txt_file) / 1024.0 if os.path.exists(out_txt_file) else 0
+ 777 |             ratio = srt_size_kb / duration_total_min
+ 778 |             
+ 779 |             if ratio < 0.5:
+ 780 |                 log_error(f"Markdown Formatter: [Validation Failed] Transcript too short! {ratio:.2f} KB/min")
+ 781 |                 manifest["status"] = "failed_validation_too_short"
+ 782 |                 manifest["steps"]["formatter"] = "failed"
+ 783 |                 manifest["error"] = f"Validation failed: Transcript too short. Ratio: {ratio:.2f} KB/min (Duration: {duration_total_min:.1f} min, Size: {srt_size_kb:.1f} KB)"
+ 784 |             elif ratio > 1.8:
+ 785 |                 log_error(f"Markdown Formatter: [Validation Failed] Transcript too long (Looping)! {ratio:.2f} KB/min")
+ 786 |                 manifest["status"] = "failed_validation_too_long"
+ 787 |                 manifest["steps"]["formatter"] = "failed"
+ 788 |                 manifest["error"] = f"Validation failed: Transcript too long. Ratio: {ratio:.2f} KB/min (Duration: {duration_total_min:.1f} min, Size: {srt_size_kb:.1f} KB)"
+ 789 |             else:
+ 790 |                 log_workflow(f"Markdown Formatter: [Validation Passed] Healthy transcript ratio: {ratio:.2f} KB/min")
+ 791 |                 manifest["status"] = "completed"
+ 792 |                 manifest["steps"]["formatter"] = "completed"
+ 793 |         else:
+ 794 |             # 課程太短，直接標記完成
+ 795 |             manifest["status"] = "completed"
+ 796 |             manifest["steps"]["formatter"] = "completed"
+ 797 |     except Exception as val_e:
+ 798 |         log_error(f"Markdown Formatter: Validation logic error: {val_e}")
+ 799 |         manifest["status"] = "completed"
+ 800 |         manifest["steps"]["formatter"] = "completed"
+ 801 |     # ==============================================================
+ 802 | 
+ 803 |     manifest["output_markdown"] = out_md_file
+ 804 |     manifest["output_srt"] = out_srt_file
+ 805 |     manifest["output_vtt"] = out_vtt_file
+ 806 |     manifest["output_txt"] = out_txt_file
+ 807 |     manifest["output_json_index"] = out_json_file
+ 808 |     
+ 809 |     with ManifestManager(manifest_file) as mm:
+ 810 |             mm.write(manifest)
+ 811 |         
+ 812 |     # 10. 蒸餾訓練資料採集（Whisper 原始 vs Gemini 精校 CoT 訓練對）
+ 813 |     save_distillation_pair(task_id, source_name, spec_subject, full_text, cleaned_text, chunks)
+ 814 | 
+ 815 |     # 11. 攔截並備份原始切片 (防止被系統無情刪除)
+ 816 |     import shutil
+ 817 |     try:
+ 818 |         task_chunks_dir = f"A:/chunks/{task_id}"
+ 819 |         if os.path.exists(task_chunks_dir):
+ 820 |             target_drive = "F:/"

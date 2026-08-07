@@ -1,0 +1,47 @@
+=== LexMind KPI Monitor (5 min) ===
+
+--- [13:56:51] KPI #1 ---
+[2026-08-05 13:56:51] === KPI 檢查開始 | 階段=STT (台灣時間13:56) ===
+[2026-08-05 13:56:51]   任務: queued=231 chunked=0 completed=24 failed=0 total=255
+[2026-08-05 13:56:51]   Chunks: 1839/1839 done
+[2026-08-05 13:56:51]   ✅ Stalled tasks: 0 (處理中超過 15 分鐘)
+[2026-08-05 13:56:51]   Workflow 存活: ❌
+[2026-08-05 13:56:51]   [ALERT] ❌ KPI-A2 FAIL: Workflow 進程不存在！
+[2026-08-05 13:56:51]   ❌ KPI-B2: +0 chunks/15min (需 ≥ 1) [即時掃描]
+[2026-08-05 13:56:51]   [STALL] 連續 434 輪無新增 chunks
+[2026-08-05 13:56:51]   [STALL] ❌ Chunk throughput stalled for 3 consecutive KPI cycles.
+[2026-08-05 13:56:51]   ✅ KPI-B3: failed=0 (0.0%) (需 ≤ 5%)
+[2026-08-05 13:56:52]   ✅ GPU 溫度: 46.0°C
+[2026-08-05 13:56:52]   [ACTION] 發現 2 個問題，開始自動修正...
+[2026-08-05 13:56:52]   [DIAG] === 啟動主動深度診斷 ===
+[2026-08-05 13:56:52]   [DIAG] 目前存活的 Python 程序 (1 支):
+[2026-08-05 13:56:52]     - CommandLine                                          ProcessId
+[2026-08-05 13:56:52]     - "C:\Python312\python.exe" scripts_v6\kpi_monitor.py  144516
+[2026-08-05 13:56:52]   [DIAG] Workflow 死前最後的關鍵動作:
+[2026-08-05 13:56:52]     - [2026-08-04 23:45:50] [ERROR] Merge Agent: 切片 1 去冗餘失敗: VERTEX_TIMEOUT: The read operation timed out. fallback to raw chunk.
+[2026-08-05 13:56:52]     - [2026-08-04 23:45:50] [INFO] Merge Agent: 正在執行切片 2/31 的去冗餘與排版 (Map)...
+[2026-08-05 13:56:52]     - [2026-08-04 23:45:50] [INFO] Merge Agent: 正在執行切片 2/33 的去冗餘與排版 (Map)...
+[2026-08-05 13:56:52]     - [2026-08-04 23:45:50] [ERROR] Merge Agent: 切片 1 去冗餘失敗: VERTEX_TIMEOUT: The read operation timed out. fallback to raw chunk.
+[2026-08-05 13:56:52]     - [2026-08-04 23:45:50] [INFO] Merge Agent: 正在執行切片 2/26 的去冗餘與排版 (Map)...
+[2026-08-05 13:56:52]   [DIAG] ================================
+[2026-08-05 13:56:52] [FIX] 清空 quota_state.json...
+[2026-08-05 13:56:52] [FIX] 重啟 run_workflow.py...
+[2026-08-05 13:56:53] [FIX] ✅ restart_workflow.ps1 已執行
+[2026-08-05 13:56:53]   [DIAG] === 啟動主動深度診斷 ===
+[2026-08-05 13:56:53]   [DIAG] 目前存活的 Python 程序 (1 支):
+[2026-08-05 13:56:53]     - CommandLine                                          ProcessId
+[2026-08-05 13:56:53]     - "C:\Python312\python.exe" scripts_v6\kpi_monitor.py  144516
+[2026-08-05 13:56:53]   [DIAG] Workflow 死前最後的關鍵動作:
+[2026-08-05 13:56:53]     - [2026-08-04 23:45:50] [ERROR] Merge Agent: 切片 1 去冗餘失敗: VERTEX_TIMEOUT: The read operation timed out. fallback to raw chunk.
+[2026-08-05 13:56:53]     - [2026-08-04 23:45:50] [INFO] Merge Agent: 正在執行切片 2/31 的去冗餘與排版 (Map)...
+[2026-08-05 13:56:53]     - [2026-08-04 23:45:50] [INFO] Merge Agent: 正在執行切片 2/33 的去冗餘與排版 (Map)...
+[2026-08-05 13:56:53]     - [2026-08-04 23:45:50] [ERROR] Merge Agent: 切片 1 去冗餘失敗: VERTEX_TIMEOUT: The read operation timed out. fallback to raw chunk.
+[2026-08-05 13:56:53]     - [2026-08-04 23:45:50] [INFO] Merge Agent: 正在執行切片 2/26 的去冗餘與排版 (Map)...
+[2026-08-05 13:56:53]   [DIAG] ================================
+[2026-08-05 13:56:53]   [FIX] 偵測到連續停滯，強制重啟 workflow...
+[2026-08-05 13:56:53] [FIX] 清空 quota_state.json...
+[2026-08-05 13:56:53] [FIX] 重啟 run_workflow.py...
+[2026-08-05 13:56:54] [FIX] ✅ restart_workflow.ps1 已執行
+[2026-08-05 13:56:54] === KPI 檢查完成 ===
+
+Next check: 14:01:54  (Ctrl+C to stop)

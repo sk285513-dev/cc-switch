@@ -1,0 +1,47 @@
+﻿# 🚨 LexMind V6 核心修復：V3 終極防線實作計畫書 (Peer Review 災情報告)
+
+## ⚠️ 專家死鬥結果 (User Review Required)
+> [!WARNING] 
+> 老闆，專家們發起了無情的攻擊，結果非常慘烈！
+> 剛才我們自認完美的「V2 修正方案」，在極端高併發與 Windows 底層機制的雙重壓力下，被揪出了 **三大足以摧毀系統的致命漏洞**。我們必須立刻全面升級防線！
+
+### 💥 漏洞 1：殭屍線程引發的「金鑰腦死與跨線程錯亂」
+**專家的攻擊**：`as_completed(timeout=600)` 觸發時，只會讓「主執行緒」放棄等待，**但背景那條卡死的工作執行緒並沒有被殺死！**
+如果主執行緒這時強行把金鑰 `force_reclaim` 回收並配給了 Thread B，當卡死的 Thread A 突然甦醒時，會發生災難：
+1. Thread A 與 Thread B 會同時使用同一把「獨佔金鑰」打 API，導致 429 瘋狂觸發。
+2. Thread A 跑完後，會在 `finally` 把 Thread B 正在用的金鑰強行宣告「已釋放」，導致整個 QuotaManager 內部狀態徹底錯亂崩潰！
+
+**V3 解決方案 (防彈級)**：
+- 取消主執行緒的粗暴強制回收。
+- 引入 **Lease ID (租約機制) 與 Thread 驗證**：在 `safe_acquire_key` 中，釋放金鑰前核對身分。如果殭屍線程甦醒，發現金鑰已經被系統徵收或過期，就直接把鎖丟掉，絕對不允許它去干擾 QuotaManager。
+
+### 💥 漏洞 2：Windows 檔案鎖死與「返老還童 (Benjamin Button)」Bug
+**專家的攻擊**：在 Windows 系統中，當我們用 `os.replace` 原子寫入新的 JSON 狀態時，**檔案的「建立時間 (getctime)」會被重置為當下時間！**
+這會導致我們的「老化演算法」完全失效。每次任務更新狀態，等待時間就會歸零，不斷「返老還童」，永遠排在隊伍最後面直到餓死。
+另外，`atomic_json_dump` 缺乏 `finally` 清理，一旦被防毒軟體卡死寫入失敗，會留下滿坑滿谷的 `.tmp` 垃圾檔。
+
+**V3 解決方案 (防彈級)**：
+- **廢棄 Windows Metadata**：絕對不要信任檔案系統的時間戳。將建立時間直接寫死進 `manifest.json` 的 Payload 中 (`manifest.get("created_at")`)。
+- 在 `atomic_json_dump` 補上嚴格的 `finally: os.remove(tmp_path)` 清理防線。
+
+### 💥 漏洞 3：老化分數崩塌 (Priority Collapse)
+**專家的攻擊**：目前的減法公式 `score - (wait_hours * 2)`。如果系統大塞車一週，所有科目的分數都會變成負數，最後全部被 `max(1.0)` 強制切平為 `1.0`。這會讓國考核心（憲法、民法）跟閒雜科目變成一樣的優先級，徹底摧毀了您的「法律科目優先序」鐵律！
+
+**V3 解決方案 (防彈級)**：
+- 放棄粗暴的減法，改用**半衰期漸進演算法 (Asymptotic Decay)**：
+  `effective_score = 1.0 + (base_score - 1.0) * math.exp(-0.1 * wait_hours)`
+  這樣即使等了一萬年，舊任務的優先級只會無限逼近 1.0，但「憲法」永遠會排在「商事法」前面，絕對保證排序鐵律不崩壞！
+
+---
+
+## 🛠️ Proposed Changes (預定修改範圍)
+
+### [Component: run_workflow.py]
+#### [MODIFY] `run_workflow.py`
+- 重寫 `calculate_effective_priority` 導入 `math.exp` 指數衰減公式，並讀取 JSON 內的 `created_at`。
+- 重寫 `atomic_json_dump` 加入 `finally` 的 `.tmp` 檔案清道夫。
+- 升級 `safe_acquire_key` Context Manager，加入 Thread 驗證，防止殭屍線程甦醒後毒化 QuotaManager。
+
+## 📝 Open Questions
+請問老闆，對於這三大致命漏洞的防彈級 (V3) 修補邏輯，您是否同意我們立即動手將這些防線實裝進 `run_workflow.py`？同意的話請點擊 Proceed，我會立刻展開程式碼縫合！
+

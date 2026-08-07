@@ -1,0 +1,5 @@
+Set WshShell = CreateObject("WScript.Shell")
+WshShell.Run "powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -Command ""Clear-Host; Write-Host '=== 正在啟動企業級網頁控制面板 ===' -ForegroundColor Cyan; Set-Location 'C:\LocalAI_Workstation'; streamlit run app_v6.py --server.port 8506 --server.fileWatcherType none""", 1, False
+WshShell.Run "powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -File ""C:\LocalAI_Workstation\kpi_runner.ps1""", 1, False
+WshShell.Run "powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -Command ""Clear-Host; Write-Host '=== Workflow Log ===' -ForegroundColor Yellow; Set-Location 'C:\LocalAI_Workstation'; Get-Content 'A:\logs_v6\workflow.log' -Encoding UTF8 -Wait -Tail 30""", 1, False
+WshShell.Run "powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -Command ""Clear-Host; Write-Host '=== Stderr Log ===' -ForegroundColor Red; Set-Location 'C:\LocalAI_Workstation'; Get-Content 'A:\logs_v6\run_workflow_stderr.log' -Encoding UTF8 -Wait -Tail 30""", 1, False

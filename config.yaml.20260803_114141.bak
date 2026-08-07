@@ -1,0 +1,23 @@
+api:
+  _placeholder: true
+  gcs_bucket_name: lexmind-audio-chunks-bbb51788
+  gemini_api_account: sk87826453@gmail.com
+  gemini_api_key: AUTO_LOAD_FROM_ENV
+  gemini_model_high_accuracy: gemini-2.5-flash
+  gemini_model_override: gemini-2.5-flash
+  merge_model: gemini-2.5-flash
+  stt_model: gemini-2.5-flash
+  vertexai_project: project-bbb51788-254b-4ec3-ad7
+  vertexai_project_name: My First Project
+  vertexai_project_number: '1024794909249'
+dispatcher:
+  concurrency: 20
+  max_workers: 20
+paths:
+  chunks_dir: A:/chunks
+  logs_dir: A:/logs
+  manifests_dir: A:/manifests
+  processed_md_dir: A:/processed_md
+settings:
+  merge_engine: aistudio
+  stt_engine: vertexai

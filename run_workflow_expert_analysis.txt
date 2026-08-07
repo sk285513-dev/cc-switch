@@ -1,0 +1,30 @@
+# run_workflow.py 十大專家聯合驗證報告 (交接用)
+
+**檔案目標**: `run_workflow.py` (唯一的污染與核心死鎖來源)
+**角色定位**: 本文件由系統架構發包商 (Gemini) 統整 10 位專家的驗證結果，作為後續交接給 Coder 進行開發的絕對規格書。
+
+## 🔴 驗證出的 4 大致命問題與精確位置
+
+### 1. 殭屍進程與 10106 背景崩潰 (OS 進程與併發專家驗證)
+* **問題驗證**: 當使用 `pythonw.exe` 於背景執行時，因缺乏標準 I/O，`sys.stdout` 為 `None`。這導致 downstream 呼叫 `subprocess` 時觸發 `WinError 10106` 或 Invalid Handle 而崩潰。
+* **觸發位置**: `run_workflow.py` 開頭 `sys.stdout` 的設定區塊。
+* **專家驗證解法**: 必須將為 `None` 的標準輸出安全導向 `os.devnull`。
+* **線程死鎖驗證**: `ThreadPoolExecutor` 中的 `as_completed(futures)` (約第 593 行) 完全沒有 `timeout`。API 一旦無回應，整個線程池將淪為殭屍。必須加上 `timeout=600` 並主動 `.cancel()`。
+
+### 2. I/O 鎖競爭與因果律反轉 (I/O 與狀態專家驗證)
+* **問題驗證**: `atomic_json_dump` (約第 94 行) 只有 `os.replace`，但在 Windows NTFS 中，尚未 Flush 的 buffer 會導致覆寫後檔案變為 0-byte (因果律反轉)。
+* **專家驗證解法**: 在 `json.dump` 後，必須補上 `f.flush()` 與 `os.fsync(f.fileno())`。
+* **RMW 競爭驗證**: `_run_task_steps` 讀取並寫入 manifest 的過程缺乏鎖保護，會覆蓋背景 `file_watcher` 的更新。必須實作 `_update_manifest_safe` 來包裝 `SingleInstanceLock`。
+
+### 3. API 金鑰死鎖 (Context Manager 專家驗證)
+* **問題驗證**: `run_single_task_safe` (約第 428 行) 使用 `try...finally` 來釋放 `qm.release_key`。但這在併發異常或提前 return 時極易漏放金鑰。
+* **專家驗證解法**: 應將金鑰的獲取與釋放封裝為 Python `@contextmanager`。
+
+### 4. 佇列無限飢餓與 503 雪崩暴衝 (佇列與限流專家驗證)
+* **問題驗證**: 靜態分數排序導致低優先權任務被無限插隊 (Starvation)。
+* **專家驗證解法**: `get_legal_priority_score` 必須加入老化折扣 (等待時間越長，分數越低)。
+* **503 暴衝驗證**: `compute_adaptive_concurrency` (約第 338 行) 在 503 緩解的 5 分鐘內，每 10 秒會錯誤地將地板值 `+1`。這會導致瞬間打滿並發，引發二次 503 雪崩。必須取消迴圈內的 `_avalanche_floor = recovered` 賦值。
+
+---
+**[Dispatcher 備註]**:
+以上問題皆已驗證為真。此報告僅供分析與交接，**絕對禁止發包商 (Gemini) 親自動手修改**。請 Coder 嚴格按照此規格書與 13 鐵律進行後續修復。

@@ -1,0 +1,162 @@
+LexMind V6 第一批 4 支核心腳本修復交付報告
+交付日期：2026-08-03
+批次範圍：workflow_helper.py / manifest_manager.py / stt_runner.py / run_workflow.py（就地覆蓋，無新檔、無改名）
+基準版本：code_extraction-2.txt（SHA256 bc67f4ba...，2026-08-03 06:27）+ prompt_for_coder.txt 完整原始碼
+驗證狀態：4/4 通過 py_compile、Emoji 掃描、ensure_ascii 檢查、頂層 reconfigure 檢查，並已轉存 UTF-8-SIG (BOM)
+
+第一部分：實際發現的問題與修復（20 條）
+引擎與配置類
+[致命] 引擎層級誤判：run_workflow.process_active_tasks 用頂層 config.get("stt_engine") 讀引擎，但 config.yaml 實際放在 settings: 底下，永遠讀到預設 "gemini" → Vertex-only 環境仍錯誤啟動 QuotaManager。已新增統一配置層 workflow_helper.get_engine_setting()（settings → api → 頂層），run_workflow 與 stt_runner 一律經此讀取。
+
+config.yaml 讀取硬化：load_config() 改 utf-8-sig + errors="replace"，YAML 解析失敗回傳 {} 不再拋例外（鐵律 4）。
+
+Manifest 競態類
+[致命] 無鎖讀改寫：run_workflow 與 stt_runner 對 task manifest 的 open→json.load→改→atomic_json_dump 全部替換為 ManifestManager / update_manifest（file lock + thread lock 鎖內完成），消除「STT 剛回退 chunked/pending 又被 workflow 舊記憶體覆寫成 failed」等覆蓋災難。
+
+failed 覆寫防護：新增 _safe_mark_task_failed()——寫 failed 前鎖內重讀；若已是 chunked+stt=pending、merged、completed 或 failed_validation_* 一律跳過覆寫，且只增改 status/error 欄位，不刪 paths / degraded_reason / merge_mode / needs_review。
+
+completed 收斂防護：任務完成不再無條件蓋 status="completed"，鎖內重讀後保留 formatter 寫入的 failed_validation_* 驗收狀態。
+
+chunks manifest 同等鎖防護：manifest_writer_thread 改經 ManifestManager 寫入；STT 失敗後的「failed→pending 重置」也改為鎖內讀改寫，不再用舊記憶體清單覆蓋 writer 的最新狀態。
+
+[致命] writer 假死病灶：原 manifest_writer_thread 例外時不會對已取出的佇列項目 task_done()，導致 queue.join() 永久卡死（Chunk 產出歸零假象）。已用 try/finally 保證每筆必 task_done。
+
+併發與調度類
+嚴格分相位調度：每輪只處理一類任務——有 chunked（含 transcribed/merged 等中途態）就只跑 Phase B（KPI 自適應並發），否則只跑 queued 的 Phase A（PREPROCESS_CONCURRENCY=3）；queued 不再蹭 STT 高並發。時段硬編碼（16:00 判斷）移除，改純狀態驅動。
+
+終止狀態隔離：completed / failed / needs_review / hold / failed_validation_* 不再進入 active batch；硬編碼 task ID 黑名單註解已刪除。
+
+as_completed 逾時（V3 漏洞 1 對位）：batch 等待加 timeout=1800s，逾時僅記錄未回報任務並放行主執行緒，絕不強制回收金鑰；Worker 端 API 硬性逾時保證執行緒有界收斂。
+
+金鑰與 API 類
+[V3 漏洞 1] 金鑰身分核對釋放：run_single_task_safe 以局部變數 key_for_release 記錄本執行緒取得的金鑰，finally 只釋放該值；Vertex 哨兵 __VERTEX_AUTH__ 不進入釋放流程；呼叫方預傳的 key 由呼叫方釋放。殭屍執行緒甦醒無法毒化 QuotaManager。
+
+[鐵律 9] 429 用請求當下金鑰：process_single_chunk 每輪記錄 request_key（實際發出請求的局部變數），429 時以它通報 qm.handle_error，不再抓可能已被其他執行緒換掉的 current_key_ref[0]；換 key 後強制重建 client 與上傳內容。
+
+[鐵律 6] API 硬性逾時保留：_call_with_timeout（daemon thread + Event.wait）包住 transcribe 呼叫（150s），Vertex/Gemini 無聲掛起一律轉為 TimeoutError 進入既有 retry。
+
+[鐵律 10] 退避五大死角補齊：503 分支原本 retry_count>=3 後不睡眠直接空轉（busy loop），已改為每次必睡（退避表+抖動）；一般錯誤分支新增 5s×retry+抖動 緩衝；Vertex 429 退避加上限與抖動；最終失敗必推播 failed 狀態；retry_count 全程累加。
+
+acquire/release 對稱：run_stt 只釋放自己取得的 key（key_acquired_here），QuotaManager 初始化失敗降級不崩潰。
+
+編碼與 I/O 類
+[鐵律 11] ensure_ascii=True：全部 JSON 寫入（manifest、chunks、kpi_state、quota_state、api_keys_state、chunk 轉錄 json、蒸餾資料）由 ensure_ascii=False 改為 True，並統一 utf-8-sig + flush + fsync + os.replace + PermissionError 指數退避抖動。
+
+[V3 漏洞 2] .tmp 清道夫：三處 atomic_json_dump 與 ManifestManager.write 全部加 finally 清理，任何失敗路徑不留 .tmp 殘骸。
+
+[鐵律 7] 10106 防護：所有 import 階段的 sys.stdout.reconfigure 移除，改為 safe_reconfigure_stdio() 僅在主入口（main / _main_）呼叫且容忍 stdout=None；print、faulthandler.enable、logging StreamHandler 全部加 pythonw 防護；logging.basicConfig 在 stdout 為 None 時只掛 FileHandler。
+
+[鐵律 4/5/12] 讀檔與日誌：所有讀檔加 errors="replace"；字典取值全面 .get()（含 manifest["steps"]、chunk["path"] 等硬索引）；log_workflow/log_error 將多行訊息（含 Traceback）合併單行後一次寫入，並加執行緒鎖防交錯；_steps_start 未定義即被 except 引用的 NameError 已修。
+
+V3 老化排序類
+[V3 漏洞 2+3] 半衰期老化排序：新增 calculate_effective_priority()——1.0 + (base-1.0) * math.exp(-0.1 * wait_hours)，等待時間取自 manifest payload 的 created_at（掃描時自動鎖內補寫，絕不信任 os.path.getctime，防「返老還童」）；分數永不塌破 1.0，科目優先序鐵律不崩壞，舊任務漸進防餓死。
+
+重要跨批次相依提醒
+本批 JSON 一律以 UTF-8-SIG 寫入。第二批的 quota_manager.py 等腳本若仍以 encoding="utf-8" 讀取 config/quota_state.json / kpi_state.json，遇到 BOM 會 JSONDecodeError——第二批修復時必須將所有 JSON 讀取統一為 utf-8-sig（本批讀取端已全面相容有無 BOM）。
+
+V3 Peer Review 報告點名的 safe_acquire_key / force_reclaim / as_completed(timeout=600) 在實機原始碼中不存在（已全文檢索確認），本批以等效防線對位實裝，未憑空修補幻影函數（鐵律 13）。
+
+第二部分：覆蓋方式
+以下 4 檔直接覆蓋 C:\LocalAI_Workstation\scripts_v6\ 同名檔案（建議先備份）：
+
+powershell
+$src = "下載目錄"   # 換成你存放本批交付檔的資料夾
+$dst = "C:\LocalAI_Workstation\scripts_v6"
+$stamp = Get-Date -Format "yyyyMMdd_HHmmss"
+foreach ($f in "workflow_helper.py","manifest_manager.py","stt_runner.py","run_workflow.py") {
+    Copy-Item "$dst\$f" "$dst\$f.bak_$stamp" -ErrorAction SilentlyContinue
+    Copy-Item "$src\$f" "$dst\$f" -Force
+}
+第三部分：Windows PowerShell 驗證指令
+powershell
+# 1. Python 語法檢查（四支全部必須無輸出即通過）
+cd C:\LocalAI_Workstation\scripts_v6
+python -m py_compile workflow_helper.py
+python -m py_compile manifest_manager.py
+python -m py_compile stt_runner.py
+python -m py_compile run_workflow.py
+
+# 2. one-shot 僅切片測試（Phase A：preprocess + chunk planner）
+python run_workflow.py --one-shot --chunking-only
+
+# 3. one-shot 完整流程測試（STT -> Merge -> Formatter）
+python run_workflow.py --one-shot
+
+# 4. 追蹤日誌（各開一個視窗）
+Get-Content A:\logs\workflow.log -Tail 50 -Wait
+Get-Content A:\logs\chunk_errors.log -Tail 50 -Wait
+
+# 5. 檢查 manifest 狀態與 steps 分佈
+Get-ChildItem A:\manifests\task_*.json | Where-Object { $_.Name -notlike "*_chunks.json" } | ForEach-Object {
+    $m = Get-Content $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+    [PSCustomObject]@{
+        Task    = $m.task_id
+        Status  = $m.status
+        STT     = $m.steps.stt
+        Merge   = $m.steps.merge
+        Fmt     = $m.steps.formatter
+        Created = $m.created_at
+    }
+} | Format-Table -AutoSize
+
+# 狀態統計
+Get-ChildItem A:\manifests\task_*.json | Where-Object { $_.Name -notlike "*_chunks.json" } | ForEach-Object {
+    (Get-Content $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json).status
+} | Group-Object | Sort-Object Count -Descending | Format-Table Name, Count
+
+# 6. 檢查是否有多個 workflow Python 進程（應只有一個 run_workflow）
+Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*run_workflow.py*" } |
+    Select-Object ProcessId, Name, CreationDate, CommandLine | Format-Table -Wrap
+
+# 7. 驗證 .tmp 清道夫（長跑後應為 0 或極少且非累積）
+Get-ChildItem A:\manifests\*.tmp*, A:\logs\*.tmp* -ErrorAction SilentlyContinue | Measure-Object
+附錄：黃金基準版合規更新（2026-08-03 第三版）
+依《LexMind-Omni 金鑰調度架構與全端系統重構演進計畫（正式黃金基準版）》及六份補充文件比對後，追加三項修正：
+
+編碼分流策略對齊（黃金基準 步驟四）：系統內部 JSON（manifest、chunks、kpi_state、quota_state、api_keys_state、chunk 轉錄 json、蒸餾資料）寫入由 utf-8-sig 改為純淨 utf-8（無 BOM）+ ensure_ascii=True；使用者產出檔（chunk .txt 等）維持 utf-8-sig 保護記事本中文。所有讀取端維持 utf-8-sig + errors="replace"，同時相容新舊兩種檔案。此舉徹底消除先前警告的「第二批 quota_manager 讀 BOM JSON 會炸」跨批次風險。
+
+Vertex 設定讀取對位（黃金基準 1.7 指引）：vertexai_project / vertexai_location 改經統一配置層 get_engine_setting()（settings -> api -> 頂層）讀取，杜絕前代「讀錯 config 區塊抓不到專案 ID」的迷航事故重演。
+
+429/503 判定防檔名注入（黃金基準 Issue 4）：廢除 "429" in err_str 純字串比對，新增 _is_quota_error / _is_unavailable_error——優先以 google.api_core.exceptions（ResourceExhausted / TooManyRequests / ServiceUnavailable）與 e.code 判定，最後才退回字邊界正則 \b429\b / \b503\b，音檔名含 "429" 不再誤燒金鑰。
+
+版本佐證查核（避免規格互相矛盾時押錯邊）
+V3 Peer Review 點名的 safe_acquire_key / force_reclaim / as_completed(timeout=600) 經全文檢索不存在於實機原始碼，以等效防線對位實裝（金鑰身分核對釋放 + 逾時僅記錄不回收）。
+
+0730 文件的 db_manager.py / SQLite 全面改造：經查 module_scan_results db_manager.py 不存在於 scripts_v6，該重構從未實裝；依最新 Master Handoff「保持現有 manifest JSON 格式」路線執行，SQLite 方案留待長官另行裁示。
+
+黃金基準 135 項清單中屬於第二批檔案（quota_manager、kpi_monitor、sre_watchdog、merge_transcript、markdown_formatter、preprocess_media 等）的項目未動，嚴守就地修補邊界。
+
+附錄二：「六大罪狀」會診報告查證結果（2026-08-04 第四版）
+外部專家會診的六條指控，經逐條 grep 對照本批交付碼查證：
+
+#	指控	查證結果
+1	金鑰洩漏：process_single_chunk 有 exclusive_key...pass 區塊、缺 finally	不存在。本版 process_single_chunk 無 exclusive_key 參數；金鑰釋放位於 run_stt 的 finally（僅釋放 key_acquired_here 的 key）與 run_single_task_safe 的 finally（key_for_release 身分核對）。指控引用的程式碼屬於被退件的舊草案
+2	is_retryable 不認得 timeout，逾時判死刑	不存在。全四檔 is_retryable 出現次數 = 0；本版採「通用錯誤分支全部重試」設計，TimeoutError 明確落入該分支（累加 retry_count + 退避 Sleep），直到 retry_limit 才判 failed
+3	stt_runner 第 57 行 ensure_ascii=False	不存在。全四檔 ensure_ascii=False = 0 筆；第 57 行實為 get_engine_setting 降級函數
+4	log_stage 幽靈系統，程式碼裡沒有	不實。log_stage 斷點：run_workflow 13 處、stt_runner 8 處、workflow_helper 1 處（定義），合計 21+ 個 IN/OUT 斷點
+5	FileHandler 缺 errors="replace"；多行日誌破壞 grep	部分屬實，已修：FileHandler 補上 errors="replace"；log_chunk_error 原本只壓平 \r\n，現在 \n 一併壓平
+6	殭屍執行緒堆疊；QuotaManager 失敗繼續洗版	部分屬實，已修：新增 make_genai_client() 在 Client 層附加網路逾時（(150+30)s），被放棄的背景執行緒底層連線必在有界時間內自行終止；run_stt 在 Gemini 模式 QuotaManager 不可用且無外部金鑰時快速失敗返回 False，不再帶 None 金鑰往下跑
+第四版檔案指紋（SHA256，覆蓋後可在實機驗明正身）
+覆蓋到 C:\LocalAI_Workstation\scripts_v6\ 後執行：
+
+powershell
+cd C:\LocalAI_Workstation\scripts_v6
+Get-FileHash workflow_helper.py, manifest_manager.py, stt_runner.py, run_workflow.py -Algorithm SHA256
+比對下表；不一致 = 專家審的不是本版：
+
+text
+workflow_helper.py  aeb7d244e7b5ec65938c126453ec0dc58224e971e0097ea9cfc49a09b698dd07
+manifest_manager.py bfd05feb7082659d68115f31d6b07361c2337014f3a87e2a53d931c51e9db9d1
+stt_runner.py       7b7688f6056bf9c3a9c0c2586405f9a90c92b6871be6ea71176516ea9a04f417
+run_workflow.py     24b674415fae685a1378f44b96e48c1d062e63c907b0e97df09dd6bfceb01c1d
+三十秒快檢（任何人都能複驗的三條指令）：
+
+powershell
+# log_stage 斷點數（預期 run_workflow=13、stt_runner=8、workflow_helper=1）
+Select-String -Path *.py -Pattern "log_stage\(" | Group-Object Filename | Format-Table Name, Count
+
+# ensure_ascii=False（預期 0 筆）
+Select-String -Path *.py -Pattern "ensure_ascii=False" | Measure-Object
+
+# 金鑰釋放是否在 finally 內（預期 stt_runner 與 run_workflow 各至少 1 處 release_key）
+Select-String -Path stt_runner.py, run_workflow.py -Pattern "release_key" -Context 3, 0

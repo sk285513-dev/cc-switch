@@ -1,0 +1,120 @@
+LexMind V6 系統架構審查報告 + [STAGE] 斷點系統實裝
+日期：2026-08-03
+審查對象：第一批交付的 4 支核心腳本（workflow_helper / manifest_manager / stt_runner / run_workflow）
+審查基準：原始設計初衷——「架構清晰、工作流/生產流/資訊流各自收斂、每段有明確 input/output 斷點、debug 時能快速定位卡點」
+
+一、設計初衷還原（4 條可檢驗標準）
+架構分層清晰：調度、執行、狀態、配置、觀測五層職責不互相穿透
+
+程式收斂（單一入口）：每一類共享資源只有一條合法讀寫路徑
+
+明確 input/output 斷點：每個生產流階段進入/離開都有統一格式紀錄
+
+卡點快速定位：不用翻程式碼、不用推理，一條查詢指令指出卡在哪一階段、哪一個 chunk
+
+二、審查結論總表
+初衷	審查前狀態	本次處置
+1. 架構分層	已符合（見下方分層圖）	維持
+2. 程式收斂	已符合：manifest 唯一寫入閘門、配置唯一讀取層、金鑰生命週期收斂	維持
+3. I/O 斷點	不符合：各模組日誌格式各異，無統一 IN/OUT 語義	已實裝 [STAGE] 斷點系統
+4. 卡點定位	部分符合（chunks manifest 有狀態，但要人工推理）	已可一條指令定位
+三、五層架構圖（現況，已收斂）
+text
+┌─ 調度層 run_workflow.py
+│    run_loop → process_active_tasks（嚴格分相位、老化排序）
+│    → run_single_task_safe（金鑰生命週期，[STAGE] task IN/OUT）
+│    → _run_task_steps（五階段狀態機，每階段 [STAGE] IN/OUT）
+│
+├─ 執行層（每階段一個入口函數 = 一個斷點區間）
+│    preprocess → plan_chunks → run_stt → merge_workflow → format_markdown
+│    run_stt 內部再分：[STAGE] stt_runner IN/OUT ＋ 每個 chunk 的 stt_chunk IN/OUT
+│
+├─ 狀態層 manifest_manager.py（唯一合法寫入閘門）
+│    ManifestManager（file lock + thread lock + 原子替換 + .tmp 清道夫）
+│    update_manifest（唯一的讀-改-寫入口）
+│    資訊流：status: queued→chunked→transcribed→merged→completed
+│             steps:  preprocess/chunk_planner/stt/merge/formatter
+│
+├─ 配置層 workflow_helper.get_engine_setting（唯一引擎讀取層）
+│    settings → api → 頂層，杜絕 Vertex/Gemini 誤判
+│
+└─ 觀測層 workflow_helper
+     log_workflow / log_error（單行合併，CP950 安全）
+     log_stage → workflow.log + A:\logs\stage_trace.log（新）
+     dump_stack_snapshot（4 個接入點，堆疊快照）
+四、[STAGE] 斷點系統規格（本次新增，21 個斷點）
+紀錄格式（單行、純 ASCII 鍵值、機器可查）：
+
+text
+[2026-08-03 16:40:00] [STAGE] dir=IN  task=task_xxx stage=stt chunks=32
+[2026-08-03 16:42:03] [STAGE] dir=OUT task=task_xxx stage=stt ok=1 elapsed=123.4s
+斷點佈署位置：
+
+層級	stage 名稱	IN 時機	OUT 時機
+任務層	task	Worker 領到任務	成功/失敗/異常（含 error 摘要）
+階段層	preprocess	進入 FFmpeg 前處理	成敗 + 耗時
+階段層	chunk_planner	進入切片規劃	成敗 + 耗時
+階段層	stt	調度層叫起 STT	成敗 + 耗時
+引擎層	stt_runner	run_stt 入口（含 engine/pending/total）	成敗 + 耗時
+Chunk 層	stt_chunk	單一 chunk 開始（含 chunk 檔名）	完成或重試耗盡（含 retries）
+階段層	merge	進入合併	成敗 + 耗時
+階段層	formatter	進入排版輸出	成敗 + 耗時
+偵錯鐵律：卡住的單位 = 「有 IN、沒有對應 OUT 的最後一條」。
+搭配既有防線：所有外部 API 呼叫都有硬性逾時，因此「永遠沒有 OUT」的情況只剩進程被殺；正常情況卡點必然在有界時間內以 ok=0 現形。
+
+相容性：stt_runner 以 try/except 匯入 log_stage，舊版 workflow_helper 未部署時自動降級 no-op，不影響主流程；merge_transcript / preprocess 等第二批檔案不需改動即可被外層斷點涵蓋（其內部細粒度斷點於第二批佈線）。
+
+五、卡點快查指令（PowerShell）
+powershell
+# ── 1. 「現在卡在哪」：列出所有有 IN 沒 OUT 的階段（最常用）──
+$trace = Get-Content A:\logs\stage_trace.log -Encoding UTF8
+$open = @{}
+foreach ($line in $trace) {
+    if ($line -match "dir=(IN|OUT)\s+task=(\S+)\s+stage=(\S+)(.*)") {
+        $key = "$($Matches[2])|$($Matches[3])" + $(if ($Matches[4] -match "chunk=(\S+)") {"|$($Matches[1])"} else {""})
+        if ($Matches[1] -eq "IN") { $open[$key] = $line } else { $open.Remove($key) | Out-Null }
+    }
+}
+Write-Host "=== 目前卡住（有 IN 無 OUT）的單位 ==="
+$open.Values | Sort-Object
+
+# ── 2. 追蹤單一任務的完整生產流足跡 ──
+Select-String -Path A:\logs\stage_trace.log -Pattern "task=task_20260706_201825" | Select-Object -Last 30
+
+# ── 3. 找出最慢的階段（效能瓶頸）──
+Select-String -Path A:\logs\stage_trace.log -Pattern "dir=OUT" | ForEach-Object {
+    if ($_.Line -match "task=(\S+)\s+stage=(\S+)\s+ok=(\d)\s+elapsed=([\d.]+)s") {
+        [PSCustomObject]@{ Task=$Matches[1]; Stage=$Matches[2]; OK=$Matches[3]; Sec=[double]$Matches[4] }
+    }
+} | Sort-Object Sec -Descending | Select-Object -First 15 | Format-Table -AutoSize
+
+# ── 4. 卡住的 chunk 精確定位（配合 chunks manifest）──
+Get-ChildItem A:\manifests\*_chunks.json | ForEach-Object {
+    $chunks = Get-Content $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+    $stuck = $chunks | Where-Object { $_.status -in "processing","retrying" -and
+        ([DateTimeOffset]::Now.ToUnixTimeSeconds() - $_.updated_at) -gt 600 }
+    if ($stuck) { [PSCustomObject]@{ File=$_.Name; Stuck=($stuck.filename -join ", ") } }
+} | Format-Table -Wrap
+
+# ── 5. 各階段成功率統計 ──
+Select-String -Path A:\logs\stage_trace.log -Pattern "dir=OUT" | ForEach-Object {
+    if ($_.Line -match "stage=(\S+)\s+ok=(\d)") { [PSCustomObject]@{ Stage=$Matches[1]; OK=$Matches[2] } }
+} | Group-Object Stage | ForEach-Object {
+    $okc = ($_.Group | Where-Object OK -eq "1").Count
+    [PSCustomObject]@{ Stage=$_.Name; Total=$_.Count; Success=$okc; Rate="{0:P0}" -f ($okc/$_.Count) }
+} | Format-Table -AutoSize
+六、與收斂原則的合規對照（程式收斂證據）
+共享資源	唯一合法路徑	違規路徑清除狀況
+共享資源	唯一合法路徑	違規路徑清除狀況
+task manifest	ManifestManager / update_manifest	run_workflow、stt_runner 的無鎖 open→load→dump 全數清除
+chunks manifest	manifest_writer_thread（單一寫入者）經 ManifestManager	stt_runner 直寫已清除
+引擎設定	get_engine_setting()	頂層 config.get("stt_engine") 誤讀已清除
+API 金鑰	取得者自持自釋（key_for_release 身分核對）	共享變數釋放路徑已清除
+狀態檔 (kpi/quota)	atomic_json_dump（含 .tmp 清道夫）	write_text / 裸 json.dump 已清除
+日誌	log_workflow / log_error / log_stage（單行合併 + 執行緒鎖）	多行裸寫已清除
+七、殘餘限制（誠實揭露）
+第二批檔案內部仍是黑盒：preprocess_media、chunk_planner、merge_transcript、markdown_formatter 內部尚無細粒度斷點，目前只能靠外層 [STAGE] 區間知道「卡在該階段內」；第二批修復時同樣佈線即可（merge 的 map/reduce 每片、formatter 的每個輸出物）。
+
+stage_trace.log 會持續成長：純附加寫入，建議 watchdog 或排程每週輪替（Rename-Item stage_trace.log stage_trace_$(Get-Date -F yyyyMMdd).log）。
+
+進程被硬殺時最後一條 IN 不會有 OUT：這是特性而非缺陷——重啟後第一條查詢指令就會直接指出死亡當下正在跑的階段與 chunk。

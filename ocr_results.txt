@@ -1,0 +1,133 @@
+=== media_1785946436952.png ===
+ˇ © Hoe x A GoogleAntic X © Streamiit x @ Streamiit x 木 +> FM Gemini o
+一 > G 9 localhost:8506 x Oo @
+88 ， MGmail @¥ YouTube 固 sm Wl Net
+
+字 B 倉 分 EnrMM Deploy
+
+ARE AINS
+
+ValueError: |/0 operation
+
+Traceback:
+
+File "C:\LocalAI_Workstation\app_v6.py", line 82, in <module>
+from scripts_v6.multimodal_input import MultimodalLegalInput
+
+File "C:\LocalAI_Workstation\scripts_v6\multimodal_input.py", line 12, in <mod
+from model_router import rest_generate as _router_rest_generate
+
+File "C:\LocalAl_Workstation\scripts_v6\model_router.py", line 47, in <module>
+from workflow_helper import load_config
+
+File "C:\LocalAI_Workstation\scripts_v6\workflow_helper.py", line 4, in <modul
+sys. stdout. reconfigure (encoding='utf-8', errors='replace')
+
+Copy AskGoogle Ask ChatGPT
+
+H
+
+
+=== media_1785946437071.png ===
+Windows Script Host
+
+Script: C:\Users\temp\AppData\Roaming\Microsoft\Windows\start
+
+Menu\Programs\Startup\= #2 H_AutoStartvbs
+行 1
+= 1
+Be Invalid character
+#2: 80000408
+3 Microsoft VBScript compilation error
+
+
+=== media_1785933728773.png ===
+(RBBHAM15 ch5] AS... 2026/8/4 ++ 03:47 MD t= 162 KB
+(RBSHA115_ch5] 顏 約 5﹒ 2026/8/4 t+ 03:47 SRT fe 183 KB
+(RBS A115 _ch5]_ BAS... 2026/8/4 t+ 03:47 SPM 143 KB
+(RBSHA115_ch5] M5... 2026/8/4 t+ 03:47 VIT te 183 KB
+@ [RBSHK115_ch5] WHS... 2026/8/4 下 午 0347 IPG 8 35 KB
+一 際 摩 字 件 法 115﹍ch5| WAS... 2026/8/4 LF 03:47 JSON FRR... ﹍ 930KB
+— [FT BOAFREB115_ch37]_ FRA... 2026/8/4 E+ 03:21 MD t= 113 KB
+— [FT BGRFRGB115_ch37]_ FRA... 2026/8/4 £F 03:21 SRT t= 144 KB
+阜 花 霍 場 BI15﹒ch3 人 須 純 ﹒ 2026/8/4 EF 03:21 文 孩 架 96 KB
+(AT BGAFREB115_ch37]_ FRA... 2026/8/4 EF 03:21 VIT 1855 145 KB
+8) (FT BGAFROB115_ch37]_ FBR... 2026/8/4 EF 03:21 JPG 棍 染 34 KB
+﹁ 甾 芳 泉 垂 B115﹣chi 仁 頌 納 。 2026/8/4 EF 03:21 JSON FRR... 662KB
+令 芳 電 垂 BI15﹍ch36L 預 約 ﹒ 2026/8/4 b+ 03:21 MD 穢 栽 106 KB
+陀 花 電 垂 BI15﹍﹒ch36L 預 約 ﹒ 2026/8/4 t+ 03:21 SRT 134 KB
+陀 芳 泉 益 BI15﹍﹒ch36L 78M... 2026/8/4 t+ 03:21 SPE 91 KB
+陀 芳 電 盔 BI15﹍﹒ch36L 預 約 ﹒ 2026/8/4 t+ 03:21 VI eS 134 KB
+” 甾 苑 泰 思 B115﹍ch36| 預 紡 ﹒ 2026/8/4 E+ 03:21 JPG BE 34 KB
+一 出 莘 霖 悅 B115﹒ch36L 預 納 ﹒ 2026/8/4 E+ 03:21 JSON FRR... 624KB
+一 在 孟 法 霍 晒 B115﹒chBL 顒 約 ‥ 2026/8/4 LF 03:20 MD 稚 122 KB
+~ [fTBGEFRHOB115_ch8] FAA)... 2026/8/4 t*F 03:20 SRT t= 168 KB
+(TBGAFRHEB115_ch8] FAA)... 2026/8/4 + 03:20 MAS 104 KB
+(7 BGAFROB115_ch8] FAA)... 2026/8/4 EF 03:20 VTT 1858 168 KB
+
+8) 畏 放 泰 垂 B115﹣ch8L 預 約
+
+2026/8/4 F 03:20
+
+JPG tee
+
+34 KB
+
+
+=== media_1785933728789.png ===
+2 DI DUBARD I ID_CNSOLTRA...  CUC0/0/4 CT US J2uN 示 念 M 96Y RD
+一 匝 政 浩 昭 B115﹍ch8| 顒 約 ﹒ 2026/8/4 + 03:20 MD 楊 栽 122 KB
+﹁ 土 放 霖 盟 B115﹒ch8L 殞 約 ﹒ 2026/8/4 + 03:20 SRT 8 168 KB
+— (fTBGRFBBB115_ch8] 頭 約 ‥ _2026/8/4 E+ 03:20 EXE 104 KB
+一 匝 政 泰 頗 B115﹍ch8| 顒 約 ﹒ 2026/8/4 + 03:20 VIT = 168 KB
+© [47BUKFRIGB115_ch8] FA... 2026/8/4 午 0320 JPG tee 34 KB
+_- TBGRFBBB115_ch8] 瑋 約 ‥ 2026/8/4 E+ 03:20 JSON 絆 澄 楊 743 KB
+— (RBIS ch5] AS... 2026/8/4 E+ 03:20 MD 182 163 KB
+— [RBBHA15 ch5] BAS... 2026/8/4 + 03:20 SRT 8 180 KB
+— [RBS _chS|_ BAS... 2026/8/4 E+ 03:20 MEME 145 KB
+﹍ 匯 寧 事 件 沙 115﹍chg1 HAS... 2026/8/4 E+ 03:20 VIT = 180 KB
+。 際 黴 孵 件 泌 115﹍ch5L 預 約 5 2026/8/4 上 午 0320 JPG HE 35 KB
+(RB BH chS| AS... 2026/8/4 上 午 0320 JSON 來 澄 屠 928 KB
+一 土 盼 雷 B115﹍chl1L 顒 約 ﹒ 2026/7/30 FF 07:55 MD 稱 寒 121 KB
+不 政 活 霖 盟 115﹍chl1l 稗 純 2026/7/30 ﹁ 孕 07:55 SRT 榮 染 157 KB
+畏 研 霍 垂 B115﹣chl 山 頭 純 2026/7/30 FF 07:55 MEME 104 KB
+[*7BUAFHOB115_ch11]_ FRA... 2026/7/30 FF 07:55 VIT 8 157 KB
+©) [@FBULFAGB115_ch11]_ 猝 純 。 2026/7/30 ﹁ 孕 07:55 JSON 佞 漢 概 ﹣ ﹍ 462KB
+local_verification reportmd ﹍2026/7/30 F 07:35 MD 188 14 KB
+﹁ 區 法 chl3 猩 約 122024﹣1﹍ 2026/7/30 FF 06:36 MD 穗 寒 166 KB
+﹍ 匡 浤 chl2L #84) 12 2024-1... 2026/7/30 FF 06:36 SRT tS 228 KB
+[E5&_ch12]_ 184) 12 2024-1... 2026/7/30 F 卅 06:36 MEM 147 KB
+[B3&_ch12] FH) 12 2024-1... 2026/7/30 FF 06:36 VIT 18 228 KB
+
+=== media_1785925839377.png ===
+22 Windows PowerShell x + ~
+B 苑 行 空 五 蓑 (232 TH )
+
+﹚
+| ®& Formatter [ 行 政 法 霖 遂 Bl5﹍ch8]﹍ 頸 約 8 2025-08-1.. 28/28
+i 16-26-
+g STT 7/33 [ 行 政 法 霖 迴 B115﹍ch1]﹍ 頸 約 1 2825﹣98﹣8﹣ 7/33
+13-50-
+﹩ STT 32/32 [ 行 政 法 霖 遂 Bl5﹍chg]﹍ 預 約 6 2825﹣98﹣1 32/32
+11-38-
+﹩ STT 33/33 [ 行 政 法 霖 迴 BL15﹍ch7]﹍ 預 約 ﹖ 2825﹣98﹣1 33/33
+1u﹣88﹣
+﹩ STT 33/33 [ 行 政 法 霖 迴 BL15﹍ch7]﹍ 預 約 ﹖ 2825﹣98﹣1 33/33
+1u﹣88﹣
+﹩ STT 30/30 [ 行 政 法 霖 迴 B115﹍ch91﹍ 頸 約 9 2825﹣98﹣1 30/30
+18-50-
+﹩ STT 30/30 [ 行 政 法 霖 迴 B115﹍ch91﹍ 頸 約 9 2825﹣98﹣1 30/30
+18-50-
+﹩ STT 29/29 (47 BUA 39 B115_ch10]_4@# 10 29/29
+2025-08-18 90﹣9
+﹩ STT 11/31 (47 BUA FRB B115_ch12]_A 12 11/31
+2025-09-12 13-41
+﹁| ﹩ st 32/32 (47 BUA 39 B115_ch13]_A 13 32/32
+) 2025-09-29 23-5
+﹩ STT 31/31 (47 BUA 39 B115_ch14]_A 1 31/31
+| 2025-10-18 13-5
+﹩ STT 31/31 (47 BUA 39 B115_ch14]_A 1 31/31
+2025-10-18 13-5
+| ﹩ stT 29/29 ﹍chl5]﹍ 預 約 15 29/29
+
+

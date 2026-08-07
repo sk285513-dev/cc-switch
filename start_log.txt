@@ -1,0 +1,35 @@
+
+============================================
+  LexMind-Omni  One-Click Startup  v2.1   
+============================================
+
+[1/5] Killing stale processes (Nuclear Option)...
+  [OK] Killed all previous Python, Node, and FFmpeg processes.
+[1.5/5] Verifying Code Integrity...
+  [OK] Code verification passed.
+[2/5] Resetting locks and quota...
+  [OK] workflow.lock removed, quota_state.json reset
+[3/5] Starting background engines...
+  [OK]   Workflow Engine started
+  [OK]   Watchdog started
+  [OK]   Auto Healer started
+[4/5] Starting Streamlit UI...
+  [OK]   Streamlit starting...
+[5/5] Starting monitor windows...
+  [OK]   SRE Watchdog opened
+  [OK]   KPI Monitor opened
+  [OK]   Progress Dashboard (統計報表) opened
+  [OK]   Workflow Log Monitor opened
+
+============================================
+  All done! Check the following:           
+  1. Streamlit  -> http://localhost:8506   
+  2. SRE Watchdog  (PowerShell window)     
+  3. KPI Monitor   (PowerShell window)     
+  4. Dashboard     (PowerShell window)     
+                                           
+  Crawler: python bot_ultimate_real_crawler.py
+  Or:      double-click Launch_Crawler_UI.vbs
+============================================
+
+Window will close in 5 seconds...
