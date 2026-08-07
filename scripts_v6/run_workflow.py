@@ -1,4 +1,4 @@
-# [CRITICAL CROSS-FILE DEPENDENCY WARNING]
+﻿# [CRITICAL CROSS-FILE DEPENDENCY WARNING]
 # Upstream: LexMind_V6_沙盒驗證版.ps1
 # Downstream: stt_runner.py, etc.
 # Shared State: Database, Chunks

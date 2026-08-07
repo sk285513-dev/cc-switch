@@ -1,4 +1,4 @@
-# [CRITICAL CROSS-FILE DEPENDENCY WARNING]
+﻿# [CRITICAL CROSS-FILE DEPENDENCY WARNING]
 # Upstream: run_workflow.py
 # Downstream: quota_manager.py, Gemini API
 # Shared State: Chunks, API Keys, Transcripts

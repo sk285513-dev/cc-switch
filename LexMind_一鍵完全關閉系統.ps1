@@ -1,4 +1,4 @@
-$callerPID = $PID
+﻿$callerPID = $PID
 $scriptBlock = {
     param($OriginalPID)
     Write-Host "LexMind Stop Script (Elevated)"
