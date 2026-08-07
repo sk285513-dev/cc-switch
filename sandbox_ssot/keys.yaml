@@ -1,0 +1,12 @@
+gemini_keys:
+- value: AIzaSyA-fake-key-1-active
+  status: active
+  last_checked: '2026-07-23T00:03:05.004296+00:00'
+- value: AIzaSyB-fake-key-2-will-429
+  status: exhausted
+  last_checked: '2026-07-23T00:03:05.013333+00:00'
+  notes: HTTP 429 Quota Exceeded
+- value: AIzaSyC-fake-key-3-will-401
+  status: dead
+  last_checked: '2026-07-23T00:03:05.022305+00:00'
+  notes: HTTP 401 API Key Invalid

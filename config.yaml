@@ -10,8 +10,10 @@ paths:
   logs_dir: "logs"
 
 api:
-  # Gemini API 配置
-  gemini_api_key: "AUTO_LOAD_FROM_ENV"
+  # 流量管控與並發設定 (Multiprocessing 安全)
+  max_concurrent_calls: 6      # 最大並發上雲端數
+  base_jitter_seconds: 2.0     # 429 退避全抖動基礎時間
+  
   gemini_model_low_cost: "gemini-2.5-flash"
   gemini_model_high_accuracy: "gemini-2.5-pro"
 
@@ -21,10 +23,9 @@ settings:
   low_cost_mode: false
   
   # 語音轉文字 (STT) 引擎配置: "gemini", "local_whisper", 或 "vertexai"
-  stt_engine: "vertexai"
-  vertexai_project: "trusty-spanner-366704"
-  vertexai_location: "us-central1"
-  vertexai_credentials_path: "config/vertex_key.json"
+  stt_engine: "gemini"
+  vertexai_project: "project-bbb51788-254b-4ec3-ad7"
+  vertexai_location: "global"
   
   local_whisper_model: "medium" # 可設為 tiny, small, medium, large-v3
   

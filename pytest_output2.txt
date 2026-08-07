@@ -1,0 +1,56 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.5, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\Users\temp
+configfile: pytest.ini
+plugins: anyio-4.13.0, deepeval-4.0.5, langsmith-0.8.9, asyncio-1.4.0, repeat-0.9.4, rerunfailures-16.3, xdist-3.8.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 0 items / 1 error
+Running teardown with pytest sessionfinish...
+
+=================================== ERRORS ====================================
+______ ERROR collecting antigravity/LexMind-Omni-法律實務-AI-工作站/test_ds.py _______
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py:1321: in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\http\client.py:1367: in request
+    self._send_request(method, url, body, headers, encode_chunked)
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\http\client.py:1413: in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\http\client.py:1362: in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\http\client.py:1122: in _send_output
+    self.send(msg)
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\http\client.py:1066: in send
+    self.connect()
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\http\client.py:1032: in connect
+    self.sock = self._create_connection(
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\socket.py:874: in create_connection
+    raise exceptions[0]
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\socket.py:859: in create_connection
+    sock.connect(sa)
+E   ConnectionRefusedError: [WinError 10061] 無法連線，因為目標電腦拒絕連線。
+
+During handling of the above exception, another exception occurred:
+test_ds.py:5: in <module>
+    with urllib.request.urlopen(req,timeout=60) as r:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py:187: in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py:487: in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py:504: in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py:464: in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py:1350: in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py:1324: in do_open
+    raise URLError(err)
+E   urllib.error.URLError: <urlopen error [WinError 10061] 無法連線，因為目標電腦拒絕連線。>
+=========================== short test summary info ===========================
+ERROR test_ds.py - urllib.error.URLError: <urlopen error [WinError 10061] 無...
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+============================== 1 error in 16.53s ==============================

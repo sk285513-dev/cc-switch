@@ -1,0 +1,42 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.5, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\Users\temp
+configfile: pytest.ini
+plugins: anyio-4.13.0, deepeval-4.0.5, langsmith-0.8.9, asyncio-1.4.0, repeat-0.9.4, rerunfailures-16.3, xdist-3.8.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 0 items / 1 error
+Running teardown with pytest sessionfinish...
+
+=================================== ERRORS ====================================
+______ ERROR collecting antigravity/LexMind-Omni-法律實務-AI-工作站/test_ds.py _______
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1342: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:938: in _load_unlocked
+    ???
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\assertion\rewrite.py:188: in exec_module
+    source_stat, co = _rewrite_test(fn, self.config)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\assertion\rewrite.py:357: in _rewrite_test
+    tree = ast.parse(source, filename=strfn)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\ast.py:46: in parse
+    return compile(source, filename, mode, flags,
+E     File "C:\Users\temp\antigravity\LexMind-Omni-法律實務-AI-工作站\test_ds.py", line 2
+E       body = b'''{"model":"deepseek-r1:7b","messages":[{"role":"system","content":"Taiwan law AI, Traditional Chinese, concise"},{"role":"user","content":"民法第197條時效起算點？"}],"stream":false,"options":{"temperature":0.1}}'''
+E              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   SyntaxError: bytes can only contain ASCII literal characters
+=========================== short test summary info ===========================
+ERROR test_ds.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+============================== 1 error in 14.34s ==============================

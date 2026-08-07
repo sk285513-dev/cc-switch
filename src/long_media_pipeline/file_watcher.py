@@ -4,6 +4,7 @@ import time
 import hashlib
 import json
 import logging
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 import yaml
 import subprocess
 from watchdog.observers import Observer
@@ -32,7 +33,7 @@ class LongMediaWatcherHandler(FileSystemEventHandler):
         os.makedirs(self.manifests_dir, exist_ok=True)
         
         # Setup file log handler
-        file_handler = logging.FileHandler(self.workflow_log, encoding='utf-8')
+        file_handler = ConcurrentRotatingFileHandler(self.workflow_log, mode=\"a\", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
         file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
         logging.getLogger().addHandler(file_handler)
         

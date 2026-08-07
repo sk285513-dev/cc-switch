@@ -8,7 +8,7 @@ import gc
 from pathlib import Path
 
 # 將 root 與 scripts 目錄納入 PATH，確保子模組順利載入
-base_dir = Path(__file__).resolve().parent.parent
+base_dir = Path(__file__).resolve().parent
 sys.path.append(str(base_dir))
 sys.path.append(str(base_dir / "scripts"))
 
@@ -272,13 +272,16 @@ def scan_drives(scan_path=None):
 
 def update_buffer_file(paths):
     """將搜尋到的路徑寫入 chosen_paths_buffer.json"""
-    try:
-        os.makedirs(os.path.dirname(BUFFER_FILE), exist_ok=True)
-        with open(BUFFER_FILE, "w", encoding="utf-8") as f:
-            json.dump(paths, f, ensure_ascii=False, indent=4)
-        print(f"\n[Step 2] 成功將 {len(paths)} 個路徑寫入介面快取 buffer 檔案中。")
-    except Exception as e:
-        print(f"\n[Step 2] ❌ 寫入快取檔失敗: {e}")
+    for _ in range(50):
+        try:
+            os.makedirs(os.path.dirname(BUFFER_FILE), exist_ok=True)
+            with open(BUFFER_FILE, "w", encoding="utf-8") as f:
+                json.dump(paths, f, ensure_ascii=False, indent=4)
+            print(f"\n[Step 2] 成功將 {len(paths)} 個路徑寫入介面快取 buffer 檔案中。")
+            return
+        except Exception as e:
+            time.sleep(0.1)
+    print(f"\n[Step 2] ❌ 寫入快取檔失敗 (Timeout).")
 
 HISTORY_FILE = "C:\\LocalAI_Workstation\\ingested_history.json"
 
@@ -294,12 +297,14 @@ def load_ingested_history():
     return {}
 
 def save_ingested_history(history):
-    try:
-        os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
-        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(history, f, ensure_ascii=False, indent=4)
-    except Exception:
-        pass
+    for _ in range(50):
+        try:
+            os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
+            with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+                json.dump(history, f, ensure_ascii=False, indent=4)
+            return
+        except Exception:
+            time.sleep(0.1)
 
 def is_file_already_ingested(f_path, history):
     if f_path not in history:
@@ -381,6 +386,11 @@ def run_ingest(folders):
     
     # 3. 逐一處理
     history = load_ingested_history()
+    
+    import concurrent.futures
+    agent_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+
+    # 4. 輪詢處理每個新檔案
     for idx, (disp_name, f_path, parent_folder) in enumerate(valid_files_info):
         # 檢查是否已吸收過且未修改
         if is_file_already_ingested(f_path, history):
@@ -433,7 +443,8 @@ def run_ingest(folders):
             def sanitize_filename(name: str) -> str:
                 for char in ['\\', '/', ':', '*', '?', '"', '<', '>', '|']:
                     name = name.replace(char, '')
-                return name.strip()
+                cleaned = name.strip()
+                return cleaned if cleaned else f"unnamed_{int(time.time())}"
                 
             out_filename = f"{sanitize_filename(class_name)}_{sanitize_filename(lesson_name)}_{sanitize_filename(p_file.stem)}_逐字稿.txt"
             out_filepath = os.path.join(transcripts_dir, out_filename)
@@ -443,9 +454,21 @@ def run_ingest(folders):
             
             # 摘要並上傳向量資料庫
             print("   [3/3] 正在利用大模型提煉核心爭點與推理路徑並建檔...")
-            payload_prompt = f"分析以下文本，提煉出：核心爭點、推理路徑、結論：\n\n{final_text[:2000]}"
-            res = agent.chat(payload_prompt) # 調用 agent 做推理
-            summary = res[0] if isinstance(res, tuple) else str(res)
+            payload_prompt = f"分析以下文本，提煉出：核心爭點、推理路徑、結論：\n<document>\n{final_text[:2000]}\n</document>"
+            
+            try:
+                future = agent_executor.submit(agent.chat, payload_prompt)
+                res = future.result(timeout=180) # 3 min timeout
+                summary = res[0] if isinstance(res, tuple) else str(res)
+            except concurrent.futures.TimeoutError:
+                print("   -> [警告] Agent 推理超時 (180s)，略過總結。")
+                summary = "總結超時。"
+                # Tear down stuck executor and recreate it so the pipeline can continue
+                agent_executor.shutdown(wait=False)
+                agent_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            except Exception as ae:
+                print(f"   -> [警告] Agent 推理失敗: {ae}")
+                summary = "總結失敗。"
             
             # 儲存到智商庫
             safe_chroma_text = final_text[:CHROMA_TEXT_LIMIT]

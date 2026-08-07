@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import logging
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 import yaml
 import time
 import re
@@ -62,7 +63,7 @@ def format_markdown(task_id):
         format='%(asctime)s [%(levelname)s] %(message)s',
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler(workflow_log, encoding='utf-8')
+            ConcurrentRotatingFileHandler(workflow_log, mode=\"a\", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
         ]
     )
     

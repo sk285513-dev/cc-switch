@@ -1,3 +1,11 @@
+# ==============================================================================
+# [CRITICAL DEPENDENCY WARNING] Group 5: 前端介面與路由代理 (UI & Router)
+# ------------------------------------------------------------------------------
+# ⚠️ 此檔案屬於高度解耦架構的【Group 5】。
+# 修改儀表板 UI 或顯示邏輯時，絕對必須同步更新 Group 9 (視覺測試機器人) 的截圖 OCR 辨識邏輯。
+# 本儀表板讀取的資料來自 Group 1/2，若顯示異常，請勿擅自修改後端資料格式！
+# 修改前請務必參閱：PIPELINE_DEPENDENCIES.md
+# ==============================================================================
 # ==========================================
 # Streamlit 1.0/2026 舊版元件相容性修復補丁 (Monkey Patch)
 # ==========================================
@@ -1540,10 +1548,10 @@ with tab_ingest:
             
             time.sleep(1)
             st.rerun()
-            st.stop()
+            pass  # removed st.stop()
 
     # 2. 偵測與渲染背景處理中/暫停中畫面
-    if IngestionBackgroundTask.status in ["running", "paused"]:
+    elif IngestionBackgroundTask.status in ["running", "paused"]:
         # 為了使前台即時同步背景 Thread 寫入的狀態，在此處主動加載磁碟狀態
         IngestionBackgroundTask.load_from_disk()
         
@@ -1626,10 +1634,10 @@ with tab_ingest:
                 
         time.sleep(1)
         st.rerun()
-        st.stop()
+        pass  # removed st.stop()
 
     # 3. 偵測與渲染研讀完成/中斷/出錯畫面
-    if IngestionBackgroundTask.status in ["completed", "cancelled", "error"]:
+    elif IngestionBackgroundTask.status in ["completed", "cancelled", "error"]:
         if IngestionBackgroundTask.status == "completed":
             st.success("✅ 法律教材與卷宗檔案已全部批次研讀消化完畢，智商庫已成功拓寬演化！")
         elif IngestionBackgroundTask.status == "cancelled":
@@ -1658,308 +1666,309 @@ with tab_ingest:
             IngestionBackgroundTask.reset()
             st.session_state.chosen_batch_paths = []
             st.rerun()
-        st.stop()
+        pass  # removed st.stop()
 
-    # 4. 正常狀態下 (Idle) 的匯入 UI
-    st.caption("小檔案可用瀏覽器上傳；3G 到 9G 的卷宗、影音與大量資料夾請用 Windows 本地資料夾路徑，避免瀏覽器與 16GB RAM 被一次塞滿。")
-    st.info("currently split strategy: browser upload is only suitable for total files under 200MB; large files please use local path below, system will process in low memory mode.")
+    else:
+        # 4. 正常狀態下 (Idle) 的匯入 UI
+        st.caption("小檔案可用瀏覽器上傳；3G 到 9G 的卷宗、影音與大量資料夾請用 Windows 本地資料夾路徑，避免瀏覽器與 16GB RAM 被一次塞滿。")
+        st.info("currently split strategy: browser upload is only suitable for total files under 200MB; large files please use local path below, system will process in low memory mode.")
 
-    st.markdown("##### 🚀 方案一：瀏覽器小檔上傳（總量 200MB 以內）")
-    uploaded_files = st.file_uploader(
-        "📂 小型 TXT/PDF/圖片/短音檔可拖曳至此；大型卷宗與影音請改用方案二",
-        type=['txt', 'pdf', 'png', 'jpg', 'mp3', 'mp4', 'wav'],
-        accept_multiple_files=True,
-        key="browser_uploader"
-    )
-    uploaded_total_mb = sum(getattr(f, "size", 0) for f in uploaded_files or []) / (1024 * 1024)
-    if uploaded_files:
-        if uploaded_total_mb > BROWSER_UPLOAD_SAFE_LIMIT_MB:
-            st.error(f"偵測到瀏覽器上傳總量 {uploaded_total_mb:.1f} MB，已超過安全上限 {BROWSER_UPLOAD_SAFE_LIMIT_MB} MB。請清空上傳並改用方案二的 Windows 本地資料夾路徑。")
-        else:
-            st.success(f"瀏覽器小檔模式就緒：{len(uploaded_files)} 個檔案，總量 {uploaded_total_mb:.1f} MB。")
-
-    st.markdown("##### 📁 方案二：Windows 本地路徑大檔與資料夾模式（建議 3G 到 9G 檔案使用）")
-    st.info("💡 **批次導入小提示**：若您的檔案分散在多個子資料夾（如 `ch1` 到 `ch45`），您**不需要**逐一選取子資料夾！您只需選取最上層的**母資料夾**（例如 `民法A115`），系統在啟動時便會**「自動遞迴掃描」**旗下所有子資料夾內的所有影音與文件檔案！")
-    
-    col_path_input, col_add_btn = st.columns([8, 2])
-    with col_path_input:
-        manual_path = st.text_input("請輸入 Windows 本地檔案或資料夾路徑", value="", placeholder="例如：E:\\法律\\台灣法規庫 或 C:\\case\\evidence.mp4", key="manual_path_input")
-    with col_add_btn:
-        st.write("")
-        st.write("")
-        if st.button("➕ 新增此路徑", key="add_manual_path"):
-            if manual_path:
-                parsed_paths = parse_multiple_paths(manual_path)
-                added_paths = []
-                missing_paths = []
-                
-                if "chosen_batch_paths" not in st.session_state:
-                    st.session_state.chosen_batch_paths = load_paths_from_buffer()
-                
-                for p in parsed_paths:
-                    if os.path.exists(p):
-                        abs_p = os.path.abspath(p)
-                        if abs_p not in st.session_state.chosen_batch_paths:
-                            st.session_state.chosen_batch_paths.append(abs_p)
-                            added_paths.append(abs_p)
-                    else:
-                        missing_paths.append(p)
-                
-                if added_paths:
-                    save_paths_to_buffer(st.session_state.chosen_batch_paths)
-                    st.success(f"✅ 已成功批次新增 {len(added_paths)} 個有效路徑！")
-                
-                if missing_paths:
-                    missing_str = ", ".join(f"`{mp}`" for mp in missing_paths)
-                    st.error(f"❌ 以下 {len(missing_paths)} 個路徑在電腦中不存在，請檢查拼字：{missing_str}")
-                
-                if added_paths and not missing_paths:
-                    st.rerun()
+        st.markdown("##### 🚀 方案一：瀏覽器小檔上傳（總量 200MB 以內）")
+        uploaded_files = st.file_uploader(
+            "📂 小型 TXT/PDF/圖片/短音檔可拖曳至此；大型卷宗與影音請改用方案二",
+            type=['txt', 'pdf', 'png', 'jpg', 'mp3', 'mp4', 'wav'],
+            accept_multiple_files=True,
+            key="browser_uploader"
+        )
+        uploaded_total_mb = sum(getattr(f, "size", 0) for f in uploaded_files or []) / (1024 * 1024)
+        if uploaded_files:
+            if uploaded_total_mb > BROWSER_UPLOAD_SAFE_LIMIT_MB:
+                st.error(f"偵測到瀏覽器上傳總量 {uploaded_total_mb:.1f} MB，已超過安全上限 {BROWSER_UPLOAD_SAFE_LIMIT_MB} MB。請清空上傳並改用方案二的 Windows 本地資料夾路徑。")
             else:
-                st.warning("請先輸入路徑。")
+                st.success(f"瀏覽器小檔模式就緒：{len(uploaded_files)} 個檔案，總量 {uploaded_total_mb:.1f} MB。")
 
-    enable_tkinter = st.checkbox("啟用本地實體檔案瀏覽器 (⚠️ 僅限在 Windows 本地電腦執行且有桌面環境時勾選；若是遠端或容器環境請勿啟用，以免伺服器卡死)", value=False, key="enable_tkinter_pickers")
-
-    col_browse_dir, col_browse_files = st.columns([1, 1])
-    with col_browse_dir:
-        if st.button("📁 實體檔案總管選資料夾 (可 Ctrl 多選)", key="st_browse_folder", disabled=not enable_tkinter):
-            chosen_dirs = select_folders()
-            if chosen_dirs:
-                if "chosen_batch_paths" not in st.session_state:
-                    st.session_state.chosen_batch_paths = load_paths_from_buffer()
-                for d in chosen_dirs:
-                    abs_path = os.path.abspath(d)
-                    if abs_path not in st.session_state.chosen_batch_paths:
-                        st.session_state.chosen_batch_paths.append(abs_path)
-                save_paths_to_buffer(st.session_state.chosen_batch_paths)
-                st.rerun()
-    with col_browse_files:
-        if st.button("📄 批次點選多個檔案 (可 Ctrl 多選)", key="st_browse_files", disabled=not enable_tkinter):
-            chosen_files = select_files()
-            if chosen_files:
-                if "chosen_batch_paths" not in st.session_state:
-                    st.session_state.chosen_batch_paths = load_paths_from_buffer()
-                for f in chosen_files:
-                    abs_path = os.path.abspath(f)
-                    if abs_path not in st.session_state.chosen_batch_paths:
-                        st.session_state.chosen_batch_paths.append(abs_path)
-                save_paths_to_buffer(st.session_state.chosen_batch_paths)
-                st.rerun()
-
-    st.markdown("##### 🤖 方案三：本機法律教材全自動搜尋與一鍵吸收模式")
-    st.markdown("""
-    <div style="background-color: #1e1b4b; border-left: 6px solid #d97706; padding: 16px; border-radius: 8px; margin-bottom: 15px;">
-        <p style="margin: 0; font-size: 0.95em; color: #e0e7ff;">
-            <b>🤖 智能搜尋機器人</b>：點擊下方按鈕，機器人將自動掃描您本機的所有硬碟磁碟機（最大深度為 8，排除系統無關目錄），自動精確匹配資料夾或檔案名稱含有法律、訴訟、憲法、民事、刑事等教材關鍵字的資料夾，並將其自動載入下方隊列中。
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col_bot_scan, col_bot_scan_and_run = st.columns([1, 1])
+        st.markdown("##### 📁 方案二：Windows 本地路徑大檔與資料夾模式（建議 3G 到 9G 檔案使用）")
+        st.info("💡 **批次導入小提示**：若您的檔案分散在多個子資料夾（如 `ch1` 到 `ch45`），您**不需要**逐一選取子資料夾！您只需選取最上層的**母資料夾**（例如 `民法A115`），系統在啟動時便會**「自動遞迴掃描」**旗下所有子資料夾內的所有影音與文件檔案！")
     
-    with col_bot_scan:
-        if st.button("🤖 啟動全自動搜尋並填入下方隊列", key="run_bot_scan_only", use_container_width=True):
-            with st.spinner("🤖 正在自動掃描本機磁碟機中（請稍候約 10-15 秒）..."):
-                try:
-                    manual_path_val = st.session_state.get("manual_path_input", "").strip() or None
-                    from scripts.auto_ingest_bot import scan_drives
-                    found_folders = scan_drives(scan_path=manual_path_val)
-                    if found_folders:
-                        if "chosen_batch_paths" not in st.session_state:
-                            st.session_state.chosen_batch_paths = load_paths_from_buffer()
-                        
-                        added_count = 0
-                        for folder in found_folders:
-                            abs_folder = os.path.abspath(folder)
-                            if abs_folder not in st.session_state.chosen_batch_paths:
-                                st.session_state.chosen_batch_paths.append(abs_folder)
-                                added_count += 1
-                        
-                        save_paths_to_buffer(st.session_state.chosen_batch_paths)
-                        if added_count > 0:
-                            st.success(f"🤖 機器人已成功在您的磁碟中自動定位出 {len(found_folders)} 個符合條件的法律教材資料夾，並新增了 {added_count} 個新目錄到下方隊列！")
+        col_path_input, col_add_btn = st.columns([8, 2])
+        with col_path_input:
+            manual_path = st.text_input("請輸入 Windows 本地檔案或資料夾路徑", value="", placeholder="例如：E:\\法律\\台灣法規庫 或 C:\\case\\evidence.mp4", key="manual_path_input")
+        with col_add_btn:
+            st.write("")
+            st.write("")
+            if st.button("➕ 新增此路徑", key="add_manual_path"):
+                if manual_path:
+                    parsed_paths = parse_multiple_paths(manual_path)
+                    added_paths = []
+                    missing_paths = []
+                
+                    if "chosen_batch_paths" not in st.session_state:
+                        st.session_state.chosen_batch_paths = load_paths_from_buffer()
+                
+                    for p in parsed_paths:
+                        if os.path.exists(p):
+                            abs_p = os.path.abspath(p)
+                            if abs_p not in st.session_state.chosen_batch_paths:
+                                st.session_state.chosen_batch_paths.append(abs_p)
+                                added_paths.append(abs_p)
                         else:
-                            st.info(f"🤖 機器人已成功搜尋到 {len(found_folders)} 個教材資料夾，均已存在於下方隊列中。")
-                        
-                        time.sleep(2)
-                        st.rerun()
-                    else:
-                        st.warning("❌ 機器人未在您的磁碟中找到任何符合條件的法律教材資料夾。")
-                except Exception as e:
-                    st.error(f"❌ 機器人執行搜尋出錯：{e}")
-                    
-    with col_bot_scan_and_run:
-        if st.button("⚡ 啟動全自動搜尋並直接執行一鍵吸收", key="run_bot_scan_and_digest", use_container_width=True):
-            with st.spinner("🤖 正在自動掃描本機磁碟並直接拉起消化任務（請稍候）..."):
-                try:
-                    manual_path_val = st.session_state.get("manual_path_input", "").strip() or None
-                    from scripts.auto_ingest_bot import scan_drives
-                    found_folders = scan_drives(scan_path=manual_path_val)
-                    if found_folders:
-                        # 1. 寫入隊列
-                        if "chosen_batch_paths" not in st.session_state:
-                            st.session_state.chosen_batch_paths = load_paths_from_buffer()
-                        
-                        for folder in found_folders:
-                            abs_folder = os.path.abspath(folder)
-                            if abs_folder not in st.session_state.chosen_batch_paths:
-                                st.session_state.chosen_batch_paths.append(abs_folder)
-                        
+                            missing_paths.append(p)
+                
+                    if added_paths:
                         save_paths_to_buffer(st.session_state.chosen_batch_paths)
+                        st.success(f"✅ 已成功批次新增 {len(added_paths)} 個有效路徑！")
+                
+                    if missing_paths:
+                        missing_str = ", ".join(f"`{mp}`" for mp in missing_paths)
+                        st.error(f"❌ 以下 {len(missing_paths)} 個路徑在電腦中不存在，請檢查拼字：{missing_str}")
+                
+                    if added_paths and not missing_paths:
+                        st.rerun()
+                else:
+                    st.warning("請先輸入路徑。")
+
+        enable_tkinter = st.checkbox("啟用本地實體檔案瀏覽器 (⚠️ 僅限在 Windows 本地電腦執行且有桌面環境時勾選；若是遠端或容器環境請勿啟用，以免伺服器卡死)", value=False, key="enable_tkinter_pickers")
+
+        col_browse_dir, col_browse_files = st.columns([1, 1])
+        with col_browse_dir:
+            if st.button("📁 實體檔案總管選資料夾 (可 Ctrl 多選)", key="st_browse_folder", disabled=not enable_tkinter):
+                chosen_dirs = select_folders()
+                if chosen_dirs:
+                    if "chosen_batch_paths" not in st.session_state:
+                        st.session_state.chosen_batch_paths = load_paths_from_buffer()
+                    for d in chosen_dirs:
+                        abs_path = os.path.abspath(d)
+                        if abs_path not in st.session_state.chosen_batch_paths:
+                            st.session_state.chosen_batch_paths.append(abs_path)
+                    save_paths_to_buffer(st.session_state.chosen_batch_paths)
+                    st.rerun()
+        with col_browse_files:
+            if st.button("📄 批次點選多個檔案 (可 Ctrl 多選)", key="st_browse_files", disabled=not enable_tkinter):
+                chosen_files = select_files()
+                if chosen_files:
+                    if "chosen_batch_paths" not in st.session_state:
+                        st.session_state.chosen_batch_paths = load_paths_from_buffer()
+                    for f in chosen_files:
+                        abs_path = os.path.abspath(f)
+                        if abs_path not in st.session_state.chosen_batch_paths:
+                            st.session_state.chosen_batch_paths.append(abs_path)
+                    save_paths_to_buffer(st.session_state.chosen_batch_paths)
+                    st.rerun()
+
+        st.markdown("##### 🤖 方案三：本機法律教材全自動搜尋與一鍵吸收模式")
+        st.markdown("""
+        <div style="background-color: #1e1b4b; border-left: 6px solid #d97706; padding: 16px; border-radius: 8px; margin-bottom: 15px;">
+            <p style="margin: 0; font-size: 0.95em; color: #e0e7ff;">
+                <b>🤖 智能搜尋機器人</b>：點擊下方按鈕，機器人將自動掃描您本機的所有硬碟磁碟機（最大深度為 8，排除系統無關目錄），自動精確匹配資料夾或檔案名稱含有法律、訴訟、憲法、民事、刑事等教材關鍵字的資料夾，並將其自動載入下方隊列中。
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_bot_scan, col_bot_scan_and_run = st.columns([1, 1])
+    
+        with col_bot_scan:
+            if st.button("🤖 啟動全自動搜尋並填入下方隊列", key="run_bot_scan_only", use_container_width=True):
+                with st.spinner("🤖 正在自動掃描本機磁碟機中（請稍候約 10-15 秒）..."):
+                    try:
+                        manual_path_val = st.session_state.get("manual_path_input", "").strip() or None
+                        from scripts.auto_ingest_bot import scan_drives
+                        found_folders = scan_drives(scan_path=manual_path_val)
+                        if found_folders:
+                            if "chosen_batch_paths" not in st.session_state:
+                                st.session_state.chosen_batch_paths = load_paths_from_buffer()
                         
-                        # 2. 直接在此收集所有有效檔案
-                        valid_files_info = []
-                        seen_paths = set()
-                        from scripts.auto_ingest_bot import is_file_content_legal
-                        for p_str in st.session_state.chosen_batch_paths:
-                            p = Path(p_str)
-                            if not p.exists():
-                                continue
-                            if p.is_file():
-                                if p.suffix.lower() in SUPPORTED_INGEST_EXTS:
-                                    abs_p = str(p.resolve())
-                                    if abs_p not in seen_paths:
-                                        if is_file_content_legal(abs_p):
-                                            seen_paths.add(abs_p)
-                                            valid_files_info.append((p.name, str(p), "local"))
-                            elif p.is_dir():
-                                files = list(p.rglob("*"))
-                                for f in files:
-                                    if f.is_file() and f.suffix.lower() in SUPPORTED_INGEST_EXTS:
-                                        abs_p = str(f.resolve())
+                            added_count = 0
+                            for folder in found_folders:
+                                abs_folder = os.path.abspath(folder)
+                                if abs_folder not in st.session_state.chosen_batch_paths:
+                                    st.session_state.chosen_batch_paths.append(abs_folder)
+                                    added_count += 1
+                        
+                            save_paths_to_buffer(st.session_state.chosen_batch_paths)
+                            if added_count > 0:
+                                st.success(f"🤖 機器人已成功在您的磁碟中自動定位出 {len(found_folders)} 個符合條件的法律教材資料夾，並新增了 {added_count} 個新目錄到下方隊列！")
+                            else:
+                                st.info(f"🤖 機器人已成功搜尋到 {len(found_folders)} 個教材資料夾，均已存在於下方隊列中。")
+                        
+                            time.sleep(2)
+                            st.rerun()
+                        else:
+                            st.warning("❌ 機器人未在您的磁碟中找到任何符合條件的法律教材資料夾。")
+                    except Exception as e:
+                        st.error(f"❌ 機器人執行搜尋出錯：{e}")
+                    
+        with col_bot_scan_and_run:
+            if st.button("⚡ 啟動全自動搜尋並直接執行一鍵吸收", key="run_bot_scan_and_digest", use_container_width=True):
+                with st.spinner("🤖 正在自動掃描本機磁碟並直接拉起消化任務（請稍候）..."):
+                    try:
+                        manual_path_val = st.session_state.get("manual_path_input", "").strip() or None
+                        from scripts.auto_ingest_bot import scan_drives
+                        found_folders = scan_drives(scan_path=manual_path_val)
+                        if found_folders:
+                            # 1. 寫入隊列
+                            if "chosen_batch_paths" not in st.session_state:
+                                st.session_state.chosen_batch_paths = load_paths_from_buffer()
+                        
+                            for folder in found_folders:
+                                abs_folder = os.path.abspath(folder)
+                                if abs_folder not in st.session_state.chosen_batch_paths:
+                                    st.session_state.chosen_batch_paths.append(abs_folder)
+                        
+                            save_paths_to_buffer(st.session_state.chosen_batch_paths)
+                        
+                            # 2. 直接在此收集所有有效檔案
+                            valid_files_info = []
+                            seen_paths = set()
+                            from scripts.auto_ingest_bot import is_file_content_legal
+                            for p_str in st.session_state.chosen_batch_paths:
+                                p = Path(p_str)
+                                if not p.exists():
+                                    continue
+                                if p.is_file():
+                                    if p.suffix.lower() in SUPPORTED_INGEST_EXTS:
+                                        abs_p = str(p.resolve())
                                         if abs_p not in seen_paths:
                                             if is_file_content_legal(abs_p):
                                                 seen_paths.add(abs_p)
-                                                valid_files_info.append((f.name, str(f), "local"))
+                                                valid_files_info.append((p.name, str(p), "local"))
+                                elif p.is_dir():
+                                    files = list(p.rglob("*"))
+                                    for f in files:
+                                        if f.is_file() and f.suffix.lower() in SUPPORTED_INGEST_EXTS:
+                                            abs_p = str(f.resolve())
+                                            if abs_p not in seen_paths:
+                                                if is_file_content_legal(abs_p):
+                                                    seen_paths.add(abs_p)
+                                                    valid_files_info.append((f.name, str(f), "local"))
                                             
-                        if not valid_files_info:
-                            st.warning("🤖 搜尋到了資料夾，但其下沒有找到任何可處理的法律教材檔案！")
+                            if not valid_files_info:
+                                st.warning("🤖 搜尋到了資料夾，但其下沒有找到任何可處理的法律教材檔案！")
+                            else:
+                                IngestionBackgroundTask.reset()
+                                IngestionBackgroundTask.valid_files_info = valid_files_info
+                                IngestionBackgroundTask.total_files = len(valid_files_info)
+                                IngestionBackgroundTask.transcripts_dir = "C:\\LocalAI_Workstation\\Transcripts"
+                                os.makedirs(IngestionBackgroundTask.transcripts_dir, exist_ok=True)
+                                IngestionBackgroundTask.status = "running"
+                                IngestionBackgroundTask.save_to_disk()
+                            
+                                t = threading.Thread(target=run_background_ingestion, args=(st.session_state.agent_instance, 0))
+                                t.daemon = True
+                                t.start()
+                            
+                                st.success("🤖 機器人已自動搜尋完畢並成功啟動背景批次研讀任務！")
+                                time.sleep(2)
+                                st.rerun()
                         else:
-                            IngestionBackgroundTask.reset()
-                            IngestionBackgroundTask.valid_files_info = valid_files_info
-                            IngestionBackgroundTask.total_files = len(valid_files_info)
-                            IngestionBackgroundTask.transcripts_dir = "C:\\LocalAI_Workstation\\Transcripts"
-                            os.makedirs(IngestionBackgroundTask.transcripts_dir, exist_ok=True)
-                            IngestionBackgroundTask.status = "running"
-                            IngestionBackgroundTask.save_to_disk()
-                            
-                            t = threading.Thread(target=run_background_ingestion, args=(st.session_state.agent_instance, 0))
-                            t.daemon = True
-                            t.start()
-                            
-                            st.success("🤖 機器人已自動搜尋完畢並成功啟動背景批次研讀任務！")
-                            time.sleep(2)
-                            st.rerun()
-                    else:
-                        st.warning("❌ 機器人未在您的磁碟中找到任何符合條件的法律教材資料夾。")
-                except Exception as e:
-                    st.error(f"❌ 機器人執行搜尋或啟動出錯：{e}")
+                            st.warning("❌ 機器人未在您的磁碟中找到任何符合條件的法律教材資料夾。")
+                    except Exception as e:
+                        st.error(f"❌ 機器人執行搜尋或啟動出錯：{e}")
 
-    batch_paths = st.session_state.get("chosen_batch_paths", [])
-    if batch_paths:
-        st.success(f"📌 目前已選取 {len(batch_paths)} 個待研讀項目 (包含檔案與資料夾)：")
+        batch_paths = st.session_state.get("chosen_batch_paths", [])
+        if batch_paths:
+            st.success(f"📌 目前已選取 {len(batch_paths)} 個待研讀項目 (包含檔案與資料夾)：")
         
-        for idx, p_path in enumerate(batch_paths):
-            col_item_name, col_item_del = st.columns([8, 2])
-            is_dir = os.path.isdir(p_path)
-            icon = "📁 [資料夾]" if is_dir else "📄 [檔案]"
+            for idx, p_path in enumerate(batch_paths):
+                col_item_name, col_item_del = st.columns([8, 2])
+                is_dir = os.path.isdir(p_path)
+                icon = "📁 [資料夾]" if is_dir else "📄 [檔案]"
             
-            detail_msg = ""
-            if is_dir:
-                try:
-                    p_obj = Path(p_path)
-                    all_files = list(p_obj.rglob("*"))
-                    supported_files = [f for f in all_files if f.is_file() and f.suffix.lower() in SUPPORTED_INGEST_EXTS]
+                detail_msg = ""
+                if is_dir:
+                    try:
+                        p_obj = Path(p_path)
+                        all_files = list(p_obj.rglob("*"))
+                        supported_files = [f for f in all_files if f.is_file() and f.suffix.lower() in SUPPORTED_INGEST_EXTS]
                     
-                    ext_counts = {}
-                    for f in supported_files:
-                        ext = f.suffix.lower()
-                        ext_counts[ext] = ext_counts.get(ext, 0) + 1
+                        ext_counts = {}
+                        for f in supported_files:
+                            ext = f.suffix.lower()
+                            ext_counts[ext] = ext_counts.get(ext, 0) + 1
                     
-                    if supported_files:
-                        summary_parts = []
-                        for ext in sorted(ext_counts.keys()):
-                            count = ext_counts[ext]
-                            ext_label = ext.replace(".", "").upper()
-                            summary_parts.append(f"`{ext_label}`: {count} 個")
-                        summary_str = "，".join(summary_parts)
-                        detail_msg = f"🔍 包含可處理法律教材檔案共 **{len(supported_files)}** 個 ({summary_str})"
-                    else:
-                        detail_msg = "⚠️ 警告：此資料夾下沒有找到任何可處理的影音或文件檔案！"
-                except Exception as e:
-                    detail_msg = f"⚠️ 無法讀取資料夾內容：{e}"
+                        if supported_files:
+                            summary_parts = []
+                            for ext in sorted(ext_counts.keys()):
+                                count = ext_counts[ext]
+                                ext_label = ext.replace(".", "").upper()
+                                summary_parts.append(f"`{ext_label}`: {count} 個")
+                            summary_str = "，".join(summary_parts)
+                            detail_msg = f"🔍 包含可處理法律教材檔案共 **{len(supported_files)}** 個 ({summary_str})"
+                        else:
+                            detail_msg = "⚠️ 警告：此資料夾下沒有找到任何可處理的影音或文件檔案！"
+                    except Exception as e:
+                        detail_msg = f"⚠️ 無法讀取資料夾內容：{e}"
             
-            with col_item_name:
-                st.markdown(f"{idx+1}. {icon} `{p_path}`")
-                if is_dir and detail_msg:
-                    st.caption(detail_msg)
-            with col_item_del:
-                if st.button("❌ 移除", key=f"del_item_{idx}"):
-                    batch_paths.pop(idx)
-                    st.session_state.chosen_batch_paths = batch_paths
-                    save_paths_to_buffer(st.session_state.chosen_batch_paths)
-                    st.rerun()
+                with col_item_name:
+                    st.markdown(f"{idx+1}. {icon} `{p_path}`")
+                    if is_dir and detail_msg:
+                        st.caption(detail_msg)
+                with col_item_del:
+                    if st.button("❌ 移除", key=f"del_item_{idx}"):
+                        batch_paths.pop(idx)
+                        st.session_state.chosen_batch_paths = batch_paths
+                        save_paths_to_buffer(st.session_state.chosen_batch_paths)
+                        st.rerun()
                     
-        if st.button("🧹 清空所有選取項目", key="clear_all_batch_paths"):
-            st.session_state.chosen_batch_paths = []
-            save_paths_to_buffer([])
-            st.rerun()
+            if st.button("🧹 清空所有選取項目", key="clear_all_batch_paths"):
+                st.session_state.chosen_batch_paths = []
+                save_paths_to_buffer([])
+                st.rerun()
 
-    if st.button("🚀 啟動一鍵批次研讀與消化", use_container_width=True):
-        valid_files_info = []
+        if st.button("🚀 啟動一鍵批次研讀與消化", use_container_width=True):
+            valid_files_info = []
         
-        if uploaded_files:
-            if uploaded_total_mb > BROWSER_UPLOAD_SAFE_LIMIT_MB:
-                st.error("已停止處理：瀏覽器上傳總量過大。請移除上方上傳檔案，改用方案二輸入本機資料夾路徑。")
-            else:
-                import tempfile
-                for file_obj in uploaded_files:
-                    suffix = Path(file_obj.name).suffix
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_f:
-                        tmp_f.write(file_obj.read())
-                        tmp_path = tmp_f.name
-                    valid_files_info.append((file_obj.name, tmp_path, "uploaded"))
+            if uploaded_files:
+                if uploaded_total_mb > BROWSER_UPLOAD_SAFE_LIMIT_MB:
+                    st.error("已停止處理：瀏覽器上傳總量過大。請移除上方上傳檔案，改用方案二輸入本機資料夾路徑。")
+                else:
+                    import tempfile
+                    for file_obj in uploaded_files:
+                        suffix = Path(file_obj.name).suffix
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_f:
+                            tmp_f.write(file_obj.read())
+                            tmp_path = tmp_f.name
+                        valid_files_info.append((file_obj.name, tmp_path, "uploaded"))
                 
-        seen_paths = set()
-        from scripts.auto_ingest_bot import is_file_content_legal
-        for p_str in batch_paths:
-            p = Path(p_str)
-            if not p.exists():
-                continue
-            if p.is_file():
-                if p.suffix.lower() in SUPPORTED_INGEST_EXTS:
-                    abs_p = str(p.resolve())
-                    if abs_p not in seen_paths:
-                        if is_file_content_legal(abs_p):
-                            seen_paths.add(abs_p)
-                            valid_files_info.append((p.name, str(p), "local"))
-            elif p.is_dir():
-                files = list(p.rglob("*"))
-                for f in files:
-                    if f.is_file() and f.suffix.lower() in SUPPORTED_INGEST_EXTS:
-                        abs_p = str(f.resolve())
+            seen_paths = set()
+            from scripts.auto_ingest_bot import is_file_content_legal
+            for p_str in batch_paths:
+                p = Path(p_str)
+                if not p.exists():
+                    continue
+                if p.is_file():
+                    if p.suffix.lower() in SUPPORTED_INGEST_EXTS:
+                        abs_p = str(p.resolve())
                         if abs_p not in seen_paths:
                             if is_file_content_legal(abs_p):
                                 seen_paths.add(abs_p)
-                                valid_files_info.append((f.name, str(f), "local"))
+                                valid_files_info.append((p.name, str(p), "local"))
+                elif p.is_dir():
+                    files = list(p.rglob("*"))
+                    for f in files:
+                        if f.is_file() and f.suffix.lower() in SUPPORTED_INGEST_EXTS:
+                            abs_p = str(f.resolve())
+                            if abs_p not in seen_paths:
+                                if is_file_content_legal(abs_p):
+                                    seen_paths.add(abs_p)
+                                    valid_files_info.append((f.name, str(f), "local"))
                 
-        if not valid_files_info:
-            st.warning("⚠️ 待研讀隊列為空！請拖放檔案至方案一，或設定方案二正確本地路徑與檔案選取。")
-        else:
-            IngestionBackgroundTask.reset()
-            IngestionBackgroundTask.valid_files_info = valid_files_info
-            IngestionBackgroundTask.total_files = len(valid_files_info)
-            IngestionBackgroundTask.transcripts_dir = "C:\\LocalAI_Workstation\\Transcripts"
-            os.makedirs(IngestionBackgroundTask.transcripts_dir, exist_ok=True)
-            IngestionBackgroundTask.status = "running"
-            IngestionBackgroundTask.save_to_disk()
+            if not valid_files_info:
+                st.warning("⚠️ 待研讀隊列為空！請拖放檔案至方案一，或設定方案二正確本地路徑與檔案選取。")
+            else:
+                IngestionBackgroundTask.reset()
+                IngestionBackgroundTask.valid_files_info = valid_files_info
+                IngestionBackgroundTask.total_files = len(valid_files_info)
+                IngestionBackgroundTask.transcripts_dir = "C:\\LocalAI_Workstation\\Transcripts"
+                os.makedirs(IngestionBackgroundTask.transcripts_dir, exist_ok=True)
+                IngestionBackgroundTask.status = "running"
+                IngestionBackgroundTask.save_to_disk()
             
-            t = threading.Thread(target=run_background_ingestion, args=(st.session_state.agent_instance, 0))
-            t.daemon = True
-            t.start()
+                t = threading.Thread(target=run_background_ingestion, args=(st.session_state.agent_instance, 0))
+                t.daemon = True
+                t.start()
             
-            st.success("🚀 背景批次教材研讀任務已成功啟動！")
-            st.rerun()
+                st.success("🚀 背景批次教材研讀任務已成功啟動！")
+                st.rerun()
 
 # ==============================================================================
 # TAB 2.5: 📂 法律個案管理區
